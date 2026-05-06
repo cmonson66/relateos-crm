@@ -1,7 +1,20 @@
 import { getUser } from '@/lib/auth/get-user';
+import { createClient } from '@/lib/supabase/server';
+import Link from 'next/link';
+import { Building2, Users, Briefcase, Activity as ActivityIcon } from 'lucide-react';
 
 export default async function DashboardPage() {
   const { profile } = await getUser();
+  const supabase = await createClient();
+
+  const [{ count: accountCount }, { count: contactCount }, { count: dealCount }, { count: openTaskCount }] = await Promise.all([
+    supabase.from('accounts').select('*', { count: 'exact', head: true }),
+    supabase.from('contacts').select('*', { count: 'exact', head: true }),
+    supabase.from('deals').select('*', { count: 'exact', head: true }),
+    supabase.from('activities').select('*', { count: 'exact', head: true })
+      .eq('type', 'task').is('completed_at', null),
+  ]);
+
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'short', month: 'short', day: 'numeric',
   }).toUpperCase();
@@ -22,38 +35,35 @@ export default async function DashboardPage() {
           <span className="text-primary text-glow-primary">{firstName.toUpperCase()}</span>
         </h1>
         <p className="text-muted-foreground mt-3 max-w-2xl">
-          Day 2 placeholder. Real KPIs and pipeline visualization ship Day 3.
+          Your sales pipeline at a glance.
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <KpiCard label="Role" value={profile.role.replace('_', ' ')} accent />
-        <KpiCard label="Status" value="Authenticated" />
-        <KpiCard label="Organization" value="ProtosEQ" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <KpiLink href="/accounts" icon={Building2} label="Accounts" value={accountCount ?? 0} accent />
+        <KpiLink href="/contacts" icon={Users} label="Contacts" value={contactCount ?? 0} />
+        <KpiLink href="/deals" icon={Briefcase} label="Deals" value={dealCount ?? 0} />
+        <KpiLink href="/activities" icon={ActivityIcon} label="Open tasks" value={openTaskCount ?? 0} />
       </div>
 
       <div className="card-lit text-card-foreground rounded-md border border-border/40 relative">
-        <div className="h-[2px] bg-primary glow-stripe rounded-t-md" />
+        <div className="h-[2px] bg-primary glow-stripe rounded-t-md absolute inset-x-0 top-0" />
         <div className="p-6">
           <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-4">
-            Coming Day 3
+            Coming next
           </div>
-          <div className="grid grid-cols-2 gap-x-12 gap-y-3 text-sm">
-            <div className="flex items-baseline gap-3">
-              <span className="font-display text-2xl text-primary leading-none">01</span>
-              <span>Accounts management</span>
-            </div>
-            <div className="flex items-baseline gap-3">
-              <span className="font-display text-2xl text-primary leading-none">02</span>
-              <span>Contacts CRUD + bulk import</span>
-            </div>
-            <div className="flex items-baseline gap-3">
-              <span className="font-display text-2xl text-primary leading-none">03</span>
-              <span>Deals + pipeline kanban</span>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-3 text-sm">
             <div className="flex items-baseline gap-3">
               <span className="font-display text-2xl text-primary leading-none">04</span>
-              <span>Activity logging + scheduling</span>
+              <span>Deals + pipeline kanban (Day 4)</span>
+            </div>
+            <div className="flex items-baseline gap-3">
+              <span className="font-display text-2xl text-primary leading-none">05</span>
+              <span>Activity logging + comments + @mentions (Day 5)</span>
+            </div>
+            <div className="flex items-baseline gap-3">
+              <span className="font-display text-2xl text-primary leading-none">06</span>
+              <span>System alerts + admin tools + soft launch (Day 6)</span>
             </div>
           </div>
         </div>
@@ -62,24 +72,32 @@ export default async function DashboardPage() {
   );
 }
 
-function KpiCard({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function KpiLink({
+  href, icon: Icon, label, value, accent,
+}: {
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: number;
+  accent?: boolean;
+}) {
   return (
-    <div className="card-lit text-card-foreground rounded-md border border-border/40 relative">
-      <div
-        className={
-          accent
-            ? 'h-[3px] bg-primary glow-stripe rounded-t-md'
-            : 'h-[3px] bg-card-foreground/10 rounded-t-md'
-        }
-      />
+    <Link
+      href={href}
+      className="card-lit border border-border/40 rounded-md relative group hover:border-primary/40 transition-colors"
+    >
+      <div className={`h-[3px] rounded-t-md ${accent ? 'bg-primary glow-stripe' : 'bg-card-foreground/10 group-hover:bg-primary/40'}`} />
       <div className="p-5">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">
-          {label}
+        <div className="flex items-center justify-between mb-2.5">
+          <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+            {label}
+          </div>
+          <Icon className="h-4 w-4 text-muted-foreground/60 group-hover:text-primary transition-colors" />
         </div>
-        <div className="font-display text-3xl tracking-wider capitalize leading-none">
-          {value}
+        <div className="font-display text-4xl tracking-wider leading-none">
+          {value.toLocaleString()}
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
