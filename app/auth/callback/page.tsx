@@ -1,10 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
+export const dynamic = 'force-dynamic';
+
 export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <CallbackInner />
+    </Suspense>
+  );
+}
+
+function CallbackInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'working' | 'error'>('working');
@@ -15,10 +25,8 @@ export default function AuthCallbackPage() {
 
     async function run() {
       try {
-        // ─────────────────────────────────────────────────────────────────
         // Path A: implicit / hash flow ("#access_token=...&refresh_token=...")
         // This is what generateLink({type:\'invite\'}) emits.
-        // ─────────────────────────────────────────────────────────────────
         if (typeof window !== 'undefined' && window.location.hash) {
           const hash = window.location.hash.slice(1);
           const params = new URLSearchParams(hash);
@@ -37,18 +45,13 @@ export default function AuthCallbackPage() {
             });
             if (error) throw error;
 
-            // Clear hash from URL so refresh doesn\'t re-process
             history.replaceState(null, '', window.location.pathname);
-
             await afterSignIn(supabase, router);
             return;
           }
         }
 
-        // ─────────────────────────────────────────────────────────────────
         // Path B: PKCE / code flow ("?code=...")
-        // Used by signInWithOAuth and OTP-via-email when configured for PKCE.
-        // ─────────────────────────────────────────────────────────────────
         const code = searchParams.get('code');
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -57,7 +60,6 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        // Neither path produced a session
         throw new Error('No auth tokens found in URL');
       } catch (err) {
         console.error('Auth callback error:', err);
@@ -90,6 +92,10 @@ export default function AuthCallbackPage() {
     );
   }
 
+  return <LoadingState />;
+}
+
+function LoadingState() {
   return (
     <div className="min-h-screen flex items-center justify-center p-8 bg-background">
       <div className="card-lit border border-border/40 rounded-md p-8 max-w-md text-center relative">
@@ -104,10 +110,6 @@ export default function AuthCallbackPage() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// After session is established, patch invited-user metadata into profile
-// and decide where to redirect (welcome vs dashboard)
-// ─────────────────────────────────────────────────────────────────────────
 async function afterSignIn(
   supabase: ReturnType<typeof createClient>,
   router: ReturnType<typeof useRouter>
@@ -118,7 +120,6 @@ async function afterSignIn(
     return;
   }
 
-  // Patch invited metadata into profile
   if (user.user_metadata) {
     const meta = user.user_metadata as {
       full_name?: string;
@@ -136,7 +137,6 @@ async function afterSignIn(
     }
   }
 
-  // Check if password has been set
   const { data: profile } = await supabase
     .from('profiles')
     .select('password_set_at')
