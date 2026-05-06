@@ -55,7 +55,7 @@ export function InviteUserDialog({
 
   function handleClose() {
     setOpen(false);
-    setTimeout(reset, 200);  // wait for dialog to close
+    setTimeout(reset, 200);
     router.refresh();
   }
 
@@ -95,10 +95,8 @@ export function InviteUserDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setTimeout(reset, 200); }}>
-      <DialogTrigger asChild>
-        <Button className="font-display tracking-wider btn-glow">
-          <UserPlus className="h-3.5 w-3.5 mr-2" /> Invite User
-        </Button>
+      <DialogTrigger className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 font-display tracking-wider btn-glow">
+        <UserPlus className="h-3.5 w-3.5" /> Invite User
       </DialogTrigger>
       <DialogContent className="max-w-md">
         {!generatedUrl ? (
