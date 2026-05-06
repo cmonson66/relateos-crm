@@ -38,15 +38,15 @@ export function DealForm({
     [stages]
   );
 
-  const [name, setName] = useState(existing?.name || '');
-  const [accountId, setAccountId] = useState(existing?.account_id || defaultAccountId || '');
+  const [name, setName] = useState<string>(existing?.name || '');
+  const [accountId, setAccountId] = useState<string>(existing?.account_id || defaultAccountId || '');
   const [contactId, setContactId] = useState<string>(existing?.primary_contact_id || defaultContactId || '');
-  const [stageId, setStageId] = useState(existing?.stage_id || firstStage?.id || '');
-  const [valueDollars, setValueDollars] = useState(
+  const [stageId, setStageId] = useState<string>(existing?.stage_id || firstStage?.id || '');
+  const [valueDollars, setValueDollars] = useState<string>(
     existing?.value_cents ? String(existing.value_cents / 100) : ''
   );
-  const [closeDate, setCloseDate] = useState(existing?.expected_close_date || '');
-  const [notes, setNotes] = useState(existing?.notes || '');
+  const [closeDate, setCloseDate] = useState<string>(existing?.expected_close_date || '');
+  const [notes, setNotes] = useState<string>(existing?.notes || '');
 
   useEffect(() => {
     if (!stageId && firstStage) setStageId(firstStage.id);
@@ -59,11 +59,10 @@ export function DealForm({
     [contacts, accountId, contactId]
   );
 
-  // Manual label resolution — bulletproof against shadcn Select rendering quirks
   const accountLabel = accounts.find(a => a.id === accountId)?.name;
   const contactLabel = (() => {
     const c = contacts.find(x => x.id === contactId);
-    return c ? `${c.first_name} ${c.last_name || ''}`.trim() : null;
+    return c ? (c.first_name + ' ' + (c.last_name || '')).trim() : null;
   })();
   const stageLabel = stages.find(s => s.id === stageId)?.name;
 
@@ -111,7 +110,7 @@ export function DealForm({
 
         <div className="space-y-2">
           <Label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Account *</Label>
-          <Select value={accountId || undefined} onValueChange={setAccountId}>
+          <Select value={accountId} onValueChange={(v) => setAccountId(v)}>
             <SelectTrigger>
               <span className={accountLabel ? '' : 'text-muted-foreground'}>
                 {accountLabel || 'Select account…'}
@@ -145,7 +144,7 @@ export function DealForm({
 
         <div className="space-y-2">
           <Label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Stage</Label>
-          <Select value={stageId || undefined} onValueChange={setStageId}>
+          <Select value={stageId} onValueChange={(v) => setStageId(v)}>
             <SelectTrigger>
               <span className={stageLabel ? '' : 'text-muted-foreground'}>
                 {stageLabel || 'Select stage…'}
