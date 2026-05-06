@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import {
   Select, SelectContent, SelectItem, SelectTrigger,
 } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { initials, formatRelative } from '@/lib/utils/format';
@@ -72,16 +71,13 @@ export function UserAdminTable({
 
   return (
     <>
-      <div className="mb-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div className="mb-5">
         <Input
           placeholder="Search users…"
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="md:max-w-xs"
         />
-        <Button variant="outline" disabled className="font-display tracking-wider">
-          + Invite User (coming Day 6)
-        </Button>
       </div>
 
       {/* DESKTOP TABLE */}
