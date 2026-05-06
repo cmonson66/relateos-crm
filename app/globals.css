@@ -96,15 +96,12 @@
     letter-spacing: 0.02em;
     font-weight: 400;
   }
-
   .card-lit {
     background-image: linear-gradient(180deg, oklch(0.215 0.008 240) 0%, oklch(0.175 0.008 240) 100%);
     box-shadow:
       inset 0 1px 0 0 oklch(1 0 0 / 0.08),
       0 1px 2px 0 oklch(0 0 0 / 0.5);
   }
-
-  /* STACKED-SHADOW GLOWS — visible bloom effect */
   .glow-stripe {
     box-shadow:
       0 0 8px 0 oklch(0.67 0.18 38 / 0.95),
@@ -124,51 +121,34 @@
       0 0 32px 0 oklch(0.67 0.18 38 / 0.4),
       0 0 56px 0 oklch(0.67 0.18 38 / 0.2);
   }
-
-  /* HOT TEXT — three-layer bloom around primary words */
   .text-glow-primary {
     text-shadow:
       0 0 8px oklch(0.67 0.18 38 / 0.9),
       0 0 20px oklch(0.67 0.18 38 / 0.6),
       0 0 40px oklch(0.67 0.18 38 / 0.35);
   }
-
-  /* Active nav row gets a much more visible orange wash */
   .nav-active {
     background-image: linear-gradient(90deg, oklch(0.67 0.18 38 / 0.2) 0%, oklch(0.67 0.18 38 / 0.05) 50%, transparent 80%);
   }
-
-  /* Pulsing HUD indicator with stacked shadows */
   @keyframes hud-pulse {
-    0% {
-      box-shadow:
-        0 0 0 0 oklch(0.67 0.18 38 / 0.9),
-        0 0 6px 0 oklch(0.67 0.18 38 / 0.95),
-        0 0 14px 0 oklch(0.67 0.18 38 / 0.7);
-    }
-    70% {
-      box-shadow:
-        0 0 0 10px oklch(0.67 0.18 38 / 0),
-        0 0 12px 0 oklch(0.67 0.18 38 / 0.5),
-        0 0 20px 0 oklch(0.67 0.18 38 / 0.3);
-    }
-    100% {
-      box-shadow:
-        0 0 0 0 oklch(0.67 0.18 38 / 0),
-        0 0 6px 0 oklch(0.67 0.18 38 / 0.95),
-        0 0 14px 0 oklch(0.67 0.18 38 / 0.7);
-    }
+    0%   { box-shadow: 0 0 0 0 oklch(0.67 0.18 38 / 0.9), 0 0 6px 0 oklch(0.67 0.18 38 / 0.95), 0 0 14px 0 oklch(0.67 0.18 38 / 0.7); }
+    70%  { box-shadow: 0 0 0 10px oklch(0.67 0.18 38 / 0), 0 0 12px 0 oklch(0.67 0.18 38 / 0.5), 0 0 20px 0 oklch(0.67 0.18 38 / 0.3); }
+    100% { box-shadow: 0 0 0 0 oklch(0.67 0.18 38 / 0), 0 0 6px 0 oklch(0.67 0.18 38 / 0.95), 0 0 14px 0 oklch(0.67 0.18 38 / 0.7); }
   }
-  .hud-pulse {
-    animation: hud-pulse 2.4s ease-in-out infinite;
-  }
-
-  .btn-glow {
-    transition: box-shadow 0.2s ease;
-  }
+  .hud-pulse { animation: hud-pulse 2.4s ease-in-out infinite; }
+  .btn-glow { transition: box-shadow 0.2s ease; }
   .btn-glow:hover {
     box-shadow:
       0 0 14px 0 oklch(0.67 0.18 38 / 0.7),
       0 0 28px 0 oklch(0.67 0.18 38 / 0.4);
   }
+  /* Mobile-only horizontal snap-scroll for kanban */
+  .snap-x-mandatory { scroll-snap-type: x mandatory; }
+  .snap-start { scroll-snap-align: start; }
+  /* Mobile menu drawer slide-in */
+  @keyframes drawer-in {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(0); }
+  }
+  .animate-drawer-in { animation: drawer-in 0.2s ease-out; }
 }

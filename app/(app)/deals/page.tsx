@@ -21,12 +21,8 @@ export default async function DealsPage() {
         contact:contacts!deals_primary_contact_id_fkey(id, first_name, last_name),
         owner:profiles!deals_owner_id_fkey(id, full_name, email)
       `)
-      .order('stage_position')
-      .order('value_cents', { ascending: false }),
-    supabase
-      .from('pipeline_stages')
-      .select('*')
-      .order('position'),
+      .order('stage_position').order('value_cents', { ascending: false }),
+    supabase.from('pipeline_stages').select('*').order('position'),
   ]);
 
   const dealList = deals || [];
@@ -39,15 +35,15 @@ export default async function DealsPage() {
   const openCount = dealList.filter(d => !d.stage_is_won && !d.stage_is_lost).length;
 
   return (
-    <div className="p-8 max-w-[1800px]">
+    <div className="p-4 md:p-8 max-w-[1800px]">
       <PageHeader
-        kicker={`${openCount} open deals · ${formatDealValue(totalValue)} pipeline`}
+        kicker={`${openCount} open · ${formatDealValue(totalValue)} pipeline`}
         title="Sales"
         highlight="Pipeline"
-        description="Drag deals between stages to advance them. All changes are logged."
+        description="Drag deals between stages on desktop. Tap a deal to change stage on mobile."
         action={
           <Link href="/deals/new">
-            <Button className="font-display tracking-wider btn-glow">+ Add Deal</Button>
+            <Button className="font-display tracking-wider btn-glow">+ Add</Button>
           </Link>
         }
       />

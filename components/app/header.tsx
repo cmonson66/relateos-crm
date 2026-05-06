@@ -7,11 +7,18 @@ import {
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LogOut, User, Bell, Search } from 'lucide-react';
+import { LogOut, User, Search, Menu } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/lib/auth/get-user';
+import { NotificationBell } from '@/components/app/notification-bell';
 
-export function Header({ profile }: { profile: Profile }) {
+export function Header({
+  profile,
+  onMobileMenuClick,
+}: {
+  profile: Profile;
+  onMobileMenuClick?: () => void;
+}) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -31,17 +38,25 @@ export function Header({ profile }: { profile: Profile }) {
   const roleLabel = profile.role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
 
   return (
-    <header className="h-14 border-b border-border/40 bg-background/50 backdrop-blur-sm px-6 flex items-center justify-between">
-      <div className="flex items-center gap-2 text-muted-foreground/70">
-        <Search className="h-4 w-4" />
-        <span className="text-[11px] uppercase tracking-[0.15em]">Search · Cmd K</span>
+    <header className="h-14 border-b border-border/40 bg-background/50 backdrop-blur-sm px-4 md:px-6 flex items-center justify-between">
+      <div className="flex items-center gap-3 min-w-0">
+        {/* Hamburger on mobile */}
+        <button
+          type="button"
+          onClick={onMobileMenuClick}
+          aria-label="Open menu"
+          className="md:hidden h-10 w-10 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/30 -ml-2"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <div className="hidden md:flex items-center gap-2 text-muted-foreground/70">
+          <Search className="h-4 w-4" />
+          <span className="text-[11px] uppercase tracking-[0.15em]">Search · Cmd K</span>
+        </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" className="relative h-9 w-9">
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-primary rounded-full hud-pulse" />
-        </Button>
+      <div className="flex items-center gap-2 md:gap-3">
+        <NotificationBell />
 
         <DropdownMenu>
           <DropdownMenuTrigger
@@ -52,7 +67,7 @@ export function Header({ profile }: { profile: Profile }) {
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <div className="flex flex-col items-start text-xs leading-tight">
+            <div className="hidden md:flex flex-col items-start text-xs leading-tight">
               <span className="font-medium">{profile.full_name || profile.email.split('@')[0]}</span>
               <span className="text-muted-foreground uppercase tracking-[0.12em] text-[10px]">{roleLabel}</span>
             </div>

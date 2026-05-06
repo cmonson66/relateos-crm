@@ -84,9 +84,11 @@ export function ActivitiesList({
 
   return (
     <>
-      <div className="flex items-center justify-between gap-4 mb-5">
-        <FilterChips chips={chips} activeId={filter} onChange={setFilter} />
-        <Input placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} className="max-w-xs" />
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4 mb-5">
+        <div className="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
+          <FilterChips chips={chips} activeId={filter} onChange={setFilter} />
+        </div>
+        <Input placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} className="md:max-w-xs" />
       </div>
 
       <div className="card-lit border border-border/40 rounded-md overflow-hidden">
@@ -105,7 +107,7 @@ export function ActivitiesList({
             <div
               key={a.id}
               className={cn(
-                'flex items-start gap-4 px-5 py-4 border-b border-border/20 last:border-0',
+                'flex items-start gap-3 md:gap-4 px-4 md:px-5 py-4 border-b border-border/20 last:border-0',
                 upcoming && 'bg-primary/5',
                 isOpenTask && 'border-l-2 border-l-primary'
               )}
@@ -134,22 +136,22 @@ export function ActivitiesList({
                   </span>
                 </div>
 
-                {a.subject && <div className="text-sm font-medium mb-0.5">{a.subject}</div>}
+                {a.subject && <div className="text-sm font-medium mb-0.5 truncate">{a.subject}</div>}
                 {a.body && <div className="text-sm text-muted-foreground line-clamp-2">{a.body}</div>}
 
-                <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground/80">
+                <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground/80 flex-wrap">
                   {a.account && (
-                    <Link href={`/accounts/${a.account.id}`} className="hover:text-primary">
+                    <Link href={`/accounts/${a.account.id}`} className="hover:text-primary truncate">
                       {a.account.name}
                     </Link>
                   )}
                   {a.contact && (
-                    <Link href={`/contacts/${a.contact.id}`} className="hover:text-primary">
+                    <Link href={`/contacts/${a.contact.id}`} className="hover:text-primary truncate">
                       {a.contact.first_name} {a.contact.last_name || ''}
                     </Link>
                   )}
                   {a.deal && (
-                    <Link href={`/deals/${a.deal.id}`} className="hover:text-primary">
+                    <Link href={`/deals/${a.deal.id}`} className="hover:text-primary truncate">
                       {a.deal.name}
                     </Link>
                   )}
@@ -160,7 +162,7 @@ export function ActivitiesList({
                 <button
                   type="button"
                   onClick={() => handleComplete(a.id)}
-                  className="shrink-0 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.15em] text-primary hover:text-primary/80 transition-colors mt-1"
+                  className="shrink-0 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.15em] text-primary hover:text-primary/80 transition-colors mt-1 min-h-[32px] px-2"
                 >
                   <Check className="h-3 w-3" /> Done
                 </button>

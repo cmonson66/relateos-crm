@@ -65,7 +65,6 @@ export function PipelineKanban({
     const dealId = active.id as string;
     const overId = over.id as string;
 
-    // overId can be a stage column id, or a deal id (when dropped on another deal)
     let targetStageId = overId;
     const overDeal = deals.find(d => d.id === overId);
     if (overDeal) targetStageId = overDeal.stage_id;
@@ -77,7 +76,6 @@ export function PipelineKanban({
     const targetStage = stages.find(s => s.id === targetStageId);
     if (!targetStage) return;
 
-    // Optimistic update
     setDeals(curr => curr.map(d =>
       d.id === dealId
         ? { ...d, stage_id: targetStageId, stage: targetStage, days_in_stage: 0 }
@@ -89,7 +87,6 @@ export function PipelineKanban({
         await updateDealStage(dealId, targetStageId);
         toast.success(`Moved to ${targetStage.name}`);
       } catch (err) {
-        // Roll back on failure
         setDeals(initialDeals);
         toast.error(err instanceof Error ? err.message : 'Failed to update');
       }
@@ -103,7 +100,12 @@ export function PipelineKanban({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-4 overflow-x-auto pb-4" style={{ scrollbarGutter: 'stable' }}>
+      {/* Mobile hint */}
+      <div className="md:hidden mb-3 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+        Swipe → between stages · tap a deal to change stage
+      </div>
+
+      <div className="flex gap-3 md:gap-4 overflow-x-auto pb-4 snap-x-mandatory md:snap-none -mx-4 px-4 md:mx-0 md:px-0">
         {stages.map(stage => {
           const totals = stageTotals.get(stage.id) || { count: 0, value: 0 };
           return (

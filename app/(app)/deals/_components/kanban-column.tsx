@@ -23,16 +23,13 @@ export function KanbanColumn({
   const isClosed = stage.is_won || stage.is_lost;
 
   return (
-    <div className="w-72 shrink-0 flex flex-col">
+    <div className="w-[85vw] sm:w-72 md:w-72 shrink-0 flex flex-col snap-start">
       <div
         className="flex items-center justify-between px-3 py-2.5 rounded-t-md border border-b-0 border-border/40 bg-card-foreground/[0.03]"
         style={{ borderTop: `2px solid ${stageColor}` }}
       >
         <div className="flex items-center gap-2 min-w-0">
-          <span
-            className="inline-block w-2 h-2 rounded-full shrink-0"
-            style={{ background: stageColor }}
-          />
+          <span className="inline-block w-2 h-2 rounded-full shrink-0" style={{ background: stageColor }} />
           <span className="font-display text-sm tracking-wider truncate">
             {stage.name.toUpperCase()}
           </span>
@@ -51,10 +48,7 @@ export function KanbanColumn({
           isOver ? 'bg-primary/5' : 'bg-background/30'
         } ${isClosed ? 'opacity-80' : ''}`}
       >
-        <SortableContext
-          items={deals.map(d => d.id)}
-          strategy={verticalListSortingStrategy}
-        >
+        <SortableContext items={deals.map(d => d.id)} strategy={verticalListSortingStrategy}>
           {deals.length === 0 ? (
             <div className="px-2 py-8 text-center text-xs text-muted-foreground/60 italic">
               Drop deals here

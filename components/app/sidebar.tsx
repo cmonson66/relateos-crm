@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Building2, Users, Briefcase, Activity,
-  Upload, Settings, ShieldCheck,
+  Upload, Settings, ShieldCheck, X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Profile, UserRole } from '@/lib/auth/get-user';
@@ -25,56 +25,93 @@ const navItems: {
   { href: '/console',    label: 'Console',    icon: ShieldCheck,     roles: ['super_admin'] },
 ];
 
-export function Sidebar({ profile }: { profile: Profile }) {
+export function Sidebar({
+  profile,
+  mobileOpen,
+  onMobileClose,
+}: {
+  profile: Profile;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}) {
   const pathname = usePathname();
   const visible = navItems.filter(i => i.roles.includes(profile.role));
 
   return (
-    <aside className="w-60 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col border-r border-border/40">
-      <div className="px-5 py-5 border-b border-border/40">
-        <Link href="/dashboard" className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-display text-2xl glow-halo">
-            P
-          </div>
-          <div>
-            <div className="font-display text-xl tracking-wider leading-none">PROTOSEQ</div>
-            <div className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground mt-1.5">
-              CRM · v1
+    <>
+      {/* Mobile backdrop */}
+      {mobileOpen && (
+        <button
+          type="button"
+          onClick={onMobileClose}
+          aria-label="Close menu"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+        />
+      )}
+
+      <aside
+        className={cn(
+          'w-60 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col border-r border-border/40',
+          'fixed inset-y-0 left-0 z-50 md:static md:z-auto',
+          'transition-transform md:transition-none',
+          mobileOpen ? 'translate-x-0 animate-drawer-in' : '-translate-x-full md:translate-x-0'
+        )}
+      >
+        <div className="px-5 py-5 border-b border-border/40 flex items-center justify-between">
+          <Link href="/dashboard" onClick={onMobileClose} className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-display text-2xl glow-halo">
+              P
             </div>
-          </div>
-        </Link>
-      </div>
-
-      <nav className="flex-1 py-3">
-        {visible.map(item => {
-          const Icon = item.icon;
-          const active = pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-3 px-5 py-2.5 text-sm transition-all relative',
-                active
-                  ? 'nav-active text-sidebar-foreground font-medium'
-                  : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
-              )}
-            >
-              {active && (
-                <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary glow-stripe-soft" />
-              )}
-              <Icon className={cn('h-4 w-4', active && 'text-primary')} strokeWidth={1.75} />
-              <span className="tracking-wide">{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="p-4 border-t border-border/40">
-        <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70">
-          {profile.role.replace('_', ' ')} access
+            <div>
+              <div className="font-display text-xl tracking-wider leading-none">PROTOSEQ</div>
+              <div className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground mt-1.5">
+                CRM · v1
+              </div>
+            </div>
+          </Link>
+          {/* Close button on mobile */}
+          <button
+            type="button"
+            onClick={onMobileClose}
+            aria-label="Close menu"
+            className="md:hidden h-9 w-9 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-sidebar-accent"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
-      </div>
-    </aside>
+
+        <nav className="flex-1 py-3 overflow-y-auto">
+          {visible.map(item => {
+            const Icon = item.icon;
+            const active = pathname.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onMobileClose}
+                className={cn(
+                  'flex items-center gap-3 px-5 py-3 text-sm transition-all relative min-h-[44px]',
+                  active
+                    ? 'nav-active text-sidebar-foreground font-medium'
+                    : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                )}
+              >
+                {active && (
+                  <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary glow-stripe-soft" />
+                )}
+                <Icon className={cn('h-4 w-4', active && 'text-primary')} strokeWidth={1.75} />
+                <span className="tracking-wide">{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="p-4 border-t border-border/40">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70">
+            {profile.role.replace('_', ' ')} access
+          </div>
+        </div>
+      </aside>
+    </>
   );
 }

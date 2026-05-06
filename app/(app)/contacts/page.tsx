@@ -24,7 +24,7 @@ export default async function ContactsPage() {
   const list = contacts || [];
 
   return (
-    <div className="p-8 max-w-[1400px]">
+    <div className="p-4 md:p-8 max-w-[1400px]">
       <PageHeader
         kicker="Sales · Contacts"
         title="All"
@@ -32,7 +32,7 @@ export default async function ContactsPage() {
         description="The decision makers, champions, and influencers in your accounts."
         action={
           <Link href="/contacts/new">
-            <Button className="font-display tracking-wider btn-glow">+ Add Contact</Button>
+            <Button className="font-display tracking-wider btn-glow">+ Add</Button>
           </Link>
         }
       />
@@ -43,7 +43,7 @@ export default async function ContactsPage() {
           title="No contacts yet"
           description="Add a contact one at a time, or import your existing list to get started."
           action={
-            <div className="flex items-center justify-center gap-2">
+            <div className="flex items-center justify-center gap-2 flex-wrap">
               <Link href="/contacts/new">
                 <Button className="font-display tracking-wider">+ Add Contact</Button>
               </Link>

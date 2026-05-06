@@ -20,7 +20,7 @@ export default async function AccountsPage() {
   const list = accounts || [];
 
   return (
-    <div className="p-8 max-w-[1400px]">
+    <div className="p-4 md:p-8 max-w-[1400px]">
       <PageHeader
         kicker="Sales · Accounts"
         title="All"
@@ -28,9 +28,7 @@ export default async function AccountsPage() {
         description="Companies, programs, and organizations in your pipeline."
         action={
           <Link href="/accounts/new">
-            <Button className="font-display tracking-wider btn-glow">
-              + Add Account
-            </Button>
+            <Button className="font-display tracking-wider btn-glow">+ Add</Button>
           </Link>
         }
       />
@@ -41,7 +39,7 @@ export default async function AccountsPage() {
           title="No accounts yet"
           description="Add your first account or import existing data to get started."
           action={
-            <div className="flex items-center justify-center gap-2">
+            <div className="flex items-center justify-center gap-2 flex-wrap">
               <Link href="/accounts/new">
                 <Button className="font-display tracking-wider">+ Add Account</Button>
               </Link>

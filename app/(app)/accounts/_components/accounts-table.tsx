@@ -54,17 +54,20 @@ export function AccountsTable({
 
   return (
     <>
-      <div className="flex items-center justify-between gap-4 mb-5">
-        <FilterChips chips={chips} activeId={filter} onChange={setFilter} />
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4 mb-5">
+        <div className="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
+          <FilterChips chips={chips} activeId={filter} onChange={setFilter} />
+        </div>
         <Input
           placeholder="Search…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="max-w-xs"
+          className="md:max-w-xs"
         />
       </div>
 
-      <div className="card-lit border border-border/40 rounded-md overflow-hidden">
+      {/* DESKTOP TABLE */}
+      <div className="hidden md:block card-lit border border-border/40 rounded-md overflow-hidden">
         <div className="grid grid-cols-[2.4fr_1fr_1fr_1fr_0.6fr_40px] items-center gap-4 px-5 py-3 text-[10px] uppercase tracking-[0.15em] text-muted-foreground border-b border-border/40 bg-background/30">
           <div>Account</div>
           <div>Vertical</div>
@@ -73,12 +76,9 @@ export function AccountsTable({
           <div className="text-right">Last activity</div>
           <div></div>
         </div>
-
         {filtered.map(a => (
-          <Link
-            key={a.id}
-            href={`/accounts/${a.id}`}
-            className="grid grid-cols-[2.4fr_1fr_1fr_1fr_0.6fr_40px] items-center gap-4 px-5 py-4 border-b border-border/20 last:border-0 hover:bg-primary/5 transition-colors group"
+          <Link key={a.id} href={`/accounts/${a.id}`}
+            className="grid grid-cols-[2.4fr_1fr_1fr_1fr_0.6fr_40px] items-center gap-4 px-5 py-4 border-b border-border/20 last:border-0 hover:bg-primary/5 transition-colors group min-h-[44px]"
           >
             <div className="min-w-0">
               <div className="font-medium truncate">{a.name}</div>
@@ -88,9 +88,7 @@ export function AccountsTable({
                 </div>
               )}
             </div>
-            <div>
-              <VerticalBadge vertical={a.vertical} />
-            </div>
+            <div><VerticalBadge vertical={a.vertical} /></div>
             <div className="text-sm text-muted-foreground truncate">
               {[a.city, a.state].filter(Boolean).join(', ') || '—'}
             </div>
@@ -114,9 +112,56 @@ export function AccountsTable({
             <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
           </Link>
         ))}
-
         {filtered.length === 0 && (
           <div className="px-5 py-12 text-center text-sm text-muted-foreground">
+            No accounts match these filters.
+          </div>
+        )}
+      </div>
+
+      {/* MOBILE CARDS */}
+      <div className="md:hidden space-y-2">
+        {filtered.map(a => (
+          <Link key={a.id} href={`/accounts/${a.id}`}
+            className="card-lit border border-border/40 rounded-md p-4 block min-h-[88px] active:bg-primary/5 transition-colors"
+          >
+            <div className="flex items-start justify-between gap-3 mb-2">
+              <div className="min-w-0 flex-1">
+                <div className="font-medium leading-tight truncate">{a.name}</div>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <VerticalBadge vertical={a.vertical} />
+                  {[a.city, a.state].filter(Boolean).length > 0 && (
+                    <span className="text-[11px] text-muted-foreground">
+                      {[a.city, a.state].filter(Boolean).join(', ')}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/40 mt-1 shrink-0" />
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                {a.owner ? (
+                  <>
+                    <div className="w-5 h-5 rounded-full bg-primary/15 text-primary text-[9px] font-medium flex items-center justify-center shrink-0">
+                      {initials(a.owner.full_name, a.owner.email)}
+                    </div>
+                    <span className="text-muted-foreground truncate">
+                      {a.owner.full_name || a.owner.email.split('@')[0]}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground italic">unassigned</span>
+                )}
+              </div>
+              <span className="text-muted-foreground/70 tabular-nums">
+                {formatRelative(a.last_activity_at)}
+              </span>
+            </div>
+          </Link>
+        ))}
+        {filtered.length === 0 && (
+          <div className="card-lit border border-border/40 rounded-md px-5 py-12 text-center text-sm text-muted-foreground">
             No accounts match these filters.
           </div>
         )}
