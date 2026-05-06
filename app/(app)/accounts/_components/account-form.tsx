@@ -76,7 +76,10 @@ export function AccountForm({ existing }: { existing?: Account }) {
         </div>
         <div className="space-y-2">
           <Label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Vertical</Label>
-          <Select value={data.vertical} onValueChange={v => set('vertical', v as AccountFormData['vertical'])}>
+          <Select
+            value={data.vertical}
+            onValueChange={(v: string | null) => v && set('vertical', v as AccountFormData['vertical'])}
+          >
             <SelectTrigger>
               <span>{verticalLabel}</span>
             </SelectTrigger>

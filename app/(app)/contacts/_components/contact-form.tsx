@@ -108,7 +108,7 @@ export function ContactForm({
           <Label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Account</Label>
           <Select
             value={data.account_id || 'none'}
-            onValueChange={v => set('account_id', v === 'none' ? null : v)}
+            onValueChange={(v: string | null) => set('account_id', !v || v === 'none' ? null : v)}
           >
             <SelectTrigger>
               <span className={accountLabel ? '' : 'text-muted-foreground'}>
@@ -125,7 +125,10 @@ export function ContactForm({
         </div>
         <div className="space-y-2">
           <Label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Lifecycle stage</Label>
-          <Select value={data.lifecycle_stage} onValueChange={v => set('lifecycle_stage', v as ContactFormData['lifecycle_stage'])}>
+          <Select
+            value={data.lifecycle_stage}
+            onValueChange={(v: string | null) => v && set('lifecycle_stage', v as ContactFormData['lifecycle_stage'])}
+          >
             <SelectTrigger>
               <span>{lifecycleLabel}</span>
             </SelectTrigger>

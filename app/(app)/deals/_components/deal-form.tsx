@@ -110,7 +110,7 @@ export function DealForm({
 
         <div className="space-y-2">
           <Label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Account *</Label>
-          <Select value={accountId} onValueChange={(v) => setAccountId(v)}>
+          <Select value={accountId} onValueChange={(v: string | null) => setAccountId(v ?? '')}>
             <SelectTrigger>
               <span className={accountLabel ? '' : 'text-muted-foreground'}>
                 {accountLabel || 'Select account…'}
@@ -126,7 +126,7 @@ export function DealForm({
           <Label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Primary contact</Label>
           <Select
             value={contactId || 'none'}
-            onValueChange={(v) => setContactId(v === 'none' ? '' : v)}
+            onValueChange={(v: string | null) => setContactId(!v || v === 'none' ? '' : v)}
           >
             <SelectTrigger>
               <span className={contactLabel ? '' : 'text-muted-foreground'}>
@@ -144,7 +144,7 @@ export function DealForm({
 
         <div className="space-y-2">
           <Label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Stage</Label>
-          <Select value={stageId} onValueChange={(v) => setStageId(v)}>
+          <Select value={stageId} onValueChange={(v: string | null) => setStageId(v ?? '')}>
             <SelectTrigger>
               <span className={stageLabel ? '' : 'text-muted-foreground'}>
                 {stageLabel || 'Select stage…'}

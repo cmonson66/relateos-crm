@@ -22,8 +22,8 @@ export function StageSelector({
   const [pending, startTransition] = useTransition();
   const currentLabel = stages.find(s => s.id === currentStageId)?.name || 'Unknown';
 
-  function handleChange(value: string) {
-    if (value === currentStageId) return;
+  function handleChange(value: string | null) {
+    if (!value || value === currentStageId) return;
     startTransition(async () => {
       try {
         await updateDealStage(dealId, value);

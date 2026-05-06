@@ -139,7 +139,10 @@ export function ActivityLogPanel({
       {type === 'task' && (
         <div className="flex items-center gap-2 mb-3">
           <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground shrink-0">Assign to</span>
-          <Select value={assignedTo || 'me'} onValueChange={v => setAssignedTo(v === 'me' ? '' : v)}>
+          <Select
+            value={assignedTo || 'me'}
+            onValueChange={(v: string | null) => setAssignedTo(!v || v === 'me' ? '' : v)}
+          >
             <SelectTrigger className="h-8">
               <span>{assignedToLabel}</span>
             </SelectTrigger>
