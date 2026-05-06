@@ -1,13 +1,12 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LogOut, User, Search, Menu } from 'lucide-react';
+import { LogOut, Lock, Search, Menu } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/lib/auth/get-user';
 import { NotificationBell } from '@/components/app/notification-bell';
@@ -40,7 +39,6 @@ export function Header({
   return (
     <header className="h-14 border-b border-border/40 bg-background/50 backdrop-blur-sm px-4 md:px-6 flex items-center justify-between">
       <div className="flex items-center gap-3 min-w-0">
-        {/* Hamburger on mobile */}
         <button
           type="button"
           onClick={onMobileMenuClick}
@@ -77,9 +75,9 @@ export function Header({
               {profile.email}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <User className="mr-2 h-4 w-4" />
-              Profile
+            <DropdownMenuItem onClick={() => router.push('/account/password')}>
+              <Lock className="mr-2 h-4 w-4" />
+              Change password
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut}>
