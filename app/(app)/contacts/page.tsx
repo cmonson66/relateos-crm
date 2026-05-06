@@ -11,15 +11,23 @@ export default async function ContactsPage() {
   const { profile } = await getUser();
   const supabase = await createClient();
 
-  const { data: contacts } = await supabase
-    .from('contacts')
-    .select(`
-      *,
-      account:accounts(id, name, vertical),
-      owner:profiles!contacts_owner_id_fkey(id, full_name, email)
-    `)
-    .order('last_activity_at', { ascending: false, nullsFirst: false })
-    .order('created_at', { ascending: false });
+  const [{ data: contacts }, { data: profilesRaw }] = await Promise.all([
+    supabase
+      .from('contacts')
+      .select(`
+        *,
+        account:accounts(id, name, vertical),
+        owner:profiles!contacts_owner_id_fkey(id, full_name, email)
+      `)
+      .order('last_activity_at', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false }),
+    supabase.from('profiles').select('id, full_name, email, role').eq('is_active', true),
+  ]);
+
+  // Hide super_admins from owner pickers when viewer is not super_admin
+  const profiles = (profilesRaw || []).filter(p =>
+    profile.role === 'super_admin' || p.role !== 'super_admin'
+  );
 
   const list = contacts || [];
 
@@ -56,7 +64,12 @@ export default async function ContactsPage() {
           }
         />
       ) : (
-        <ContactsTable contacts={list} currentUserId={profile.id} />
+        <ContactsTable
+          contacts={list}
+          currentUserId={profile.id}
+          currentRole={profile.role}
+          allOwners={profiles}
+        />
       )}
     </div>
   );

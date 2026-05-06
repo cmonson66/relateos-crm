@@ -12,13 +12,17 @@ export default async function AdminPage() {
   }
 
   const supabase = await createClient();
-  const { data: profiles } = await supabase
+  const { data: profilesRaw } = await supabase
     .from('profiles')
     .select('id, email, full_name, role, manager_id, is_active, created_at, last_activity_at:updated_at')
     .order('full_name', { nullsFirst: false });
 
-  const list = profiles || [];
-  const managerCandidates = list.filter(p =>
+  // Hide super_admins from non-super_admin viewers
+  const profiles = (profilesRaw || []).filter(p =>
+    profile.role === 'super_admin' || p.role !== 'super_admin'
+  );
+
+  const managerCandidates = profiles.filter(p =>
     p.role === 'manager' || p.role === 'admin' || p.role === 'super_admin'
   );
 
@@ -36,7 +40,7 @@ export default async function AdminPage() {
           />
         }
       />
-      <UserAdminTable profiles={list} currentUserId={profile.id} currentRole={profile.role} />
+      <UserAdminTable profiles={profiles} currentUserId={profile.id} currentRole={profile.role} />
     </div>
   );
 }
