@@ -1,7 +1,7 @@
 import { getUser } from '@/lib/auth/get-user';
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
-import { Building2, Users, Briefcase, Activity as ActivityIcon, CheckSquare, Calendar } from 'lucide-react';
+import { Building2, Users, Briefcase, Activity as ActivityIcon, CheckSquare, Calendar, AlertCircle } from 'lucide-react';
 import { formatDealValue } from '@/lib/db/deals';
 import { formatRelative } from '@/lib/utils/format';
 
@@ -15,6 +15,7 @@ export default async function DashboardPage() {
     { data: openDeals },
     { data: myOpenTasks },
     { data: upcomingToday },
+    { data: myAlerts },
   ] = await Promise.all([
     supabase.from('accounts').select('*', { count: 'exact', head: true }),
     supabase.from('contacts').select('*', { count: 'exact', head: true }),
@@ -29,6 +30,12 @@ export default async function DashboardPage() {
       .gte('scheduled_at', new Date(new Date().setHours(0,0,0,0)).toISOString())
       .lt('scheduled_at', new Date(new Date().setHours(23,59,59,999)).toISOString())
       .order('scheduled_at', { ascending: true }).limit(5),
+    supabase.from('notifications')
+      .select('id, title, body, entity_type, entity_id, created_at, read_at')
+      .eq('recipient_id', profile.id)
+      .eq('type', 'system_alert')
+      .is('read_at', null)
+      .order('created_at', { ascending: false }).limit(5),
   ]);
 
   const totalPipeline = (openDeals || []).reduce((sum, d) => sum + (d.value_cents || 0), 0);
@@ -64,6 +71,34 @@ export default async function DashboardPage() {
         <KpiLink href="/contacts" icon={Users} label="Contacts" value={(contactCount ?? 0).toString()} />
         <KpiLink href="/activities" icon={ActivityIcon} label="My open tasks" value={(myOpenTasks?.length ?? 0).toString()} />
       </div>
+
+      {/* Alerts row — only shown if there are any */}
+      {myAlerts && myAlerts.length > 0 && (
+        <div className="card-lit border border-destructive/30 rounded-md p-5 md:p-6 relative mb-6 md:mb-8">
+          <div className="h-[2px] bg-destructive/60 rounded-t-md absolute inset-x-0 top-0" />
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-lg md:text-xl tracking-wider flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-destructive" /> NEEDS ATTENTION · {myAlerts.length}
+            </h2>
+          </div>
+          <div className="space-y-2">
+            {myAlerts.map(a => (
+              <Link key={a.id} href={
+                a.entity_type === 'deal' ? `/deals/${a.entity_id}` :
+                a.entity_type === 'contact' ? `/contacts/${a.entity_id}` :
+                a.entity_type === 'account' ? `/accounts/${a.entity_id}` :
+                '/activities'
+              }
+                className="block py-2 px-2 rounded-md hover:bg-destructive/5 transition-colors -mx-2 min-h-[44px]"
+              >
+                <div className="text-sm font-medium truncate">{a.title}</div>
+                {a.body && <div className="text-[11px] text-muted-foreground truncate">{a.body}</div>}
+                <div className="text-[10px] text-muted-foreground/70 mt-0.5">{formatRelative(a.created_at)}</div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid md:grid-cols-2 gap-5 md:gap-6">
         <DashboardCard title="My tasks" icon={CheckSquare} href="/activities" emptyText="No open tasks. Nice.">
