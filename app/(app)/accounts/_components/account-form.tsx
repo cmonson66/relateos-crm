@@ -7,11 +7,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { createAccount, updateAccount, type AccountFormData } from '../actions';
 import type { Account } from '@/lib/db/types';
+
+const VERTICAL_LABEL: Record<string, string> = {
+  corporate: 'Corporate',
+  sports: 'Sports',
+  public_safety: 'Public Safety',
+  military: 'Military',
+  education: 'Education',
+  other: 'Other',
+};
 
 export function AccountForm({ existing }: { existing?: Account }) {
   const router = useRouter();
@@ -32,6 +41,8 @@ export function AccountForm({ existing }: { existing?: Account }) {
   function set<K extends keyof AccountFormData>(key: K, value: AccountFormData[K]) {
     setData(d => ({ ...d, [key]: value }));
   }
+
+  const verticalLabel = VERTICAL_LABEL[data.vertical] || data.vertical;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -60,15 +71,15 @@ export function AccountForm({ existing }: { existing?: Account }) {
       <div className="h-[3px] bg-primary glow-stripe rounded-t-md absolute inset-x-0 top-0" />
       <div className="grid md:grid-cols-2 gap-5">
         <div className="md:col-span-2 space-y-2">
-          <Label htmlFor="name" className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
-            Account name *
-          </Label>
+          <Label htmlFor="name" className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Account name *</Label>
           <Input id="name" value={data.name} onChange={e => set('name', e.target.value)} required autoFocus />
         </div>
         <div className="space-y-2">
           <Label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Vertical</Label>
           <Select value={data.vertical} onValueChange={v => set('vertical', v as AccountFormData['vertical'])}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <span>{verticalLabel}</span>
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="corporate">Corporate</SelectItem>
               <SelectItem value="sports">Sports</SelectItem>

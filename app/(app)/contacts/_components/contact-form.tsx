@@ -7,18 +7,28 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { createContact, updateContact, type ContactFormData } from '../actions';
 import type { Contact } from '@/lib/db/types';
 
+const LIFECYCLE_LABEL: Record<string, string> = {
+  new: 'New',
+  working: 'Working',
+  engaged: 'Engaged',
+  customer: 'Customer',
+  disqualified: 'Disqualified',
+};
+
 export function ContactForm({
   existing,
   accounts,
+  defaultAccountId,
 }: {
   existing?: Contact;
   accounts: { id: string; name: string }[];
+  defaultAccountId?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -28,7 +38,8 @@ export function ContactForm({
     email: existing?.email || '',
     phone: existing?.phone || '',
     title: existing?.title || '',
-    account_id: existing?.account_id || null,
+    linkedin_url: existing?.linkedin_url || '',
+    account_id: existing?.account_id || defaultAccountId || null,
     lifecycle_stage: existing?.lifecycle_stage || 'new',
     notes: existing?.notes || '',
     tags: existing?.tags || [],
@@ -38,6 +49,9 @@ export function ContactForm({
   function set<K extends keyof ContactFormData>(key: K, value: ContactFormData[K]) {
     setData(d => ({ ...d, [key]: value }));
   }
+
+  const accountLabel = accounts.find(a => a.id === data.account_id)?.name;
+  const lifecycleLabel = LIFECYCLE_LABEL[data.lifecycle_stage] || data.lifecycle_stage;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -86,12 +100,21 @@ export function ContactForm({
           <Input id="title" value={data.title || ''} onChange={e => set('title', e.target.value)} placeholder="VP People & Culture" />
         </div>
         <div className="space-y-2">
+          <Label htmlFor="linkedin" className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">LinkedIn URL</Label>
+          <Input id="linkedin" type="url" value={data.linkedin_url || ''} onChange={e => set('linkedin_url', e.target.value)}
+            placeholder="https://linkedin.com/in/…" />
+        </div>
+        <div className="space-y-2">
           <Label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Account</Label>
           <Select
             value={data.account_id || 'none'}
             onValueChange={v => set('account_id', v === 'none' ? null : v)}
           >
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <span className={accountLabel ? '' : 'text-muted-foreground'}>
+                {accountLabel || 'None'}
+              </span>
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">— None —</SelectItem>
               {accounts.map(a => (
@@ -103,7 +126,9 @@ export function ContactForm({
         <div className="space-y-2">
           <Label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Lifecycle stage</Label>
           <Select value={data.lifecycle_stage} onValueChange={v => set('lifecycle_stage', v as ContactFormData['lifecycle_stage'])}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <span>{lifecycleLabel}</span>
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="new">New</SelectItem>
               <SelectItem value="working">Working</SelectItem>

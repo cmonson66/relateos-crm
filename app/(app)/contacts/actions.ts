@@ -11,6 +11,7 @@ export type ContactFormData = {
   email?: string | null;
   phone?: string | null;
   title?: string | null;
+  linkedin_url?: string | null;
   account_id?: string | null;
   lifecycle_stage: 'new' | 'working' | 'engaged' | 'customer' | 'disqualified';
   notes?: string | null;

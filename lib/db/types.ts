@@ -31,6 +31,7 @@ export type Contact = {
   email: string | null;
   phone: string | null;
   title: string | null;
+  linkedin_url: string | null;
   lifecycle_stage: ContactLifecycle;
   notes: string | null;
   tags: string[];
