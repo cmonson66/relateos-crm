@@ -7,8 +7,10 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { Trash2 } from 'lucide-react';
 import { initials, formatRelative } from '@/lib/utils/format';
 import { updateUser } from '../actions';
+import { DeleteUserDialog } from './delete-user-dialog';
 
 type Profile = {
   id: string;
@@ -40,6 +42,7 @@ export function UserAdminTable({
   const [search, setSearch] = useState('');
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+  const [deleteTarget, setDeleteTarget] = useState<Profile | null>(null);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return profiles;
@@ -53,6 +56,8 @@ export function UserAdminTable({
   const managerCandidates = profiles.filter(p =>
     p.role === 'manager' || p.role === 'admin' || p.role === 'super_admin'
   );
+
+  const successorCandidates = profiles.filter(p => p.is_active);
 
   function patch(id: string, updates: Parameters<typeof updateUser>[1]) {
     setPendingId(id);
@@ -69,6 +74,14 @@ export function UserAdminTable({
     });
   }
 
+  function canDelete(target: Profile): boolean {
+    if (target.id === currentUserId) return false;
+    if (currentRole === 'super_admin') return true;
+    if (currentRole === 'admin') return target.role !== 'admin' && target.role !== 'super_admin';
+    if (currentRole === 'manager') return target.role === 'rep';  // managers only delete reps
+    return false;
+  }
+
   return (
     <>
       <div className="mb-5">
@@ -82,19 +95,21 @@ export function UserAdminTable({
 
       {/* DESKTOP TABLE */}
       <div className="hidden md:block card-lit border border-border/40 rounded-md overflow-hidden">
-        <div className="grid grid-cols-[2fr_1fr_1.2fr_0.8fr_0.8fr] items-center gap-4 px-5 py-3 text-[10px] uppercase tracking-[0.15em] text-muted-foreground border-b border-border/40 bg-background/30">
+        <div className="grid grid-cols-[2fr_1fr_1.2fr_0.8fr_0.8fr_60px] items-center gap-4 px-5 py-3 text-[10px] uppercase tracking-[0.15em] text-muted-foreground border-b border-border/40 bg-background/30">
           <div>User</div>
           <div>Role</div>
           <div>Manager</div>
           <div>Status</div>
           <div className="text-right">Joined</div>
+          <div></div>
         </div>
         {filtered.map(p => {
           const isSelf = p.id === currentUserId;
           const isPending = pendingId === p.id;
           const managerName = profiles.find(m => m.id === p.manager_id)?.full_name;
+          const deletable = canDelete(p);
           return (
-            <div key={p.id} className="grid grid-cols-[2fr_1fr_1.2fr_0.8fr_0.8fr] items-center gap-4 px-5 py-4 border-b border-border/20 last:border-0">
+            <div key={p.id} className="grid grid-cols-[2fr_1fr_1.2fr_0.8fr_0.8fr_60px] items-center gap-4 px-5 py-4 border-b border-border/20 last:border-0">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-9 h-9 rounded-full bg-primary/15 text-primary text-xs font-medium flex items-center justify-center shrink-0">
                   {initials(p.full_name, p.email)}
@@ -154,6 +169,20 @@ export function UserAdminTable({
               <div className="text-xs text-muted-foreground text-right tabular-nums">
                 {formatRelative(p.created_at)}
               </div>
+
+              {deletable ? (
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(p)}
+                  className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors justify-self-end"
+                  aria-label={`Delete ${p.full_name || p.email}`}
+                  title="Delete user"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              ) : (
+                <div />
+              )}
             </div>
           );
         })}
@@ -170,6 +199,7 @@ export function UserAdminTable({
           const isSelf = p.id === currentUserId;
           const isPending = pendingId === p.id;
           const managerName = profiles.find(m => m.id === p.manager_id)?.full_name;
+          const deletable = canDelete(p);
           return (
             <div key={p.id} className="card-lit border border-border/40 rounded-md p-4 space-y-3">
               <div className="flex items-center gap-3">
@@ -183,6 +213,16 @@ export function UserAdminTable({
                   </div>
                   <div className="text-[11px] text-muted-foreground truncate">{p.email}</div>
                 </div>
+                {deletable && (
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTarget(p)}
+                    className="h-9 w-9 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    aria-label="Delete user"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -243,6 +283,13 @@ export function UserAdminTable({
           );
         })}
       </div>
+
+      <DeleteUserDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        targetUser={deleteTarget}
+        successorCandidates={successorCandidates}
+      />
     </>
   );
 }

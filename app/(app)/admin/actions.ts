@@ -24,6 +24,19 @@ async function requireAdmin() {
   return { supabase, currentUserId: user.id, currentRole: profile.role, orgId: profile.org_id };
 }
 
+async function requireAdminOrManager() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Unauthorized');
+  const { data: profile } = await supabase
+    .from('profiles').select('role, org_id').eq('id', user.id).single();
+  if (!profile) throw new Error('No profile');
+  if (!['super_admin', 'admin', 'manager'].includes(profile.role)) {
+    throw new Error('Admin or manager access required');
+  }
+  return { supabase, currentUserId: user.id, currentRole: profile.role, orgId: profile.org_id };
+}
+
 export async function updateUser(targetId: string, updates: UserUpdate) {
   const { supabase, currentUserId, currentRole } = await requireAdmin();
 
@@ -59,7 +72,6 @@ export async function generateInviteLink(params: {
     throw new Error('Invalid email address');
   }
 
-  // Use service-role client for admin operations
   const adminClient = createPlainClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -68,10 +80,6 @@ export async function generateInviteLink(params: {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-  // Use generateLink with type 'invite' — creates a magic-link URL the admin
-  // can paste into Slack/text/email. The user clicks it, lands on the auth
-  // callback, gets logged in, and the handle_new_user trigger creates their
-  // profile (which we then patch with role + manager).
   const { data, error } = await adminClient.auth.admin.generateLink({
     type: 'invite',
     email,
@@ -89,10 +97,6 @@ export async function generateInviteLink(params: {
   if (error) throw new Error(error.message);
   if (!data?.properties?.action_link) throw new Error('Failed to generate invite link');
 
-  // The auth user now exists. Wait briefly for the handle_new_user trigger
-  // to create the profile, then patch role + manager.
-  // (Trigger runs synchronously inside the auth.users insert so it should
-  // already be there — but we look it up by email to be safe.)
   const { data: newUser } = await adminClient
     .from('profiles')
     .select('id')
@@ -113,4 +117,123 @@ export async function generateInviteLink(params: {
 
   revalidatePath('/admin');
   return { inviteUrl: data.properties.action_link, email };
+}
+
+export type DeletePreview = {
+  targetEmail: string;
+  targetName: string | null;
+  accountsCount: number;
+  contactsCount: number;
+  dealsCount: number;
+  activitiesCount: number;
+  defaultSuccessorId: string | null;
+  defaultSuccessorName: string | null;
+};
+
+export async function previewDeleteUser(targetId: string): Promise<DeletePreview> {
+  const { supabase, currentUserId } = await requireAdminOrManager();
+
+  if (targetId === currentUserId) {
+    throw new Error('Cannot delete yourself');
+  }
+
+  // Fetch target details
+  const { data: target } = await supabase
+    .from('profiles')
+    .select('id, email, full_name, manager_id')
+    .eq('id', targetId)
+    .single();
+
+  if (!target) throw new Error('User not found');
+
+  const [
+    { count: accountsCount },
+    { count: contactsCount },
+    { count: dealsCount },
+    { count: activitiesCount },
+  ] = await Promise.all([
+    supabase.from('accounts').select('*', { count: 'exact', head: true }).eq('owner_id', targetId),
+    supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('owner_id', targetId),
+    supabase.from('deals').select('*', { count: 'exact', head: true }).eq('owner_id', targetId),
+    supabase.from('activities').select('*', { count: 'exact', head: true }).eq('owner_id', targetId),
+  ]);
+
+  // Default successor: their manager, if any
+  let defaultSuccessorId: string | null = null;
+  let defaultSuccessorName: string | null = null;
+  if (target.manager_id) {
+    const { data: mgr } = await supabase
+      .from('profiles')
+      .select('id, full_name, email')
+      .eq('id', target.manager_id)
+      .single();
+    if (mgr) {
+      defaultSuccessorId = mgr.id;
+      defaultSuccessorName = mgr.full_name || mgr.email;
+    }
+  }
+
+  return {
+    targetEmail: target.email,
+    targetName: target.full_name,
+    accountsCount: accountsCount ?? 0,
+    contactsCount: contactsCount ?? 0,
+    dealsCount: dealsCount ?? 0,
+    activitiesCount: activitiesCount ?? 0,
+    defaultSuccessorId,
+    defaultSuccessorName,
+  };
+}
+
+export async function deleteUser(params: {
+  targetId: string;
+  successorId: string;
+  confirmEmail: string;
+}): Promise<{ ok: true; reassigned: { accounts: number; contacts: number; deals: number; activities: number; comments: number } }> {
+  const { supabase, currentUserId } = await requireAdminOrManager();
+
+  if (params.targetId === currentUserId) {
+    throw new Error("You can't delete yourself");
+  }
+  if (params.targetId === params.successorId) {
+    throw new Error('Successor cannot be the user being deleted');
+  }
+
+  // Verify the typed-confirmation matches the target's email
+  const { data: target } = await supabase
+    .from('profiles')
+    .select('email')
+    .eq('id', params.targetId)
+    .single();
+  if (!target) throw new Error('User not found');
+  if (params.confirmEmail.trim().toLowerCase() !== target.email.toLowerCase()) {
+    throw new Error('Email confirmation does not match');
+  }
+
+  // Call the SQL function — it does the authorization check, reassigns
+  // ownership, audits the action, and deletes the profile.
+  const { data, error } = await supabase.rpc('reassign_and_delete_user', {
+    target_user_id: params.targetId,
+    successor_user_id: params.successorId,
+  });
+
+  if (error) throw new Error(error.message);
+
+  // Now remove the auth.users row using the service-role client
+  const adminClient = createPlainClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } }
+  );
+  const { error: authError } = await adminClient.auth.admin.deleteUser(params.targetId);
+  if (authError) {
+    // Profile is already deleted but auth.users remained — surface the error
+    // so admin knows to check Supabase manually
+    throw new Error(`Profile removed, but auth user removal failed: ${authError.message}`);
+  }
+
+  revalidatePath('/admin');
+  revalidatePath('/dashboard');
+
+  return data as { ok: true; reassigned: { accounts: number; contacts: number; deals: number; activities: number; comments: number } };
 }
