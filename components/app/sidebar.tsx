@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Building2, Users, Briefcase, Activity,
-  Upload, Settings, ShieldCheck, X,
+  Upload, Settings, ShieldCheck, LockKeyhole, X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Profile, UserRole } from '@/lib/auth/get-user';
@@ -23,6 +23,7 @@ const navItems: {
   { href: '/import',     label: 'Import',     icon: Upload,          roles: ['super_admin','admin'] },
   { href: '/admin',      label: 'Admin',      icon: Settings,        roles: ['super_admin','admin'] },
   { href: '/console',    label: 'Console',    icon: ShieldCheck,     roles: ['super_admin'] },
+  { href: '/system',     label: 'System',     icon: LockKeyhole,     roles: ['super_admin'] },
 ];
 
 export function Sidebar({
@@ -39,7 +40,6 @@ export function Sidebar({
 
   return (
     <>
-      {/* Mobile backdrop */}
       {mobileOpen && (
         <button
           type="button"
@@ -69,7 +69,6 @@ export function Sidebar({
               </div>
             </div>
           </Link>
-          {/* Close button on mobile */}
           <button
             type="button"
             onClick={onMobileClose}
