@@ -17,7 +17,6 @@ export default async function AdminPage() {
     .select('id, email, full_name, role, manager_id, is_active, created_at, last_activity_at:updated_at')
     .order('full_name', { nullsFirst: false });
 
-  // Hide super_admins from non-super_admin viewers
   const profiles = (profilesRaw || []).filter(p =>
     profile.role === 'super_admin' || p.role !== 'super_admin'
   );
@@ -25,6 +24,8 @@ export default async function AdminPage() {
   const managerCandidates = profiles.filter(p =>
     p.role === 'manager' || p.role === 'admin' || p.role === 'super_admin'
   );
+
+  const inviterName = profile.full_name || profile.email.split('@')[0];
 
   return (
     <div className="p-4 md:p-8 max-w-[1400px]">
@@ -36,6 +37,7 @@ export default async function AdminPage() {
         action={
           <InviteUserDialog
             currentRole={profile.role}
+            inviterName={inviterName}
             managerCandidates={managerCandidates}
           />
         }

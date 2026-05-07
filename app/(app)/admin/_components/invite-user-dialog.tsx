@@ -13,7 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Copy, Check, UserPlus } from 'lucide-react';
+import { Copy, Check, UserPlus, Mail } from 'lucide-react';
 import { generateInviteLink } from '../actions';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -25,9 +25,11 @@ const ROLE_LABELS: Record<string, string> = {
 
 export function InviteUserDialog({
   currentRole,
+  inviterName,
   managerCandidates,
 }: {
   currentRole: string;
+  inviterName: string;
   managerCandidates: { id: string; full_name: string | null; email: string }[];
 }) {
   const router = useRouter();
@@ -89,8 +91,35 @@ export function InviteUserDialog({
       toast.success('Copied to clipboard');
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Copy failed — select the URL and copy manually');
+      toast.error('Copy failed - select the URL and copy manually');
     }
+  }
+
+  function handleEmail() {
+    if (!generatedUrl || !generatedEmail) return;
+    const firstName = fullName.trim().split(/\s+/)[0] || '';
+    const roleLabel = ROLE_LABELS[role] || role;
+
+    const subject = firstName
+      ? `${firstName}, you\'ve been added to ProtosEQ CRM`
+      : `You\'ve been added to ProtosEQ CRM`;
+
+    const greeting = firstName ? `Hi ${firstName},` : 'Hi,';
+
+    const body =
+      `${greeting}\n\n` +
+      `You\'ve been added to ProtosEQ CRM as a ${roleLabel}. Click this link to set up your account:\n\n` +
+      `${generatedUrl}\n\n` +
+      `The link expires in 24 hours. Once you\'ve set your password, you can sign in anytime at https://protoseq-crm.vercel.app/login\n\n` +
+      `Let me know if you have any trouble getting in.\n\n` +
+      `- ${inviterName}`;
+
+    const mailto = `mailto:${encodeURIComponent(generatedEmail)}` +
+      `?subject=${encodeURIComponent(subject)}` +
+      `&body=${encodeURIComponent(body)}`;
+
+    window.location.href = mailto;
+    toast.success('Opening your email app');
   }
 
   return (
@@ -104,7 +133,7 @@ export function InviteUserDialog({
             <DialogHeader>
               <DialogTitle className="font-display tracking-wider text-2xl">INVITE USER</DialogTitle>
               <DialogDescription>
-                Generates a one-time signup link. Paste it into Slack, email, or text — they\'ll click it once to set up their account.
+                Generates a one-time signup link. Send via email, Slack, or text - they\'ll click it once to set up their account.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -161,7 +190,7 @@ export function InviteUserDialog({
                     </span>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">— None —</SelectItem>
+                    <SelectItem value="none">- None -</SelectItem>
                     {managerCandidates.map(m => (
                       <SelectItem key={m.id} value={m.id}>{m.full_name || m.email}</SelectItem>
                     ))}
@@ -172,7 +201,7 @@ export function InviteUserDialog({
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
               <Button type="submit" disabled={pending} className="font-display tracking-wider btn-glow">
-                {pending ? 'GENERATING…' : 'GENERATE LINK'}
+                {pending ? 'GENERATING...' : 'GENERATE LINK'}
               </Button>
             </DialogFooter>
           </form>
@@ -185,21 +214,31 @@ export function InviteUserDialog({
               </DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-3">
-              <div className="bg-background/50 border border-border/40 rounded-md p-3 break-all text-xs font-mono text-muted-foreground select-all">
+              <div className="bg-background/50 border border-border/40 rounded-md p-3 break-all text-xs font-mono text-muted-foreground select-all max-h-32 overflow-y-auto">
                 {generatedUrl}
               </div>
-              <Button
-                type="button"
-                onClick={handleCopy}
-                className="w-full font-display tracking-wider btn-glow"
-              >
-                {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-                {copied ? 'COPIED' : 'COPY LINK'}
-              </Button>
-              <div className="bg-primary/5 border border-primary/20 rounded-md p-3 text-xs text-muted-foreground">
-                <strong className="text-foreground">Suggested message:</strong><br />
-                Hey {fullName.split(' ')[0]} — welcome to ProtosEQ CRM. Click this link to set up your account: <span className="text-primary">[paste link]</span>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCopy}
+                  className="font-display tracking-wider"
+                >
+                  {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                  {copied ? 'COPIED' : 'COPY LINK'}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleEmail}
+                  className="font-display tracking-wider btn-glow"
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  SEND EMAIL
+                </Button>
               </div>
+              <p className="text-[11px] text-muted-foreground text-center">
+                <strong className="text-foreground">Send email</strong> opens your default mail app with the message pre-filled. <strong className="text-foreground">Copy link</strong> for Slack or text.
+              </p>
             </div>
             <DialogFooter>
               <Button type="button" onClick={handleClose} className="font-display tracking-wider">DONE</Button>
