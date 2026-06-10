@@ -110,7 +110,7 @@ export function InviteUserDialog({
       `${greeting}\n\n` +
       `You\'ve been added to RelateOS CRM as a ${roleLabel}. Click this link to set up your account:\n\n` +
       `${generatedUrl}\n\n` +
-      `The link expires in 24 hours. Once you\'ve set your password, you can sign in anytime at https://relateos.org/login\n\n` +
+      `The link expires in 24 hours. Once you\'ve set your password, you can sign in anytime at https://app.relateos.org/login\n\n` +
       `Let me know if you have any trouble getting in.\n\n` +
       `- ${inviterName}`;
 
