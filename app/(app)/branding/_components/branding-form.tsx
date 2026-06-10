@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { LayoutDashboard, Building2, Users, Briefcase, RotateCcw } from 'lucide-react';
-import { hexToOklch, PRODUCT } from '@/lib/brand/brand';
+import { hexToOklch, hexToOklchTriplet, PRODUCT } from '@/lib/brand/brand';
 import { saveBranding } from '../actions';
 
 type FormState = {
@@ -51,6 +51,13 @@ export function BrandingForm({ current }: { current: FormState }) {
       return hexToOklch(form.theme_primary.trim()) || DEFAULTS.primary;
     }
     return DEFAULTS.primary;
+  }, [form.theme_primary]);
+
+  const glowTriplet = useMemo(() => {
+    if (form.theme_primary.trim() && HEX_RE.test(form.theme_primary.trim())) {
+      return hexToOklchTriplet(form.theme_primary.trim()) || '0.67 0.18 38';
+    }
+    return '0.67 0.18 38';
   }, [form.theme_primary]);
 
   const bgOklch = useMemo(() => {
@@ -198,7 +205,7 @@ export function BrandingForm({ current }: { current: FormState }) {
         </div>
         <div
           className="rounded-md border border-border/40 overflow-hidden"
-          style={{ background: bgOklch }}
+          style={{ background: bgOklch, ["--glow" as string]: glowTriplet } as React.CSSProperties}
         >
           {/* sidebar header mimic */}
           <div className="px-4 py-4 border-b border-white/5 flex items-center gap-3">

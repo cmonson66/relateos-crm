@@ -122,3 +122,13 @@ export function hexToOklch(hex: string): string | null {
 // Lighter/darker variants for foreground contrast on a primary fill.
 // We keep it simple: white foreground on saturated primaries reads well in this
 // dark theme, matching the existing --primary-foreground: oklch(0.99 0 0).
+
+// Like hexToOklch but returns just the "L C H" triplet (no oklch() wrapper, no
+// alpha) for use in the --glow variable: oklch(var(--glow) / 0.7).
+export function hexToOklchTriplet(hex: string): string | null {
+  const full = hexToOklch(hex);
+  if (!full) return null;
+  // strip "oklch(" and ")"
+  const inner = full.slice(full.indexOf('(') + 1, full.lastIndexOf(')'));
+  return inner.trim();
+}

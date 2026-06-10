@@ -3,7 +3,7 @@
 
 import { createContext, useContext } from 'react';
 import type { ResolvedBrand } from '@/lib/brand/brand';
-import { hexToOklch } from '@/lib/brand/brand';
+import { hexToOklch, hexToOklchTriplet } from '@/lib/brand/brand';
 
 const BrandContext = createContext<ResolvedBrand | null>(null);
 
@@ -38,6 +38,11 @@ function buildThemeStyle(brand: ResolvedBrand): string | null {
       lines.push(`--sidebar-primary: ${oklch};`);
       lines.push(`--sidebar-ring: ${oklch};`);
       lines.push(`--chart-1: ${oklch};`);
+    }
+    const triplet = hexToOklchTriplet(brand.primaryHex);
+    if (triplet) {
+      // Recolor the glow signature to match the tenant primary.
+      lines.push(`--glow: ${triplet};`);
     }
   }
   if (brand.accentHex) {
