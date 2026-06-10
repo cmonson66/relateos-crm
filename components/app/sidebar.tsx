@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Profile, UserRole } from '@/lib/auth/get-user';
+import type { ResolvedBrand } from '@/lib/brand/brand';
 
 const navItems: {
   href: string;
@@ -28,10 +29,12 @@ const navItems: {
 
 export function Sidebar({
   profile,
+  brand,
   mobileOpen,
   onMobileClose,
 }: {
   profile: Profile;
+  brand: ResolvedBrand;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
 }) {
@@ -59,13 +62,22 @@ export function Sidebar({
       >
         <div className="px-5 py-5 border-b border-border/40 flex items-center justify-between">
           <Link href="/dashboard" onClick={onMobileClose} className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-display text-2xl glow-halo">
-              P
-            </div>
+            {brand.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={brand.logoUrl}
+                alt={brand.name}
+                className="w-10 h-10 rounded-md object-cover glow-halo"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-display text-2xl glow-halo">
+                {brand.initial}
+              </div>
+            )}
             <div>
-              <div className="font-display text-xl tracking-wider leading-none">PROTOSEQ</div>
+              <div className="font-display text-xl tracking-wider leading-none">{brand.name.toUpperCase()}</div>
               <div className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground mt-1.5">
-                CRM · v1
+                {brand.tagline}
               </div>
             </div>
           </Link>

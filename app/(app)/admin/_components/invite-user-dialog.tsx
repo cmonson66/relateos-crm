@@ -101,16 +101,16 @@ export function InviteUserDialog({
     const roleLabel = ROLE_LABELS[role] || role;
 
     const subject = firstName
-      ? `${firstName}, you\'ve been added to ProtosEQ CRM`
+      ? `${firstName}, you\'ve been added to RelateOS CRM`
       : `You\'ve been added to ProtosEQ CRM`;
 
     const greeting = firstName ? `Hi ${firstName},` : 'Hi,';
 
     const body =
       `${greeting}\n\n` +
-      `You\'ve been added to ProtosEQ CRM as a ${roleLabel}. Click this link to set up your account:\n\n` +
+      `You\'ve been added to RelateOS CRM as a ${roleLabel}. Click this link to set up your account:\n\n` +
       `${generatedUrl}\n\n` +
-      `The link expires in 24 hours. Once you\'ve set your password, you can sign in anytime at https://protoseq-crm.vercel.app/login\n\n` +
+      `The link expires in 24 hours. Once you\'ve set your password, you can sign in anytime at https://relateos.org/login\n\n` +
       `Let me know if you have any trouble getting in.\n\n` +
       `- ${inviterName}`;
 
@@ -159,7 +159,7 @@ export function InviteUserDialog({
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  placeholder="anya@protoseq.com"
+                  placeholder="anya@example.com"
                   required
                 />
               </div>

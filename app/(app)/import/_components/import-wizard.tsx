@@ -258,7 +258,7 @@ function MapStep({
     <div>
       <div className="mb-5 text-sm text-muted-foreground">
         <strong className="text-foreground">{rowCount} rows</strong> detected.
-        Map your CSV columns to ProtosEQ fields. We auto-matched what we recognized.
+        Map your CSV columns to RelateOS fields. We auto-matched what we recognized.
       </div>
       <div className="space-y-2 mb-6">
         {headers.map(h => (

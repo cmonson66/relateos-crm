@@ -65,9 +65,9 @@ export default function LoginPage() {
       <div className="p-8">
         <div className="flex flex-col items-center mb-7">
           <div className="w-14 h-14 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-display text-3xl mb-3 glow-halo">
-            P
+            R
           </div>
-          <h1 className="font-display text-3xl tracking-wider leading-none">PROTOSEQ CRM</h1>
+          <h1 className="font-display text-3xl tracking-wider leading-none">RELATEOS CRM</h1>
           <p className="text-[10px] text-muted-foreground uppercase tracking-[0.25em] mt-2">
             Sales · Authorized Access
           </p>

@@ -20,8 +20,8 @@ const bebas = Bebas_Neue({
 });
 
 export const metadata: Metadata = {
-  title: 'ProtosEQ CRM',
-  description: 'Sales CRM for ProtosEQ',
+  title: 'RelateOS CRM',
+  description: 'Sales CRM by RelateOS',
 };
 
 export default function RootLayout({
