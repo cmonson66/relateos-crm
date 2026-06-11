@@ -7,7 +7,7 @@ import { PRODUCT, type OrgBrand } from '@/lib/brand/brand';
 
 export default async function BrandingPage() {
   const { profile } = await getUser();
-  if (profile.role !== 'super_admin') redirect('/dashboard');
+  if (!['super_admin','admin'].includes(profile.role)) redirect('/dashboard');
 
   const supabase = await createClient();
   const { data: org } = await supabase

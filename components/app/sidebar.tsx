@@ -23,7 +23,7 @@ const navItems: {
   { href: '/activities', label: 'Activities', icon: Activity,        roles: ['super_admin','admin','manager','rep'] },
   { href: '/import',     label: 'Import',     icon: Upload,          roles: ['super_admin','admin'] },
   { href: '/admin',      label: 'Admin',      icon: Settings,        roles: ['super_admin','admin'] },
-  { href: '/branding',   label: 'Branding',   icon: Palette,         roles: ['super_admin'] },
+  { href: '/branding',   label: 'Branding',   icon: Palette,         roles: ['super_admin','admin'] },
   { href: '/console',    label: 'Console',    icon: ShieldCheck,     roles: ['super_admin'] },
   { href: '/system',     label: 'System',     icon: LockKeyhole,     roles: ['super_admin'] },
 ];

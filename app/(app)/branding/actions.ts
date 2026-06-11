@@ -35,8 +35,8 @@ export async function saveBranding(input: BrandingInput) {
 
   const { data: profile } = await supabase
     .from('profiles').select('role, org_id').eq('id', user.id).single();
-  if (!profile || profile.role !== 'super_admin') {
-    throw new Error('Super admin access required');
+  if (!profile || !['super_admin','admin'].includes(profile.role)) {
+    throw new Error('Admin access required');
   }
 
   const updates = {
