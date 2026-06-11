@@ -1,10 +1,6 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { LogOut, Lock, Search, Menu } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -22,9 +18,13 @@ export function Header({
   const supabase = createClient();
 
   async function handleSignOut() {
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      // Always leave for /login even if signOut throws, so the user is never stuck.
+      router.push('/login');
+      router.refresh();
+    }
   }
 
   const initials = (profile.full_name || profile.email)
@@ -56,48 +56,39 @@ export function Header({
       <div className="flex items-center gap-2 md:gap-3">
         <NotificationBell />
 
-        <DropdownMenu>
-          {/*
-            Base UI's Menu.Trigger renders its own <button>. Wrapping it around an
-            Avatar + text div produced invalid/nested-button markup, so clicks threw
-            instead of opening. The `render` prop makes the trigger render AS our
-            button, attaching the open handler to a single valid element.
-          */}
-          <DropdownMenuTrigger
-            render={
-              <button
-                type="button"
-                className="inline-flex items-center gap-2.5 h-10 px-2 rounded-md hover:bg-accent/40 focus:outline-none focus:ring-2 focus:ring-ring/60 transition-colors"
-                aria-label="Account menu"
-              />
-            }
-          >
-            <Avatar className="h-8 w-8 ring-2 ring-primary/40 ring-offset-2 ring-offset-background">
-              <AvatarFallback className="text-xs bg-primary/15 text-primary font-medium">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <span className="hidden md:flex flex-col items-start text-xs leading-tight">
-              <span className="font-medium">{profile.full_name || profile.email.split('@')[0]}</span>
-              <span className="text-muted-foreground uppercase tracking-[0.12em] text-[10px]">{roleLabel}</span>
-            </span>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="font-normal text-xs text-muted-foreground">
-              {profile.email}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => router.push('/account/password')}>
-              <Lock className="mr-2 h-4 w-4" />
-              Change password
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Identity (non-interactive) */}
+        <div className="flex items-center gap-2.5 h-10 px-2">
+          <Avatar className="h-8 w-8 ring-2 ring-primary/40 ring-offset-2 ring-offset-background">
+            <AvatarFallback className="text-xs bg-primary/15 text-primary font-medium">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <div className="hidden md:flex flex-col items-start text-xs leading-tight">
+            <span className="font-medium">{profile.full_name || profile.email.split('@')[0]}</span>
+            <span className="text-muted-foreground uppercase tracking-[0.12em] text-[10px]">{roleLabel}</span>
+          </div>
+        </div>
+
+        {/* Change password — plain link button */}
+        <button
+          type="button"
+          onClick={() => router.push('/account/password')}
+          aria-label="Change password"
+          title="Change password"
+          className="h-9 w-9 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 focus:outline-none focus:ring-2 focus:ring-ring/60 transition-colors"
+        >
+          <Lock className="h-4 w-4" />
+        </button>
+
+        {/* Sign out — plain button, no dropdown dependency */}
+        <button
+          type="button"
+          onClick={handleSignOut}
+          className="inline-flex items-center gap-2 h-9 px-3 rounded-md text-sm border border-border/50 text-muted-foreground hover:text-foreground hover:bg-accent/40 focus:outline-none focus:ring-2 focus:ring-ring/60 transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          <span className="hidden sm:inline">Sign out</span>
+        </button>
       </div>
     </header>
   );
