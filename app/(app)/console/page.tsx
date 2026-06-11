@@ -87,7 +87,7 @@ export default async function ConsolePage() {
               <div key={r.id} className="grid grid-cols-[1.5fr_1fr_0.6fr_0.6fr_1fr] items-center gap-4 px-5 py-3 border-b border-border/20 last:border-0 text-sm">
                 <div className="font-mono text-xs">{r.rule_name}</div>
                 <div className="text-xs text-muted-foreground tabular-nums">
-                  {new Date(r.ran_at).toLocaleString()}
+                  {new Date(r.ran_at).toLocaleString('en-US', { timeZone: 'America/Phoenix' })}
                 </div>
                 <div className="text-right tabular-nums text-xs">
                   {r.notifications_created || 0}

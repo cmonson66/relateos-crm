@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { Building2, Users, Briefcase, Activity as ActivityIcon, CheckSquare, Calendar, AlertCircle } from 'lucide-react';
 import { formatDealValue } from '@/lib/db/deals';
-import { formatRelative } from '@/lib/utils/format';
+import { formatRelative, APP_TIMEZONE } from '@/lib/utils/format';
 
 export default async function DashboardPage() {
   const { profile } = await getUser();
@@ -42,10 +42,10 @@ export default async function DashboardPage() {
   const dealCount = (openDeals || []).length;
 
   const today = new Date().toLocaleDateString('en-US', {
-    weekday: 'short', month: 'short', day: 'numeric',
+    weekday: 'short', month: 'short', day: 'numeric', timeZone: APP_TIMEZONE,
   }).toUpperCase();
   const time = new Date().toLocaleTimeString('en-US', {
-    hour: 'numeric', minute: '2-digit',
+    hour: 'numeric', minute: '2-digit', timeZone: APP_TIMEZONE,
   });
   const firstName = profile.full_name?.split(' ')[0] || profile.email.split('@')[0];
 
@@ -127,7 +127,7 @@ export default async function DashboardPage() {
                 {a.subject && <span> · {a.subject}</span>}
               </div>
               <div className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">
-                {a.scheduled_at ? new Date(a.scheduled_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : ''}
+                {a.scheduled_at ? new Date(a.scheduled_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: APP_TIMEZONE }) : ''}
               </div>
             </div>
           ))}
