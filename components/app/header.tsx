@@ -57,18 +57,30 @@ export function Header({
         <NotificationBell />
 
         <DropdownMenu>
+          {/*
+            Base UI's Menu.Trigger renders its own <button>. Wrapping it around an
+            Avatar + text div produced invalid/nested-button markup, so clicks threw
+            instead of opening. The `render` prop makes the trigger render AS our
+            button, attaching the open handler to a single valid element.
+          */}
           <DropdownMenuTrigger
-            className="inline-flex items-center gap-2.5 h-10 px-2 rounded-md hover:bg-accent/40 focus:outline-none focus:ring-2 focus:ring-ring/60 transition-colors"
+            render={
+              <button
+                type="button"
+                className="inline-flex items-center gap-2.5 h-10 px-2 rounded-md hover:bg-accent/40 focus:outline-none focus:ring-2 focus:ring-ring/60 transition-colors"
+                aria-label="Account menu"
+              />
+            }
           >
             <Avatar className="h-8 w-8 ring-2 ring-primary/40 ring-offset-2 ring-offset-background">
               <AvatarFallback className="text-xs bg-primary/15 text-primary font-medium">
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <div className="hidden md:flex flex-col items-start text-xs leading-tight">
+            <span className="hidden md:flex flex-col items-start text-xs leading-tight">
               <span className="font-medium">{profile.full_name || profile.email.split('@')[0]}</span>
               <span className="text-muted-foreground uppercase tracking-[0.12em] text-[10px]">{roleLabel}</span>
-            </div>
+            </span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel className="font-normal text-xs text-muted-foreground">
