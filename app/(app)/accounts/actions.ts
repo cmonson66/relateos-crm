@@ -7,7 +7,7 @@ import { logAudit } from '@/lib/db/audit';
 
 export type AccountFormData = {
   name: string;
-  vertical: 'corporate' | 'sports' | 'public_safety' | 'military' | 'education' | 'other';
+  vertical: string; // per-instance values, see lib/verticals.ts
   website?: string | null;
   industry?: string | null;
   employee_count?: number | null;

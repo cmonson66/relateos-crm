@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { logAudit } from '@/lib/db/audit';
+import { VERTICALS, DEFAULT_VERTICAL } from '@/lib/verticals';
 
 export type ImportRow = {
   organization?: string;
@@ -24,19 +25,24 @@ export type ImportResult = {
   errors: { row: number; message: string }[];
 };
 
-const verticalMap: Record<string, string> = {
-  corporate: 'corporate',
-  sports: 'sports',
+const verticalMap: Record<string, string> = {};
+for (const v of VERTICALS) {
+  verticalMap[v.value.toLowerCase()] = v.value;
+  verticalMap[v.label.toLowerCase()] = v.value;
+}
+// Legacy aliases apply only when their target vertical exists in this instance
+const legacyAliases: Record<string, string> = {
   athletics: 'sports',
-  education: 'education',
   k12: 'education',
   'higher ed': 'education',
   'public safety': 'public_safety',
   publicsafety: 'public_safety',
   fire: 'public_safety',
   police: 'public_safety',
-  military: 'military',
 };
+for (const [alias, target] of Object.entries(legacyAliases)) {
+  if (VERTICALS.some(v => v.value === target)) verticalMap[alias] = target;
+}
 
 const lifecycleMap: Record<string, string> = {
   new: 'new',
@@ -90,7 +96,7 @@ export async function executeImport(
     if (!accountsByName.has(orgName)) {
       const v = (row.vertical || '').toLowerCase().trim();
       accountsByName.set(orgName, {
-        vertical: verticalMap[v] || 'corporate',
+        vertical: verticalMap[v] || DEFAULT_VERTICAL,
         tags: new Set(),
         rows: [],
       });

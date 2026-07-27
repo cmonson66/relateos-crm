@@ -12,22 +12,14 @@ import {
 import { toast } from 'sonner';
 import { createAccount, updateAccount, type AccountFormData } from '../actions';
 import type { Account } from '@/lib/db/types';
-
-const VERTICAL_LABEL: Record<string, string> = {
-  corporate: 'Corporate',
-  sports: 'Sports',
-  public_safety: 'Public Safety',
-  military: 'Military',
-  education: 'Education',
-  other: 'Other',
-};
+import { VERTICALS, DEFAULT_VERTICAL, verticalLabel } from '@/lib/verticals';
 
 export function AccountForm({ existing }: { existing?: Account }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [data, setData] = useState<AccountFormData>({
     name: existing?.name || '',
-    vertical: existing?.vertical || 'corporate',
+    vertical: existing?.vertical || DEFAULT_VERTICAL,
     website: existing?.website || '',
     industry: existing?.industry || '',
     employee_count: existing?.employee_count || null,
@@ -42,7 +34,7 @@ export function AccountForm({ existing }: { existing?: Account }) {
     setData(d => ({ ...d, [key]: value }));
   }
 
-  const verticalLabel = VERTICAL_LABEL[data.vertical] || data.vertical;
+  const selectedVerticalLabel = verticalLabel(data.vertical);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -81,15 +73,12 @@ export function AccountForm({ existing }: { existing?: Account }) {
             onValueChange={(v: string | null) => v && set('vertical', v as AccountFormData['vertical'])}
           >
             <SelectTrigger>
-              <span>{verticalLabel}</span>
+              <span>{selectedVerticalLabel}</span>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="corporate">Corporate</SelectItem>
-              <SelectItem value="sports">Sports</SelectItem>
-              <SelectItem value="public_safety">Public Safety</SelectItem>
-              <SelectItem value="military">Military</SelectItem>
-              <SelectItem value="education">Education</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
+              {VERTICALS.map(v => (
+                <SelectItem key={v.value} value={v.value}>{v.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

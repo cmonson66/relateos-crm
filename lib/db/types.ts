@@ -1,4 +1,5 @@
-export type Vertical = 'corporate' | 'sports' | 'public_safety' | 'military' | 'education' | 'other';
+// Vertical values are per-instance (see lib/verticals.ts); any string is valid.
+export type Vertical = string;
 export type ContactLifecycle = 'new' | 'working' | 'engaged' | 'customer' | 'disqualified';
 export type ActivityType = 'call' | 'email' | 'meeting' | 'note' | 'task';
 

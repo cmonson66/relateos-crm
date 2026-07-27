@@ -8,6 +8,7 @@ import { VerticalBadge } from '@/components/app/vertical-badge';
 import { Input } from '@/components/ui/input';
 import { formatRelative, initials } from '@/lib/utils/format';
 import type { AccountWithOwner } from '@/lib/db/types';
+import { VERTICALS } from '@/lib/verticals';
 
 export function AccountsTable({
   accounts,
@@ -23,7 +24,7 @@ export function AccountsTable({
     let list = accounts;
     if (filter === 'mine') {
       list = list.filter(a => a.owner_id === currentUserId);
-    } else if (filter === 'corporate' || filter === 'sports') {
+    } else if (VERTICALS.some(v => v.value === filter)) {
       list = list.filter(a => a.vertical === filter);
     } else if (filter === 'cold') {
       const fourteenDaysAgo = Date.now() - 14 * 86400000;
@@ -44,8 +45,11 @@ export function AccountsTable({
   const chips: FilterChip[] = [
     { id: 'all', label: 'All', count: accounts.length },
     { id: 'mine', label: 'Mine', count: accounts.filter(a => a.owner_id === currentUserId).length },
-    { id: 'corporate', label: 'Corporate', count: accounts.filter(a => a.vertical === 'corporate').length },
-    { id: 'sports', label: 'Sports', count: accounts.filter(a => a.vertical === 'sports').length },
+    ...VERTICALS.map(v => ({
+      id: v.value,
+      label: v.label,
+      count: accounts.filter(a => a.vertical === v.value).length,
+    })),
     { id: 'cold', label: 'Going cold', count: accounts.filter(a => {
       const fourteenDaysAgo = Date.now() - 14 * 86400000;
       return !a.last_activity_at || new Date(a.last_activity_at).getTime() < fourteenDaysAgo;

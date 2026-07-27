@@ -16,18 +16,9 @@ import {
 import { cn } from '@/lib/utils';
 import { formatRelative, initials } from '@/lib/utils/format';
 import type { ContactWithRefs, Vertical, ContactLifecycle } from '@/lib/db/types';
+import { VERTICALS, verticalLabel } from '@/lib/verticals';
 
 type Owner = { id: string; full_name: string | null; email: string };
-
-const VERTICAL_LABEL: Record<string, string> = {
-  any: 'Any vertical',
-  corporate: 'Corporate',
-  sports: 'Sports',
-  public_safety: 'Public Safety',
-  military: 'Military',
-  education: 'Education',
-  other: 'Other',
-};
 
 const LIFECYCLE_LABEL: Record<string, string> = {
   any: 'Any stage',
@@ -184,15 +175,12 @@ export function ContactsTable({
                 <div>
                   <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-1.5">Vertical</div>
                   <Select value={vertical} onValueChange={(v: string | null) => v && setVertical(v as typeof vertical)}>
-                    <SelectTrigger className="h-9"><span>{VERTICAL_LABEL[vertical]}</span></SelectTrigger>
+                    <SelectTrigger className="h-9"><span>{vertical === 'any' ? 'Any vertical' : verticalLabel(vertical)}</span></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="any">Any vertical</SelectItem>
-                      <SelectItem value="corporate">Corporate</SelectItem>
-                      <SelectItem value="sports">Sports</SelectItem>
-                      <SelectItem value="public_safety">Public Safety</SelectItem>
-                      <SelectItem value="military">Military</SelectItem>
-                      <SelectItem value="education">Education</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      {VERTICALS.map(v => (
+                        <SelectItem key={v.value} value={v.value}>{v.label}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -252,7 +240,7 @@ export function ContactsTable({
         <div className="flex items-center gap-2 mb-4 flex-wrap text-xs">
           <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Filters:</span>
           {vertical !== 'any' && (
-            <ActivePill label={VERTICAL_LABEL[vertical]} onClear={() => setVertical('any')} />
+            <ActivePill label={verticalLabel(vertical)} onClear={() => setVertical('any')} />
           )}
           {lifecycle !== 'any' && (
             <ActivePill label={LIFECYCLE_LABEL[lifecycle]} onClear={() => setLifecycle('any')} />
