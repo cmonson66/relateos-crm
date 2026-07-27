@@ -75,6 +75,8 @@ export function ContactsTable({
       list = list.filter(c => c.lifecycle_stage === 'customer');
     } else if (chip === 'disqualified') {
       list = list.filter(c => c.lifecycle_stage === 'disqualified');
+    } else if (chip === 'HOT' || chip === 'WARM' || chip === 'COOL') {
+      list = list.filter(c => c.tags.includes(chip));
     }
 
     // Secondary refine
@@ -117,6 +119,9 @@ export function ContactsTable({
       const fourteenDaysAgo = Date.now() - 14 * 86400000;
       return !c.last_activity_at || new Date(c.last_activity_at).getTime() < fourteenDaysAgo;
     }).length },
+    { id: 'HOT', label: 'Hot', count: contacts.filter(c => c.tags.includes('HOT')).length },
+    { id: 'WARM', label: 'Warm', count: contacts.filter(c => c.tags.includes('WARM')).length },
+    { id: 'COOL', label: 'Cool', count: contacts.filter(c => c.tags.includes('COOL')).length },
     { id: 'customers', label: 'Customers', count: contacts.filter(c => c.lifecycle_stage === 'customer').length },
     { id: 'disqualified', label: 'Disqualified', count: contacts.filter(c => c.lifecycle_stage === 'disqualified').length },
   ];

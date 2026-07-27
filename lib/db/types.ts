@@ -14,6 +14,8 @@ export type Account = {
   city: string | null;
   state: string | null;
   country: string | null;
+  latitude: number | null;
+  longitude: number | null;
   notes: string | null;
   tags: string[];
   owner_id: string | null;

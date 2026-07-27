@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Building2, Users, Briefcase, Activity,
   Upload, Settings, ShieldCheck, LockKeyhole, Palette, X,
+  Map as MapIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Profile, UserRole } from '@/lib/auth/get-user';
@@ -20,6 +21,7 @@ const navItems: {
   { href: '/accounts',   label: 'Accounts',   icon: Building2,       roles: ['super_admin','admin','manager','rep'] },
   { href: '/contacts',   label: 'Contacts',   icon: Users,           roles: ['super_admin','admin','manager','rep'] },
   { href: '/deals',      label: 'Deals',      icon: Briefcase,       roles: ['super_admin','admin','manager','rep'] },
+  { href: '/map',        label: 'Map',        icon: MapIcon,         roles: ['super_admin','admin','manager','rep'] },
   { href: '/activities', label: 'Activities', icon: Activity,        roles: ['super_admin','admin','manager','rep'] },
   { href: '/import',     label: 'Import',     icon: Upload,          roles: ['super_admin','admin'] },
   { href: '/admin',      label: 'Admin',      icon: Settings,        roles: ['super_admin','admin'] },

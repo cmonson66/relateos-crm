@@ -6,21 +6,26 @@ import { PageHeader } from '@/components/app/page-header';
 import { EmptyState } from '@/components/app/empty-state';
 import { Button } from '@/components/ui/button';
 import { ContactsTable } from './_components/contacts-table';
+import { fetchAllRows } from '@/lib/db/fetch-all';
+import type { ContactWithRefs } from '@/lib/db/types';
 
 export default async function ContactsPage() {
   const { profile } = await getUser();
   const supabase = await createClient();
 
-  const [{ data: contacts }, { data: profilesRaw }] = await Promise.all([
-    supabase
-      .from('contacts')
-      .select(`
-        *,
-        account:accounts(id, name, vertical),
-        owner:profiles!contacts_owner_id_fkey(id, full_name, email)
-      `)
-      .order('last_activity_at', { ascending: false, nullsFirst: false })
-      .order('created_at', { ascending: false }),
+  const [contacts, { data: profilesRaw }] = await Promise.all([
+    fetchAllRows<ContactWithRefs>((from, to) =>
+      supabase
+        .from('contacts')
+        .select(`
+          *,
+          account:accounts(id, name, vertical),
+          owner:profiles!contacts_owner_id_fkey(id, full_name, email)
+        `)
+        .order('last_activity_at', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false })
+        .range(from, to)
+    ),
     supabase.from('profiles').select('id, full_name, email, role').eq('is_active', true),
   ]);
 

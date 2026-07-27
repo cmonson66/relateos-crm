@@ -6,16 +6,21 @@ import { PageHeader } from '@/components/app/page-header';
 import { EmptyState } from '@/components/app/empty-state';
 import { Button } from '@/components/ui/button';
 import { AccountsTable } from './_components/accounts-table';
+import { fetchAllRows } from '@/lib/db/fetch-all';
+import type { AccountWithOwner } from '@/lib/db/types';
 
 export default async function AccountsPage() {
   const { profile } = await getUser();
   const supabase = await createClient();
 
-  const { data: accounts } = await supabase
-    .from('accounts')
-    .select('*, owner:profiles!accounts_owner_id_fkey(id, full_name, email)')
-    .order('last_activity_at', { ascending: false, nullsFirst: false })
-    .order('created_at', { ascending: false });
+  const accounts = await fetchAllRows<AccountWithOwner>((from, to) =>
+    supabase
+      .from('accounts')
+      .select('*, owner:profiles!accounts_owner_id_fkey(id, full_name, email)')
+      .order('last_activity_at', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .range(from, to)
+  );
 
   const list = accounts || [];
 
