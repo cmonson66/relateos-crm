@@ -31,6 +31,7 @@ const LeafletMap = dynamic(() => import('./leaflet-map'), {
 export function MapView({ accounts }: { accounts: MapAccount[] }) {
   const [band, setBand] = useState('all');
   const [vertical, setVertical] = useState('all');
+  const [fitSignal, setFitSignal] = useState(0);
 
   const filtered = useMemo(() => {
     let list = accounts;
@@ -71,12 +72,21 @@ export function MapView({ accounts }: { accounts: MapAccount[] }) {
       <div className="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
         <FilterChips chips={verticalChips} activeId={vertical} onChange={setVertical} />
       </div>
-      <div className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
-        {filtered.length} doors on the map
-        {vertical !== 'all' ? ` · ${verticalLabel(vertical)}` : ''}
-        {band !== 'all' ? ` · ${band}` : ''}
+      <div className="flex items-center justify-between">
+        <div className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+          {filtered.length} doors on the map
+          {vertical !== 'all' ? ` · ${verticalLabel(vertical)}` : ''}
+          {band !== 'all' ? ` · ${band}` : ''}
+        </div>
+        <button
+          type="button"
+          onClick={() => setFitSignal(n => n + 1)}
+          className="text-[11px] uppercase tracking-[0.15em] px-3 py-1.5 rounded-md border border-border/40 text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50 transition-colors"
+        >
+          Fit view
+        </button>
       </div>
-      <LeafletMap accounts={filtered} />
+      <LeafletMap accounts={filtered} fitSignal={fitSignal} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -16,10 +16,15 @@ const BAND_COLOR: Record<string, string> = {
 // Phoenix fallback center
 const DEFAULT_CENTER: [number, number] = [33.4484, -112.074];
 
-function FitBounds({ accounts }: { accounts: MapAccount[] }) {
+function FitBounds({ accounts, fitSignal }: { accounts: MapAccount[]; fitSignal: number }) {
   const map = useMap();
+  const fittedOnce = useRef(false);
   useEffect(() => {
     if (accounts.length === 0) return;
+    // Fit on first load, then ONLY when the user asks (Fit view button).
+    // Filter toggles keep the current viewport instead of re-zooming.
+    if (fittedOnce.current && fitSignal === 0) return;
+    fittedOnce.current = true;
     const lats = accounts.map(a => a.lat);
     const lngs = accounts.map(a => a.lng);
     map.fitBounds(
@@ -29,11 +34,12 @@ function FitBounds({ accounts }: { accounts: MapAccount[] }) {
       ],
       { padding: [40, 40], maxZoom: 14 }
     );
-  }, [accounts, map]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fitSignal, map]);
   return null;
 }
 
-export default function LeafletMap({ accounts }: { accounts: MapAccount[] }) {
+export default function LeafletMap({ accounts, fitSignal = 0 }: { accounts: MapAccount[]; fitSignal?: number }) {
   return (
     <div className="h-[70vh] rounded-md overflow-hidden border border-border/40">
       <MapContainer
@@ -46,7 +52,7 @@ export default function LeafletMap({ accounts }: { accounts: MapAccount[] }) {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <FitBounds accounts={accounts} />
+        <FitBounds accounts={accounts} fitSignal={fitSignal} />
         {accounts.map(a => (
           <CircleMarker
             key={a.id}
