@@ -45,6 +45,7 @@ export default function LeafletMap({ accounts, fitSignal = 0 }: { accounts: MapA
       <MapContainer
         center={DEFAULT_CENTER}
         zoom={10}
+        preferCanvas
         scrollWheelZoom
         style={{ height: '100%', width: '100%', background: '#111' }}
       >

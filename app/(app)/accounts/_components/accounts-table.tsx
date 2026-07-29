@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { FilterChips, type FilterChip } from '@/components/app/filter-chips';
@@ -19,6 +19,9 @@ export function AccountsTable({
 }) {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+
+  const PAGE_SIZE = 150;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const filtered = useMemo(() => {
     let list = accounts;
@@ -41,6 +44,11 @@ export function AccountsTable({
     }
     return list;
   }, [accounts, filter, search, currentUserId]);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [filter, search]);
+  const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
 
   const chips: FilterChip[] = [
     { id: 'all', label: 'All', count: accounts.length },
@@ -80,7 +88,7 @@ export function AccountsTable({
           <div className="text-right">Last activity</div>
           <div></div>
         </div>
-        {filtered.map(a => (
+        {visible.map(a => (
           <Link key={a.id} href={`/accounts/${a.id}`}
             className="grid grid-cols-[2.4fr_1fr_1fr_1fr_0.6fr_40px] items-center gap-4 px-5 py-4 border-b border-border/20 last:border-0 hover:bg-primary/5 transition-colors group min-h-[44px]"
           >
@@ -125,7 +133,7 @@ export function AccountsTable({
 
       {/* MOBILE CARDS */}
       <div className="md:hidden space-y-2">
-        {filtered.map(a => (
+        {visible.map(a => (
           <Link key={a.id} href={`/accounts/${a.id}`}
             className="card-lit border border-border/40 rounded-md p-4 block min-h-[88px] active:bg-primary/5 transition-colors"
           >
@@ -170,6 +178,21 @@ export function AccountsTable({
           </div>
         )}
       </div>
+
+      {filtered.length > visibleCount && (
+        <div className="flex items-center justify-center gap-3 py-4">
+          <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+            Showing {visibleCount.toLocaleString()} of {filtered.length.toLocaleString()}
+          </span>
+          <button
+            type="button"
+            onClick={() => setVisibleCount(n => n + 400)}
+            className="text-[11px] uppercase tracking-[0.15em] px-4 py-2 rounded-md border border-border/40 text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50 transition-colors"
+          >
+            Show more
+          </button>
+        </div>
+      )}
     </>
   );
 }
