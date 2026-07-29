@@ -19,6 +19,7 @@ export default async function AccountsPage() {
       .select('*, owner:profiles!accounts_owner_id_fkey(id, full_name, email)')
       .order('last_activity_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
+      .order('id', { ascending: true }) // stable tiebreaker
       .range(from, to)
   );
 

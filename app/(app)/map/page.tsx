@@ -31,6 +31,7 @@ export default async function MapPage() {
       .from('accounts')
       .select('id, name, vertical, city, latitude, longitude, tags, last_activity_at, contacts(first_name, last_name, phone, title, lifecycle_stage)')
       .not('latitude', 'is', null)
+      .order('id', { ascending: true }) // deterministic pages
       .range(from, to)
   );
 

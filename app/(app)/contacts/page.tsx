@@ -24,6 +24,7 @@ export default async function ContactsPage() {
         `)
         .order('last_activity_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
+        .order('id', { ascending: true }) // stable tiebreaker: batch inserts share created_at, and untied pages duplicate/skip rows
         .range(from, to)
     ),
     supabase.from('profiles').select('id, full_name, email, role').eq('is_active', true),
