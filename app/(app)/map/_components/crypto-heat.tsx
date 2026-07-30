@@ -5,8 +5,6 @@ import { useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { HEAT_GRADIENT, type CryptoSignal } from '@/lib/crypto/density';
 
-export const HEAT_PANE = 'cryptoHeatPane';
-
 type Props = {
   signals: CryptoSignal[];
   visible: boolean;
@@ -19,9 +17,9 @@ export default function CryptoHeat({ signals, visible, radius = 34 }: Props) {
   const [pluginReady, setPluginReady] = useState(false);
 
   // leaflet.heat is an old-style plugin: it assigns onto a global `L` rather
-  // than importing it. Under a bundler that global doesn't exist, so we set
-  // it first and load the plugin after. If it fails we simply never render
-  // heat — the rest of the map is untouched.
+  // than importing it. Under a bundler that global doesn't exist, so set it
+  // first and load the plugin after. If it fails we never render heat and
+  // the rest of the map is untouched.
   useEffect(() => {
     let cancelled = false;
     (window as unknown as { L: typeof L }).L = L;
@@ -37,21 +35,22 @@ export default function CryptoHeat({ signals, visible, radius = 34 }: Props) {
     };
   }, []);
 
-  // Dedicated pane under the overlay pane (400) where the band markers live,
-  // with pointer events off so it can never swallow a popup click.
   useEffect(() => {
-    if (!map.getPane(HEAT_PANE)) {
-      const pane = map.createPane(HEAT_PANE);
-      pane.style.zIndex = '350';
-      pane.style.pointerEvents = 'none';
-    }
-  }, [map]);
-
-  useEffect(() => {
-    if (layerRef.current) {
-      map.removeLayer(layerRef.current);
+    // Teardown is wrapped in try/catch on purpose. This component unmounts
+    // during client-side navigation (clicking "Open account" in a popup), and
+    // anything thrown here aborts the navigation and blanks the page.
+    const detach = () => {
+      const layer = layerRef.current;
       layerRef.current = null;
-    }
+      if (!layer) return;
+      try {
+        if (map.hasLayer(layer)) map.removeLayer(layer);
+      } catch (err) {
+        console.warn('crypto heat teardown', err);
+      }
+    };
+
+    detach();
 
     if (!pluginReady || !visible || signals.length === 0) return;
 
@@ -62,7 +61,6 @@ export default function CryptoHeat({ signals, visible, radius = 34 }: Props) {
     if (points.length === 0) return;
 
     const heat = L.heatLayer(points, {
-      pane: HEAT_PANE,
       radius,
       blur: Math.round(radius * 0.75),
       max: 3,
@@ -73,32 +71,30 @@ export default function CryptoHeat({ signals, visible, radius = 34 }: Props) {
 
     heat.addTo(map);
 
-    // leaflet.heat 0.2.0 ignores the `pane` option -- its onAdd hardcodes
-    // overlayPane.appendChild(canvas). That drops a full-viewport canvas on
-    // top of the marker canvas with pointer events enabled, which swallows
-    // every click on a lead and paints the heat OVER the band pins instead
-    // of under them. Fix both by hand once the layer is attached.
-    const canvas = (heat as unknown as { _canvas?: HTMLCanvasElement })._canvas;
-    if (canvas) {
-      canvas.style.pointerEvents = 'none';
-      const pane = map.getPane(HEAT_PANE);
-      if (pane && canvas.parentNode !== pane) pane.appendChild(canvas);
+    // leaflet.heat 0.2.0 hardcodes `overlayPane.appendChild(canvas)` and
+    // ignores the `pane` option, so its canvas lands on top of the marker
+    // canvas with pointer events on — swallowing every click on a lead.
+    //
+    // Rather than relocate it to another pane (which breaks its onRemove,
+    // since that calls overlayPane.removeChild), leave it in overlayPane and
+    // just move it to the front of the child list. Same pane, so removal
+    // still works; earlier in DOM order, so it paints beneath the markers.
+    try {
+      const canvas = (heat as unknown as { _canvas?: HTMLCanvasElement })._canvas;
+      const overlay = map.getPanes()?.overlayPane;
+      if (canvas) {
+        canvas.style.pointerEvents = 'none';
+        if (overlay && canvas.parentNode === overlay && overlay.firstChild !== canvas) {
+          overlay.insertBefore(canvas, overlay.firstChild);
+        }
+      }
+    } catch (err) {
+      console.warn('crypto heat canvas setup', err);
     }
 
     layerRef.current = heat;
 
-    return () => {
-      // onRemove calls overlayPane.removeChild(canvas), so the canvas has to
-      // be back in overlayPane or removal throws NotFoundError.
-      if (canvas) {
-        const overlay = map.getPanes().overlayPane;
-        if (canvas.parentNode !== overlay) overlay.appendChild(canvas);
-      }
-      if (layerRef.current) {
-        map.removeLayer(layerRef.current);
-        layerRef.current = null;
-      }
-    };
+    return detach;
   }, [map, signals, visible, radius, pluginReady]);
 
   return null;
