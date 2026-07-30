@@ -20,6 +20,12 @@ export type Account = {
   tags: string[];
   owner_id: string | null;
   last_activity_at: string | null;
+  // crypto density, synced from nectarpay_leads by sync_crypto_to_accounts()
+  crypto_score: number | null;
+  crypto_atm_count: number | null;
+  crypto_merchant_count: number | null;
+  crypto_nearest_atm_m: number | null;
+  crypto_scored_at: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

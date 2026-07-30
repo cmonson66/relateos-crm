@@ -9,6 +9,9 @@ import { Input } from '@/components/ui/input';
 import { formatRelative, initials } from '@/lib/utils/format';
 import type { AccountWithOwner } from '@/lib/db/types';
 import { VERTICALS } from '@/lib/verticals';
+import { CryptoScoreBadge } from '@/components/app/crypto-score-badge';
+
+type SortKey = 'recent' | 'crypto';
 
 export function AccountsTable({
   accounts,
@@ -19,6 +22,9 @@ export function AccountsTable({
 }) {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState<SortKey>('recent');
+
+  const hasCrypto = accounts.some(a => a.crypto_score !== null && a.crypto_score !== undefined);
 
   const PAGE_SIZE = 150;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -29,6 +35,8 @@ export function AccountsTable({
       list = list.filter(a => a.owner_id === currentUserId);
     } else if (VERTICALS.some(v => v.value === filter)) {
       list = list.filter(a => a.vertical === filter);
+    } else if (filter === 'crypto') {
+      list = list.filter(a => (a.crypto_score ?? 0) >= 70);
     } else if (filter === 'cold') {
       const fourteenDaysAgo = Date.now() - 14 * 86400000;
       list = list.filter(a => !a.last_activity_at || new Date(a.last_activity_at).getTime() < fourteenDaysAgo);
@@ -42,12 +50,20 @@ export function AccountsTable({
         a.tags.some(t => t.toLowerCase().includes(q))
       );
     }
+    if (sort === 'crypto') {
+      // nulls last -- an unscored account isn't a zero-density account
+      list = [...list].sort((a, b) => {
+        const av = a.crypto_score ?? -1;
+        const bv = b.crypto_score ?? -1;
+        return bv - av;
+      });
+    }
     return list;
-  }, [accounts, filter, search, currentUserId]);
+  }, [accounts, filter, search, currentUserId, sort]);
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [filter, search]);
+  }, [filter, search, sort]);
   const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
 
   const chips: FilterChip[] = [
@@ -58,6 +74,13 @@ export function AccountsTable({
       label: v.label,
       count: accounts.filter(a => a.vertical === v.value).length,
     })),
+    ...(hasCrypto
+      ? [{
+          id: 'crypto',
+          label: 'Crypto 70+',
+          count: accounts.filter(a => (a.crypto_score ?? 0) >= 70).length,
+        }]
+      : []),
     { id: 'cold', label: 'Going cold', count: accounts.filter(a => {
       const fourteenDaysAgo = Date.now() - 14 * 86400000;
       return !a.last_activity_at || new Date(a.last_activity_at).getTime() < fourteenDaysAgo;
@@ -70,27 +93,49 @@ export function AccountsTable({
         <div className="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
           <FilterChips chips={chips} activeId={filter} onChange={setFilter} />
         </div>
-        <Input
-          placeholder="Search…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="md:max-w-xs"
-        />
+        <div className="flex items-center gap-2">
+          {hasCrypto && (
+            <div className="inline-flex rounded-md border border-border/40 overflow-hidden shrink-0">
+              {([['recent', 'Recent'], ['crypto', 'Density']] as [SortKey, string][]).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={sort === id}
+                  onClick={() => setSort(id)}
+                  className={`text-[11px] uppercase tracking-[0.15em] px-2.5 py-2 border-r border-border/40 last:border-r-0 transition-colors ${
+                    sort === id
+                      ? 'bg-primary/15 text-primary'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+          <Input
+            placeholder="Search…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="md:max-w-xs"
+          />
+        </div>
       </div>
 
       {/* DESKTOP TABLE */}
       <div className="hidden md:block card-lit border border-border/40 rounded-md overflow-hidden">
-        <div className="grid grid-cols-[2.4fr_1fr_1fr_1fr_0.6fr_40px] items-center gap-4 px-5 py-3 text-[10px] uppercase tracking-[0.15em] text-muted-foreground border-b border-border/40 bg-background/30">
+        <div className="grid grid-cols-[2.2fr_0.9fr_0.9fr_0.9fr_0.7fr_0.6fr_40px] items-center gap-4 px-5 py-3 text-[10px] uppercase tracking-[0.15em] text-muted-foreground border-b border-border/40 bg-background/30">
           <div>Account</div>
           <div>Vertical</div>
           <div>Location</div>
           <div>Owner</div>
+          <div>Crypto</div>
           <div className="text-right">Last activity</div>
           <div></div>
         </div>
         {visible.map(a => (
           <Link key={a.id} href={`/accounts/${a.id}`}
-            className="grid grid-cols-[2.4fr_1fr_1fr_1fr_0.6fr_40px] items-center gap-4 px-5 py-4 border-b border-border/20 last:border-0 hover:bg-primary/5 transition-colors group min-h-[44px]"
+            className="grid grid-cols-[2.2fr_0.9fr_0.9fr_0.9fr_0.7fr_0.6fr_40px] items-center gap-4 px-5 py-4 border-b border-border/20 last:border-0 hover:bg-primary/5 transition-colors group min-h-[44px]"
           >
             <div className="min-w-0">
               <div className="font-medium truncate">{a.name}</div>
@@ -117,6 +162,9 @@ export function AccountsTable({
               ) : (
                 <span className="text-sm text-muted-foreground italic">unassigned</span>
               )}
+            </div>
+            <div>
+              <CryptoScoreBadge score={a.crypto_score} atmCount={a.crypto_atm_count} />
             </div>
             <div className="text-xs text-muted-foreground text-right tabular-nums">
               {formatRelative(a.last_activity_at)}
@@ -166,9 +214,12 @@ export function AccountsTable({
                   <span className="text-muted-foreground italic">unassigned</span>
                 )}
               </div>
-              <span className="text-muted-foreground/70 tabular-nums">
-                {formatRelative(a.last_activity_at)}
-              </span>
+              <div className="flex items-center gap-3 shrink-0">
+                <CryptoScoreBadge score={a.crypto_score} atmCount={a.crypto_atm_count} compact />
+                <span className="text-muted-foreground/70 tabular-nums">
+                  {formatRelative(a.last_activity_at)}
+                </span>
+              </div>
             </div>
           </Link>
         ))}
