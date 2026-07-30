@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/app/page-header';
 import { fetchAllRows } from '@/lib/db/fetch-all';
 import { MapView, type MapAccount } from './_components/map-view';
+import type { CryptoSignal } from '@/lib/crypto/density';
 
 type Row = {
   id: string;
@@ -35,6 +36,17 @@ export default async function MapPage() {
       .range(from, to)
   );
 
+  // Crypto touchpoints (ATMs + accepting merchants). Reference data, not
+  // org-scoped. fetchAllRows swallows the error and returns [] if migration
+  // 017 hasn't been applied yet, so the map still renders without the layer.
+  const signals = await fetchAllRows<CryptoSignal>((from, to) =>
+    supabase
+      .from('crypto_signals')
+      .select('id, signal_type, name, brand, city, lat, lng, weight')
+      .order('id', { ascending: true })
+      .range(from, to)
+  );
+
   const accounts: MapAccount[] = rows.map(r => {
     const c = r.contacts?.[0] ?? null;
     return {
@@ -59,7 +71,7 @@ export default async function MapPage() {
         highlight="Map"
         description="Every pin is a door. Filter by band and vertical, then plan the day's route."
       />
-      <MapView accounts={accounts} />
+      <MapView accounts={accounts} signals={signals} />
     </div>
   );
 }

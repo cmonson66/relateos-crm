@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { FilterChips, type FilterChip } from '@/components/app/filter-chips';
 import { VERTICALS, verticalLabel } from '@/lib/verticals';
+import { cn } from '@/lib/utils';
+import { computeCryptoStats, ATM_COLOR, type CryptoSignal } from '@/lib/crypto/density';
 
 export type MapAccount = {
   id: string;
@@ -18,6 +20,8 @@ export type MapAccount = {
   stage: string;
 };
 
+type HeatFilter = 'all' | 'atm' | 'merchant';
+
 // Leaflet touches `window`, so the actual map only loads client-side
 const LeafletMap = dynamic(() => import('./leaflet-map'), {
   ssr: false,
@@ -28,10 +32,21 @@ const LeafletMap = dynamic(() => import('./leaflet-map'), {
   ),
 });
 
-export function MapView({ accounts }: { accounts: MapAccount[] }) {
+const CONTROL =
+  'text-[11px] uppercase tracking-[0.15em] px-3 py-1.5 rounded-md border transition-colors';
+
+export function MapView({
+  accounts,
+  signals = [],
+}: {
+  accounts: MapAccount[];
+  signals?: CryptoSignal[];
+}) {
   const [band, setBand] = useState('all');
   const [vertical, setVertical] = useState('all');
   const [fitSignal, setFitSignal] = useState(0);
+  const [showHeat, setShowHeat] = useState(false);
+  const [heatFilter, setHeatFilter] = useState<HeatFilter>('all');
 
   const filtered = useMemo(() => {
     let list = accounts;
@@ -39,6 +54,14 @@ export function MapView({ accounts }: { accounts: MapAccount[] }) {
     if (vertical !== 'all') list = list.filter(a => a.vertical === vertical);
     return list;
   }, [accounts, band, vertical]);
+
+  // Computed over the full account set, not the filtered one, so the
+  // percentile means the same thing no matter which chips are active.
+  // Deliberately not keyed on the filters — this runs once per data load.
+  const cryptoStats = useMemo(
+    () => computeCryptoStats(accounts, signals),
+    [accounts, signals]
+  );
 
   const bandChips: FilterChip[] = [
     { id: 'all', label: 'All', count: accounts.length },
@@ -72,21 +95,89 @@ export function MapView({ accounts }: { accounts: MapAccount[] }) {
       <div className="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
         <FilterChips chips={verticalChips} activeId={vertical} onChange={setVertical} />
       </div>
-      <div className="flex items-center justify-between">
+
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
           {filtered.length} doors on the map
           {vertical !== 'all' ? ` · ${verticalLabel(vertical)}` : ''}
           {band !== 'all' ? ` · ${band}` : ''}
         </div>
-        <button
-          type="button"
-          onClick={() => setFitSignal(n => n + 1)}
-          className="text-[11px] uppercase tracking-[0.15em] px-3 py-1.5 rounded-md border border-border/40 text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50 transition-colors"
-        >
-          Fit view
-        </button>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {signals.length > 0 && (
+            <>
+              <button
+                type="button"
+                aria-pressed={showHeat}
+                onClick={() => setShowHeat(v => !v)}
+                className={cn(
+                  CONTROL,
+                  'inline-flex items-center gap-2',
+                  showHeat
+                    ? 'border-fuchsia-500/60 bg-fuchsia-500/15 text-fuchsia-200'
+                    : 'border-border/40 text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50'
+                )}
+              >
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ background: showHeat ? ATM_COLOR : 'currentColor' }}
+                />
+                Crypto density
+                <span className="font-mono text-[10px] normal-case tracking-normal opacity-70">
+                  {signals.length}
+                </span>
+              </button>
+
+              {showHeat && (
+                <div className="inline-flex rounded-md border border-border/40 overflow-hidden">
+                  {(
+                    [
+                      ['all', 'All'],
+                      ['atm', 'ATMs'],
+                      ['merchant', 'Accepting'],
+                    ] as [HeatFilter, string][]
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      aria-pressed={heatFilter === id}
+                      onClick={() => setHeatFilter(id)}
+                      className={cn(
+                        'text-[11px] uppercase tracking-[0.15em] px-2.5 py-1.5 border-r border-border/40 last:border-r-0 transition-colors',
+                        heatFilter === id
+                          ? 'bg-fuchsia-500/15 text-fuchsia-200'
+                          : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setFitSignal(n => n + 1)}
+            className={cn(
+              CONTROL,
+              'border-border/40 text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50'
+            )}
+          >
+            Fit view
+          </button>
+        </div>
       </div>
-      <LeafletMap accounts={filtered} fitSignal={fitSignal} />
+
+      <LeafletMap
+        accounts={filtered}
+        fitSignal={fitSignal}
+        signals={signals}
+        showHeat={showHeat}
+        heatFilter={heatFilter}
+        cryptoStats={cryptoStats}
+      />
     </div>
   );
 }
