@@ -100,6 +100,36 @@ export default function LeafletMap({
 
         <FitBounds accounts={accounts} fitSignal={fitSignal} />
 
+        {/* Kiosks render BEFORE accounts on purpose: the canvas renderer
+            hit-tests in reverse draw order, so drawing accounts last keeps a
+            lead clickable even when a kiosk pin overlaps it. */}
+        {shownSignals.map(s => {
+          const isAtm = s.signal_type === 'atm';
+          return (
+            <CircleMarker
+              key={`sig-${s.id}`}
+              center={[s.lat, s.lng]}
+              radius={isAtm ? 4 : 5}
+              pathOptions={{
+                color: '#ffffff',
+                weight: 1.5,
+                fillColor: isAtm ? ATM_COLOR : MERCHANT_COLOR,
+                fillOpacity: 1,
+              }}
+            >
+              <Popup>
+                <div style={{ minWidth: 150 }}>
+                  <div style={{ fontWeight: 700 }}>{s.brand || s.name || 'Crypto location'}</div>
+                  <div style={{ fontSize: 12, opacity: 0.8 }}>
+                    {isAtm ? 'Crypto ATM' : 'Accepts crypto'}
+                    {s.city ? ` · ${s.city}` : ''}
+                  </div>
+                </div>
+              </Popup>
+            </CircleMarker>
+          );
+        })}
+
         {accounts.map(a => {
           const cs = cryptoStats?.get(a.id);
           return (
@@ -185,33 +215,6 @@ export default function LeafletMap({
           );
         })}
 
-        {/* The raw kiosks. Seeing four pins around a door sells better than a blur. */}
-        {shownSignals.map(s => {
-          const isAtm = s.signal_type === 'atm';
-          return (
-            <CircleMarker
-              key={`sig-${s.id}`}
-              center={[s.lat, s.lng]}
-              radius={isAtm ? 4 : 5}
-              pathOptions={{
-                color: '#ffffff',
-                weight: 1.5,
-                fillColor: isAtm ? ATM_COLOR : MERCHANT_COLOR,
-                fillOpacity: 1,
-              }}
-            >
-              <Popup>
-                <div style={{ minWidth: 150 }}>
-                  <div style={{ fontWeight: 700 }}>{s.brand || s.name || 'Crypto location'}</div>
-                  <div style={{ fontSize: 12, opacity: 0.8 }}>
-                    {isAtm ? 'Crypto ATM' : 'Accepts crypto'}
-                    {s.city ? ` · ${s.city}` : ''}
-                  </div>
-                </div>
-              </Popup>
-            </CircleMarker>
-          );
-        })}
       </MapContainer>
 
       {showHeat && (

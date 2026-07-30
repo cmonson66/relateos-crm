@@ -72,9 +72,28 @@ export default function CryptoHeat({ signals, visible, radius = 34 }: Props) {
     });
 
     heat.addTo(map);
+
+    // leaflet.heat 0.2.0 ignores the `pane` option -- its onAdd hardcodes
+    // overlayPane.appendChild(canvas). That drops a full-viewport canvas on
+    // top of the marker canvas with pointer events enabled, which swallows
+    // every click on a lead and paints the heat OVER the band pins instead
+    // of under them. Fix both by hand once the layer is attached.
+    const canvas = (heat as unknown as { _canvas?: HTMLCanvasElement })._canvas;
+    if (canvas) {
+      canvas.style.pointerEvents = 'none';
+      const pane = map.getPane(HEAT_PANE);
+      if (pane && canvas.parentNode !== pane) pane.appendChild(canvas);
+    }
+
     layerRef.current = heat;
 
     return () => {
+      // onRemove calls overlayPane.removeChild(canvas), so the canvas has to
+      // be back in overlayPane or removal throws NotFoundError.
+      if (canvas) {
+        const overlay = map.getPanes().overlayPane;
+        if (canvas.parentNode !== overlay) overlay.appendChild(canvas);
+      }
       if (layerRef.current) {
         map.removeLayer(layerRef.current);
         layerRef.current = null;
