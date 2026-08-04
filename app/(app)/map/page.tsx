@@ -23,7 +23,12 @@ type Row = {
   }[];
 };
 
-export default async function MapPage() {
+export default async function MapPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ focus?: string }>;
+}) {
+  const { focus } = await searchParams;
   await getUser();
   const supabase = await createClient();
 
@@ -71,7 +76,7 @@ export default async function MapPage() {
         highlight="Map"
         description="Every pin is a door. Filter by band and vertical, then plan the day's route."
       />
-      <MapView accounts={accounts} signals={signals} />
+      <MapView accounts={accounts} signals={signals} focusId={focus ?? null} />
     </div>
   );
 }

@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronRight, SlidersHorizontal, X } from 'lucide-react';
+import { ChevronRight, MapPin, SlidersHorizontal, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { FilterChips, type FilterChip } from '@/components/app/filter-chips';
 import { LifecycleBadge } from '@/components/app/lifecycle-badge';
 import { VerticalBadge } from '@/components/app/vertical-badge';
@@ -40,6 +41,7 @@ export function ContactsTable({
   currentRole: string;
   allOwners: Owner[];
 }) {
+  const router = useRouter();
   const [chip, setChip] = useState('all');
   const [search, setSearch] = useState('');
   const [vertical, setVertical] = useState<'any' | Vertical>('any');
@@ -271,7 +273,7 @@ export function ContactsTable({
 
       {/* DESKTOP TABLE */}
       <div className="hidden md:block card-lit border border-border/40 rounded-md overflow-hidden">
-        <div className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_0.6fr_40px] items-center gap-4 px-5 py-3 text-[10px] uppercase tracking-[0.15em] text-muted-foreground border-b border-border/40 bg-background/30">
+        <div className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_0.6fr_64px] items-center gap-4 px-5 py-3 text-[10px] uppercase tracking-[0.15em] text-muted-foreground border-b border-border/40 bg-background/30">
           <div>Contact</div>
           <div>Account</div>
           <div>Stage</div>
@@ -282,7 +284,7 @@ export function ContactsTable({
         </div>
         {visible.map(c => (
           <Link key={c.id} href={`/contacts/${c.id}`}
-            className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_0.6fr_40px] items-center gap-4 px-5 py-4 border-b border-border/20 last:border-0 hover:bg-primary/5 transition-colors group min-h-[44px]"
+            className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_0.6fr_64px] items-center gap-4 px-5 py-4 border-b border-border/20 last:border-0 hover:bg-primary/5 transition-colors group min-h-[44px]"
           >
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-9 h-9 rounded-full bg-primary/15 text-primary text-xs font-medium flex items-center justify-center shrink-0">
@@ -317,7 +319,23 @@ export function ContactsTable({
             <div className="text-xs text-muted-foreground text-right tabular-nums">
               {formatRelative(c.last_activity_at)}
             </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+            <div className="flex items-center justify-end gap-1.5">
+              {c.account && (
+                <button
+                  type="button"
+                  title="Show on map"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    router.push(`/map?focus=${c.account!.id}`);
+                  }}
+                  className="p-1 rounded-md text-muted-foreground/40 hover:text-primary hover:bg-primary/10 transition-colors"
+                >
+                  <MapPin className="h-4 w-4" />
+                </button>
+              )}
+              <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+            </div>
           </Link>
         ))}
         {filtered.length === 0 && (
@@ -343,7 +361,23 @@ export function ContactsTable({
                     <div className="font-medium leading-tight truncate">{c.first_name} {c.last_name}</div>
                     {c.title && <div className="text-[11px] text-muted-foreground truncate">{c.title}</div>}
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0 mt-0.5" />
+                  <div className="flex items-center gap-1 shrink-0 mt-0.5">
+                    {c.account && (
+                      <button
+                        type="button"
+                        title="Show on map"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          router.push(`/map?focus=${c.account!.id}`);
+                        }}
+                        className="p-1.5 -m-0.5 rounded-md text-muted-foreground/40 active:text-primary active:bg-primary/10 transition-colors"
+                      >
+                        <MapPin className="h-4 w-4" />
+                      </button>
+                    )}
+                    <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                   <LifecycleBadge stage={c.lifecycle_stage} />

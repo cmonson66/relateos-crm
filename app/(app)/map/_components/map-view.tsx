@@ -38,9 +38,11 @@ const CONTROL =
 export function MapView({
   accounts,
   signals = [],
+  focusId = null,
 }: {
   accounts: MapAccount[];
   signals?: CryptoSignal[];
+  focusId?: string | null;
 }) {
   const [band, setBand] = useState('all');
   const [vertical, setVertical] = useState('all');
@@ -172,6 +174,7 @@ export function MapView({
 
       <LeafletMap
         accounts={filtered}
+        focusId={focusId}
         fitSignal={fitSignal}
         signals={signals}
         showHeat={showHeat}

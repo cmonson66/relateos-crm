@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
+import type { CircleMarker as LeafletCircleMarkerType } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { verticalLabel } from '@/lib/verticals';
 import type { MapAccount } from './map-view';
@@ -39,11 +40,17 @@ const TILES = {
   },
 };
 
-function FitBounds({ accounts, fitSignal }: { accounts: MapAccount[]; fitSignal: number }) {
+function FitBounds({ accounts, fitSignal, hasFocus }: { accounts: MapAccount[]; fitSignal: number; hasFocus: boolean }) {
   const map = useMap();
   const fittedOnce = useRef(false);
   useEffect(() => {
     if (accounts.length === 0) return;
+    // A ?focus= arrival owns the initial view; auto-fit would fight it.
+    // The Fit view button still works normally afterwards.
+    if (hasFocus && fitSignal === 0) {
+      fittedOnce.current = true;
+      return;
+    }
     // Fit on first load, then ONLY when the user asks (Fit view button).
     // Filter toggles keep the current viewport instead of re-zooming.
     if (fittedOnce.current && fitSignal === 0) return;
@@ -62,8 +69,30 @@ function FitBounds({ accounts, fitSignal }: { accounts: MapAccount[]; fitSignal:
   return null;
 }
 
+function FocusView({
+  account,
+  markerRefs,
+}: {
+  account: MapAccount | null;
+  markerRefs: React.RefObject<Map<string, LeafletCircleMarkerType>>;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    if (!account) return;
+    map.setView([account.lat, account.lng], 16, { animate: true });
+    // Marker mounts in the same commit; open its popup once Leaflet settles.
+    const t = setTimeout(() => {
+      markerRefs.current?.get(account.id)?.openPopup();
+    }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account?.id, map]);
+  return null;
+}
+
 export default function LeafletMap({
   accounts,
+  focusId = null,
   fitSignal = 0,
   signals = [],
   showHeat = false,
@@ -71,6 +100,7 @@ export default function LeafletMap({
   cryptoStats,
 }: {
   accounts: MapAccount[];
+  focusId?: string | null;
   fitSignal?: number;
   signals?: CryptoSignal[];
   showHeat?: boolean;
@@ -80,6 +110,9 @@ export default function LeafletMap({
   const shownSignals = showHeat
     ? signals.filter(s => heatFilter === 'all' || s.signal_type === heatFilter)
     : [];
+
+  const markerRefs = useRef<Map<string, LeafletCircleMarkerType>>(new Map());
+  const focusAccount = focusId ? accounts.find(a => a.id === focusId) ?? null : null;
 
   const tiles = showHeat ? TILES.quiet : TILES.street;
   const atmCount = shownSignals.filter(s => s.signal_type === 'atm').length;
@@ -98,7 +131,8 @@ export default function LeafletMap({
 
         <CryptoHeat signals={shownSignals} visible={showHeat} />
 
-        <FitBounds accounts={accounts} fitSignal={fitSignal} />
+        <FitBounds accounts={accounts} fitSignal={fitSignal} hasFocus={!!focusAccount} />
+        <FocusView account={focusAccount} markerRefs={markerRefs} />
 
         {/* Kiosks render BEFORE accounts on purpose: the canvas renderer
             hit-tests in reverse draw order, so drawing accounts last keeps a
@@ -135,6 +169,10 @@ export default function LeafletMap({
           return (
             <CircleMarker
               key={a.id}
+              ref={(m) => {
+                if (m) markerRefs.current.set(a.id, m);
+                else markerRefs.current.delete(a.id);
+              }}
               center={[a.lat, a.lng]}
               radius={a.band === 'HOT' ? 9 : a.band === 'WARM' ? 7 : 5}
               pathOptions={{
