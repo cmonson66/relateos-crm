@@ -12,7 +12,7 @@ import { CommentsPanel } from '@/components/app/comments-panel';
 import { RecordTabs } from '@/components/app/record-tabs';
 import { ContactQuickActions } from '@/components/app/contact-quick-actions';
 import { formatRelative, initials } from '@/lib/utils/format';
-import { ArrowLeft, Mail, Phone, Building2 } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, Building2, MapPin } from 'lucide-react';
 import { formatDealValue } from '@/lib/db/deals';
 
 function LinkedInIcon({ className }: { className?: string }) {
@@ -108,6 +108,13 @@ export default async function ContactDetailPage({
             <Link href={`/deals/new?contact=${id}${contact.account_id ? `&account=${contact.account_id}` : ''}`}>
               <Button size="sm" className="font-display tracking-wider btn-glow">+ Deal</Button>
             </Link>
+            {contact.account && (
+              <Link href={`/map?focus=${contact.account.id}`}>
+                <Button variant="outline" size="sm" className="inline-flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5" /> Map
+                </Button>
+              </Link>
+            )}
             <Link href={`/contacts/${id}/edit`}>
               <Button variant="outline" size="sm">Edit</Button>
             </Link>
