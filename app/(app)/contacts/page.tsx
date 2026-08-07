@@ -18,8 +18,8 @@ export default async function ContactsPage() {
       (supabase
         .from('contacts')
         .select(`
-          id, first_name, last_name, title, email, phone, city, tags,
-          lifecycle_stage, account_id, owner_id, created_at, last_activity_at,
+          id, first_name, last_name, title, email, phone, tags,
+          lifecycle_stage, account_id, owner_id, created_at, last_activity_at, legacy_id,
           account:accounts(id, name, vertical),
           owner:profiles!contacts_owner_id_fkey(id, full_name, email)
         `)
