@@ -14,6 +14,7 @@ type Row = {
   longitude: number | null;
   tags: string[];
   last_activity_at: string | null;
+  crypto_native: boolean | null;
   contacts: {
     first_name: string;
     last_name: string | null;
@@ -35,7 +36,7 @@ export default async function MapPage({
   const rows = await fetchAllRows<Row>((from, to) =>
     supabase
       .from('accounts')
-      .select('id, name, vertical, city, latitude, longitude, tags, last_activity_at, contacts(first_name, last_name, phone, title, lifecycle_stage)')
+      .select('id, name, vertical, city, latitude, longitude, tags, last_activity_at, crypto_native, contacts(first_name, last_name, phone, title, lifecycle_stage)')
       .not('latitude', 'is', null)
       .order('id', { ascending: true }) // deterministic pages
       .range(from, to)
@@ -65,6 +66,7 @@ export default async function MapPage({
       phone: c?.phone ?? null,
       contactName: c && c.title !== 'Business' ? [c.first_name, c.last_name].filter(Boolean).join(' ') : null,
       stage: c?.lifecycle_stage ?? 'new',
+      cryptoNative: !!r.crypto_native,
     };
   });
 

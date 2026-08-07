@@ -20,7 +20,7 @@ export function AccountsTable({
   reps = [],
   canAssign = false,
 }: {
-  accounts: AccountWithOwner[];
+  accounts: (AccountWithOwner & { crypto_native?: boolean | null })[];
   currentUserId: string;
   reps?: { profile_id: string; first_name: string }[];
   canAssign?: boolean;
@@ -47,6 +47,8 @@ export function AccountsTable({
       list = list.filter(a => a.owner_id === currentUserId);
     } else if (filter === 'HOT' || filter === 'WARM' || filter === 'COOL') {
       list = list.filter(a => a.tags.includes(filter));
+    } else if (filter === 'crypto-native-flag') {
+      list = list.filter(a => a.crypto_native);
     } else if (VERTICALS.some(v => v.value === filter)) {
       list = list.filter(a => a.vertical === filter);
     } else if (filter === 'crypto') {
@@ -140,6 +142,11 @@ export function AccountsTable({
       label: band.charAt(0) + band.slice(1).toLowerCase(),
       count: accounts.filter(a => a.tags.includes(band)).length,
     })),
+    {
+      id: 'crypto-native-flag',
+      label: 'Crypto Native',
+      count: accounts.filter(a => a.crypto_native).length,
+    },
     ...VERTICALS.map(v => ({
       id: v.value,
       label: v.label,

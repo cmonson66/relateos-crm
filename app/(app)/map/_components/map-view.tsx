@@ -18,6 +18,7 @@ export type MapAccount = {
   phone: string | null;
   contactName: string | null;
   stage: string;
+  cryptoNative?: boolean;
 };
 
 type HeatFilter = 'all' | 'atm' | 'merchant';
@@ -47,6 +48,7 @@ export function MapView({
   const [band, setBand] = useState('all');
   const [vertical, setVertical] = useState('all');
   const [fitSignal, setFitSignal] = useState(0);
+  const [nativeOnly, setNativeOnly] = useState(false);
   const [showHeat, setShowHeat] = useState(false);
   const [heatFilter, setHeatFilter] = useState<HeatFilter>('all');
 
@@ -54,8 +56,9 @@ export function MapView({
     let list = accounts;
     if (band !== 'all') list = list.filter(a => a.band === band);
     if (vertical !== 'all') list = list.filter(a => a.vertical === vertical);
+        if (nativeOnly) list = list.filter(a => a.cryptoNative);
     return list;
-  }, [accounts, band, vertical]);
+  }, [accounts, band, vertical, nativeOnly]);
 
   // Computed over the full account set, not the filtered one, so the
   // percentile means the same thing no matter which chips are active.
@@ -106,6 +109,28 @@ export function MapView({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            aria-pressed={nativeOnly}
+            onClick={() => setNativeOnly(v => !v)}
+            className={cn(
+              CONTROL,
+              'inline-flex items-center gap-2',
+              nativeOnly
+                ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-200'
+                : 'border-border/40 text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50'
+            )}
+          >
+            <span
+              className="h-2 w-2 rounded-full"
+              style={{ background: nativeOnly ? '#34d399' : 'currentColor' }}
+            />
+            Crypto native
+            <span className="font-mono text-[10px] normal-case tracking-normal opacity-70">
+              {accounts.filter(a => a.cryptoNative).length}
+            </span>
+          </button>
+
           {signals.length > 0 && (
             <>
               <button
