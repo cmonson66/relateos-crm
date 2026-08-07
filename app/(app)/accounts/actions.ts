@@ -67,3 +67,65 @@ export async function deleteAccount(id: string) {
   revalidatePath('/accounts');
   redirect('/accounts');
 }
+
+/**
+ * Bulk-assign accounts to a rep — and cascade to their CONTACTS, because
+ * the campaign sender and Pulse cards route off contacts.owner_id. Without
+ * the cascade, assignment would look right in the CRM while emails kept
+ * coming from the default rep.
+ *
+ * Admin/super_admin only. Chunked so 9K+ ids never hit one statement.
+ */
+export async function bulkAssignAccounts(accountIds: string[], newOwnerId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Unauthorized');
+
+  const { data: me } = await supabase
+    .from('profiles')
+    .select('role, org_id')
+    .eq('id', user.id)
+    .single();
+  if (!me || (me.role !== 'super_admin' && me.role !== 'admin')) {
+    throw new Error('Only admins can bulk-assign');
+  }
+
+  const { data: target } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', newOwnerId)
+    .eq('org_id', me.org_id)
+    .eq('is_active', true)
+    .single();
+  if (!target) throw new Error('Rep not found');
+
+  const CHUNK = 400;
+  let accountsUpdated = 0;
+  let contactsUpdated = 0;
+
+  for (let i = 0; i < accountIds.length; i += CHUNK) {
+    const ids = accountIds.slice(i, i + CHUNK);
+
+    const { error: accErr, count: accCount } = await supabase
+      .from('accounts')
+      .update({ owner_id: newOwnerId }, { count: 'exact' })
+      .in('id', ids);
+    if (accErr) throw new Error(`Accounts chunk failed: ${accErr.message}`);
+    accountsUpdated += accCount ?? 0;
+
+    const { error: conErr, count: conCount } = await supabase
+      .from('contacts')
+      .update({ owner_id: newOwnerId }, { count: 'exact' })
+      .in('account_id', ids);
+    if (conErr) throw new Error(`Contacts chunk failed: ${conErr.message}`);
+    contactsUpdated += conCount ?? 0;
+  }
+
+  if (accountIds.length > 0) {
+    await logAudit({ entityType: 'account', entityId: accountIds[0], action: 'updated' });
+  }
+  revalidatePath('/accounts');
+  revalidatePath('/contacts');
+
+  return { accountsUpdated, contactsUpdated };
+}

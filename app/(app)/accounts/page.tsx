@@ -25,6 +25,14 @@ export default async function AccountsPage() {
 
   const list = accounts || [];
 
+  // Assignable reps (mirrors the sender's routing table)
+  const { data: reps } = await supabase
+    .from('reps')
+    .select('profile_id, first_name')
+    .eq('active', true)
+    .order('is_default', { ascending: false });
+  const canAssign = profile.role === 'super_admin' || profile.role === 'admin';
+
   return (
     <div className="p-4 md:p-8 max-w-[1400px]">
       <PageHeader
@@ -58,7 +66,7 @@ export default async function AccountsPage() {
           }
         />
       ) : (
-        <AccountsTable accounts={list} currentUserId={profile.id} />
+        <AccountsTable accounts={list} currentUserId={profile.id} reps={reps ?? []} canAssign={canAssign} />
       )}
     </div>
   );

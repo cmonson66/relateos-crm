@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useTransition } from 'react';
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import { Check, ChevronRight } from 'lucide-react';
+import { bulkAssignAccounts } from '../actions';
 import { FilterChips, type FilterChip } from '@/components/app/filter-chips';
 import { VerticalBadge } from '@/components/app/vertical-badge';
 import { Input } from '@/components/ui/input';
@@ -11,18 +12,29 @@ import type { AccountWithOwner } from '@/lib/db/types';
 import { VERTICALS } from '@/lib/verticals';
 import { CryptoScoreBadge } from '@/components/app/crypto-score-badge';
 
-type SortKey = 'recent' | 'crypto';
+type SortKey = 'recent' | 'crypto' | 'city' | 'name';
 
 export function AccountsTable({
   accounts,
   currentUserId,
+  reps = [],
+  canAssign = false,
 }: {
   accounts: AccountWithOwner[];
   currentUserId: string;
+  reps?: { profile_id: string; first_name: string }[];
+  canAssign?: boolean;
 }) {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('recent');
+
+  // Bulk selection
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [allMatching, setAllMatching] = useState(false);
+  const [repChoice, setRepChoice] = useState('');
+  const [assignMsg, setAssignMsg] = useState<string | null>(null);
+  const [isAssigning, startAssign] = useTransition();
 
   const hasCrypto = accounts.some(a => a.crypto_score !== null && a.crypto_score !== undefined);
 
@@ -57,14 +69,66 @@ export function AccountsTable({
         const bv = b.crypto_score ?? -1;
         return bv - av;
       });
+    } else if (sort === 'city') {
+      list = [...list].sort(
+        (a, b) => (a.city ?? '\uffff').localeCompare(b.city ?? '\uffff') || a.name.localeCompare(b.name)
+      );
+    } else if (sort === 'name') {
+      list = [...list].sort((a, b) => a.name.localeCompare(b.name));
     }
     return list;
   }, [accounts, filter, search, currentUserId, sort]);
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
+    // A changed view means a changed meaning of "selected" — start clean
+    setSelected(new Set());
+    setAllMatching(false);
   }, [filter, search, sort]);
+
   const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+
+  const selectedCount = allMatching ? filtered.length : selected.size;
+  const allVisibleSelected =
+    visible.length > 0 && visible.every(a => allMatching || selected.has(a.id));
+
+  const toggleOne = (id: string) => {
+    setAllMatching(false);
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleVisible = () => {
+    if (allVisibleSelected) {
+      setSelected(new Set());
+      setAllMatching(false);
+    } else {
+      setSelected(new Set(visible.map(a => a.id)));
+    }
+  };
+
+  const applyAssign = () => {
+    if (!repChoice || selectedCount === 0) return;
+    const ids = allMatching ? filtered.map(a => a.id) : [...selected];
+    const repName = reps.find(r => r.profile_id === repChoice)?.first_name ?? 'rep';
+    setAssignMsg(null);
+    startAssign(async () => {
+      try {
+        const res = await bulkAssignAccounts(ids, repChoice);
+        setAssignMsg(
+          `Assigned ${res.accountsUpdated.toLocaleString()} accounts (+${res.contactsUpdated.toLocaleString()} contacts) to ${repName}`
+        );
+        setSelected(new Set());
+        setAllMatching(false);
+      } catch (err) {
+        setAssignMsg(err instanceof Error ? err.message : 'Assignment failed');
+      }
+    });
+  };
 
   const chips: FilterChip[] = [
     { id: 'all', label: 'All', count: accounts.length },
@@ -94,9 +158,14 @@ export function AccountsTable({
           <FilterChips chips={chips} activeId={filter} onChange={setFilter} />
         </div>
         <div className="flex items-center gap-2">
-          {hasCrypto && (
+          {(
             <div className="inline-flex rounded-md border border-border/40 overflow-hidden shrink-0">
-              {([['recent', 'Recent'], ['crypto', 'Density']] as [SortKey, string][]).map(([id, label]) => (
+              {([
+                ['recent', 'Recent'],
+                ['city', 'City'],
+                ['name', 'Name'],
+                ...(hasCrypto ? ([['crypto', 'Density']] as [SortKey, string][]) : []),
+              ] as [SortKey, string][]).map(([id, label]) => (
                 <button
                   key={id}
                   type="button"
@@ -124,7 +193,19 @@ export function AccountsTable({
 
       {/* DESKTOP TABLE */}
       <div className="hidden md:block card-lit border border-border/40 rounded-md overflow-hidden">
-        <div className="grid grid-cols-[2.2fr_0.9fr_0.9fr_0.9fr_0.7fr_0.6fr_40px] items-center gap-4 px-5 py-3 text-[10px] uppercase tracking-[0.15em] text-muted-foreground border-b border-border/40 bg-background/30">
+        <div className={`grid ${canAssign ? 'grid-cols-[28px_2.2fr_0.9fr_0.9fr_0.9fr_0.7fr_0.6fr_40px]' : 'grid-cols-[2.2fr_0.9fr_0.9fr_0.9fr_0.7fr_0.6fr_40px]'} items-center gap-4 px-5 py-3 text-[10px] uppercase tracking-[0.15em] text-muted-foreground border-b border-border/40 bg-background/30`}>
+          {canAssign && (
+            <button
+              type="button"
+              aria-label="Select visible"
+              onClick={toggleVisible}
+              className={`w-[18px] h-[18px] rounded border flex items-center justify-center transition-colors ${
+                allVisibleSelected ? 'bg-primary border-primary text-primary-foreground' : 'border-border/60 hover:border-primary/60'
+              }`}
+            >
+              {allVisibleSelected && <Check className="h-3 w-3" />}
+            </button>
+          )}
           <div>Account</div>
           <div>Vertical</div>
           <div>Location</div>
@@ -135,8 +216,26 @@ export function AccountsTable({
         </div>
         {visible.map(a => (
           <Link key={a.id} href={`/accounts/${a.id}`}
-            className="grid grid-cols-[2.2fr_0.9fr_0.9fr_0.9fr_0.7fr_0.6fr_40px] items-center gap-4 px-5 py-4 border-b border-border/20 last:border-0 hover:bg-primary/5 transition-colors group min-h-[44px]"
+            className={`grid ${canAssign ? 'grid-cols-[28px_2.2fr_0.9fr_0.9fr_0.9fr_0.7fr_0.6fr_40px]' : 'grid-cols-[2.2fr_0.9fr_0.9fr_0.9fr_0.7fr_0.6fr_40px]'} items-center gap-4 px-5 py-4 border-b border-border/20 last:border-0 hover:bg-primary/5 transition-colors group min-h-[44px]`}
           >
+            {canAssign && (
+              <button
+                type="button"
+                aria-label={`Select ${a.name}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toggleOne(a.id);
+                }}
+                className={`w-[18px] h-[18px] rounded border flex items-center justify-center transition-colors ${
+                  allMatching || selected.has(a.id)
+                    ? 'bg-primary border-primary text-primary-foreground'
+                    : 'border-border/60 hover:border-primary/60'
+                }`}
+              >
+                {(allMatching || selected.has(a.id)) && <Check className="h-3 w-3" />}
+              </button>
+            )}
             <div className="min-w-0">
               <div className="font-medium truncate">{a.name}</div>
               {a.tags.length > 0 && (
@@ -197,7 +296,27 @@ export function AccountsTable({
                   )}
                 </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/40 mt-1 shrink-0" />
+              <div className="flex items-center gap-2 mt-1 shrink-0">
+                {canAssign && (
+                  <button
+                    type="button"
+                    aria-label={`Select ${a.name}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleOne(a.id);
+                    }}
+                    className={`w-[20px] h-[20px] rounded border flex items-center justify-center transition-colors ${
+                      allMatching || selected.has(a.id)
+                        ? 'bg-primary border-primary text-primary-foreground'
+                        : 'border-border/60'
+                    }`}
+                  >
+                    {(allMatching || selected.has(a.id)) && <Check className="h-3.5 w-3.5" />}
+                  </button>
+                )}
+                <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+              </div>
             </div>
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-2 min-w-0">
@@ -230,6 +349,18 @@ export function AccountsTable({
         )}
       </div>
 
+      {canAssign && !allMatching && allVisibleSelected && filtered.length > visible.length && (
+        <div className="flex items-center justify-center py-3">
+          <button
+            type="button"
+            onClick={() => setAllMatching(true)}
+            className="text-[11px] uppercase tracking-[0.15em] px-4 py-2 rounded-md border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
+          >
+            Select all {filtered.length.toLocaleString()} matching
+          </button>
+        </div>
+      )}
+
       {filtered.length > visibleCount && (
         <div className="flex items-center justify-center gap-3 py-4">
           <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
@@ -242,6 +373,56 @@ export function AccountsTable({
           >
             Show more
           </button>
+        </div>
+      )}
+
+      {canAssign && (selectedCount > 0 || assignMsg) && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-xl">
+          <div className="card-lit border border-primary/40 rounded-lg px-4 py-3 bg-background/95 backdrop-blur flex items-center gap-3 flex-wrap shadow-2xl">
+            {selectedCount > 0 ? (
+              <>
+                <span className="text-sm font-medium tabular-nums shrink-0">
+                  {selectedCount.toLocaleString()} selected
+                </span>
+                <select
+                  value={repChoice}
+                  onChange={e => setRepChoice(e.target.value)}
+                  className="flex-1 min-w-[130px] bg-background border border-border/60 rounded-md px-2 py-2 text-sm"
+                >
+                  <option value="">Assign to…</option>
+                  {reps.map(r => (
+                    <option key={r.profile_id} value={r.profile_id}>{r.first_name}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={!repChoice || isAssigning}
+                  onClick={applyAssign}
+                  className="text-[11px] uppercase tracking-[0.15em] px-4 py-2 rounded-md bg-primary text-primary-foreground disabled:opacity-40 transition-opacity shrink-0"
+                >
+                  {isAssigning ? 'Assigning…' : 'Apply'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setSelected(new Set()); setAllMatching(false); setAssignMsg(null); }}
+                  className="text-[11px] uppercase tracking-[0.15em] px-3 py-2 rounded-md text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                >
+                  Clear
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="text-sm text-primary flex-1">{assignMsg}</span>
+                <button
+                  type="button"
+                  onClick={() => setAssignMsg(null)}
+                  className="text-[11px] uppercase tracking-[0.15em] px-3 py-2 text-muted-foreground hover:text-foreground"
+                >
+                  Dismiss
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
     </>
