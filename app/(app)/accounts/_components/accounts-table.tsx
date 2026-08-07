@@ -157,7 +157,7 @@ export function AccountsTable({
         <div className="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
           <FilterChips chips={chips} activeId={filter} onChange={setFilter} />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
           {(
             <div className="inline-flex rounded-md border border-border/40 overflow-hidden shrink-0">
               {([
@@ -183,10 +183,10 @@ export function AccountsTable({
             </div>
           )}
           <Input
-            placeholder="Search…"
+            placeholder="Search name, city, tag…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="md:max-w-xs"
+            className="flex-1 min-w-[180px] md:flex-none md:w-72"
           />
         </div>
       </div>
