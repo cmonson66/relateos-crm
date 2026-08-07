@@ -80,7 +80,14 @@ type KeysetFactory<T> = () => {
   gt: (col: string, val: string) => any;
 } & PromiseLike<{ data: T[] | null; error: { message: string } | null }>;
 
-const PARTS = ["4", "8", "c"]; // boundaries -> [-,4) [4,8) [8,c) [c,-]
+// id columns are UUIDs — range bounds must be full uuid literals
+// (Postgres refuses `uuid < '4'`; byte-wise uuid ordering makes these
+// four ranges near-equal for random v4 ids)
+const PARTS = [
+  "40000000-0000-0000-0000-000000000000",
+  "80000000-0000-0000-0000-000000000000",
+  "c0000000-0000-0000-0000-000000000000",
+]; // boundaries -> [-,4) [4,8) [8,c) [c,-]
 
 export async function fetchAllRowsById<T extends { id: string }>(
   factory: () => any
