@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/app/page-header';
 import { EmptyState } from '@/components/app/empty-state';
 import { Button } from '@/components/ui/button';
 import { ContactsTable } from './_components/contacts-table';
-import { fetchAllRows } from '@/lib/db/fetch-all';
+import { fetchAllRowsById } from '@/lib/db/fetch-all';
 import type { ContactWithRefs } from '@/lib/db/types';
 
 export default async function ContactsPage() {
@@ -14,8 +14,8 @@ export default async function ContactsPage() {
   const supabase = await createClient();
 
   const [contacts, { data: profilesRaw }] = await Promise.all([
-    fetchAllRows<ContactWithRefs>((from, to) =>
-      (supabase
+    fetchAllRowsById(() =>
+      supabase
         .from('contacts')
         .select(`
           id, first_name, last_name, title, email, phone, tags,
@@ -23,11 +23,7 @@ export default async function ContactsPage() {
           account:accounts(id, name, vertical),
           owner:profiles!contacts_owner_id_fkey(id, full_name, email)
         `)
-        .order('last_activity_at', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false })
-        .order('id', { ascending: true }) // stable tiebreaker: batch inserts share created_at, and untied pages duplicate/skip rows
-        .range(from, to)) as unknown as PromiseLike<{ data: ContactWithRefs[] | null; error: { message: string } | null }>
-    ),
+    ).then((rows) => rows as unknown as ContactWithRefs[]),
     supabase.from('profiles').select('id, full_name, email, role').eq('is_active', true),
   ]);
 

@@ -67,3 +67,54 @@ export async function fetchAllRows<T>(build: RangeQuery<T>): Promise<T[]> {
   for (let i = 0; i < pages.length; i++) if (!pages[i]) pages[i] = [];
   return pages.flat();
 }
+
+// ---------------------------------------------------------------------------
+// Keyset fetch: the depth-proof walk. OFFSET pagination makes Postgres walk
+// and discard N rows per page — at 28K rows under concurrency, deep pages
+// exceed the statement timeout and truncate silently. Keyset asks for "the
+// next 1,000 after id X": a pure index seek, identical cost at any depth.
+// UUIDs are uniform, so the id space partitions cleanly — four ranges
+// walked in parallel, keyset within each. Complete by construction.
+
+type KeysetFactory<T> = () => {
+  gt: (col: string, val: string) => any;
+} & PromiseLike<{ data: T[] | null; error: { message: string } | null }>;
+
+const PARTS = ["4", "8", "c"]; // boundaries -> [-,4) [4,8) [8,c) [c,-]
+
+export async function fetchAllRowsById<T extends { id: string }>(
+  factory: () => any
+): Promise<T[]> {
+  const bounds: [string | null, string | null][] = [
+    [null, PARTS[0]],
+    [PARTS[0], PARTS[1]],
+    [PARTS[1], PARTS[2]],
+    [PARTS[2], null],
+  ];
+
+  const walkPartition = async (lo: string | null, hi: string | null): Promise<T[]> => {
+    const out: T[] = [];
+    let cursor: string | null = null;
+    for (let page = 0; page < MAX_PAGES; page++) {
+      let rows: T[] | null = null;
+      for (let attempt = 1; attempt <= RETRIES; attempt++) {
+        let q = factory();
+        if (cursor) q = q.gt("id", cursor);
+        else if (lo) q = q.gte("id", lo);
+        if (hi) q = q.lt("id", hi);
+        const { data, error } = await q.order("id", { ascending: true }).limit(PAGE);
+        if (!error) { rows = (data ?? []) as T[]; break; }
+        console.error(`fetchAllRowsById [${lo ?? ""}-${hi ?? ""}] attempt ${attempt}: ${error.message}`);
+        await sleep(250 * attempt);
+      }
+      if (rows === null) { console.error(`fetchAllRowsById: partition ${lo ?? ""}-${hi ?? ""} lost a page`); break; }
+      out.push(...rows);
+      if (rows.length < PAGE) break;
+      cursor = rows[rows.length - 1].id;
+    }
+    return out;
+  };
+
+  const parts = await Promise.all(bounds.map(([lo, hi]) => walkPartition(lo, hi)));
+  return parts.flat();
+}

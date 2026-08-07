@@ -66,7 +66,14 @@ export function AccountsTable({
         a.tags.some(t => t.toLowerCase().includes(q))
       );
     }
-    if (sort === 'crypto') {
+    if (sort === 'recent') {
+      // Server now returns id order (keyset fetch) — recency sorts here
+      list = [...list].sort((a, b) => {
+        const av = a.last_activity_at ?? a.created_at ?? '';
+        const bv = b.last_activity_at ?? b.created_at ?? '';
+        return bv.localeCompare(av);
+      });
+    } else if (sort === 'crypto') {
       // nulls last -- an unscored account isn't a zero-density account
       list = [...list].sort((a, b) => {
         const av = a.crypto_score ?? -1;

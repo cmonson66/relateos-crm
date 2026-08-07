@@ -68,7 +68,12 @@ export function ContactsTable({
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const filtered = useMemo(() => {
-    let list = contacts;
+    // Server returns id order (keyset fetch) — most-recent-first happens here
+    let list = [...contacts].sort((a, b) => {
+      const av = a.last_activity_at ?? a.created_at ?? '';
+      const bv = b.last_activity_at ?? b.created_at ?? '';
+      return bv.localeCompare(av);
+    });
 
     // Primary chip filters
     if (chip === 'mine') {

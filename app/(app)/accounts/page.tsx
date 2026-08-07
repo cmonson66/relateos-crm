@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/app/page-header';
 import { EmptyState } from '@/components/app/empty-state';
 import { Button } from '@/components/ui/button';
 import { AccountsTable } from './_components/accounts-table';
-import { fetchAllRows } from '@/lib/db/fetch-all';
+import { fetchAllRowsById } from '@/lib/db/fetch-all';
 import type { AccountWithOwner } from '@/lib/db/types';
 
 export default async function AccountsPage() {
@@ -15,19 +15,17 @@ export default async function AccountsPage() {
 
   // Trimmed select narrows Supabase's inferred type; rows still carry every
   // field the table reads, so pin the shape at the boundary.
-  const accounts = await fetchAllRows<AccountWithOwner>((from, to) =>
-    (supabase
+  // Keyset fetch orders by id; "recent first" is applied client-side in
+  // the table (all rows are loaded anyway for chips/search)
+  const accounts = (await fetchAllRowsById(() =>
+    supabase
       .from('accounts')
       .select(
         // Trimmed to what the list renders — select('*') was shipping 28K
         // full rows (notes text included) to the browser on every visit
         'id, name, vertical, city, state, tags, owner_id, created_at, last_activity_at, crypto_score, crypto_atm_count, crypto_native, owner:profiles!accounts_owner_id_fkey(id, full_name, email)'
       )
-      .order('last_activity_at', { ascending: false, nullsFirst: false })
-      .order('created_at', { ascending: false })
-      .order('id', { ascending: true }) // stable tiebreaker
-      .range(from, to)) as unknown as PromiseLike<{ data: AccountWithOwner[] | null; error: { message: string } | null }>
-  );
+  )) as unknown as AccountWithOwner[];
 
   const list = accounts || [];
 

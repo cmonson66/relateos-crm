@@ -1,7 +1,7 @@
 import { getUser } from '@/lib/auth/get-user';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/app/page-header';
-import { fetchAllRows } from '@/lib/db/fetch-all';
+import { fetchAllRows, fetchAllRowsById } from '@/lib/db/fetch-all';
 import { MapView, type MapAccount } from './_components/map-view';
 import type { CryptoSignal } from '@/lib/crypto/density';
 
@@ -33,13 +33,11 @@ export default async function MapPage({
   await getUser();
   const supabase = await createClient();
 
-  const rows = await fetchAllRows<Row>((from, to) =>
+  const rows = await fetchAllRowsById<Row>(() =>
     supabase
       .from('accounts')
       .select('id, name, vertical, city, latitude, longitude, tags, last_activity_at, crypto_native, contacts(first_name, last_name, phone, title, lifecycle_stage)')
       .not('latitude', 'is', null)
-      .order('id', { ascending: true }) // deterministic pages
-      .range(from, to)
   );
 
   // Crypto touchpoints (ATMs + accepting merchants). Reference data, not
