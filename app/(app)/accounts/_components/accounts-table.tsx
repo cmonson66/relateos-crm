@@ -45,6 +45,8 @@ export function AccountsTable({
     let list = accounts;
     if (filter === 'mine') {
       list = list.filter(a => a.owner_id === currentUserId);
+    } else if (filter === 'HOT' || filter === 'WARM' || filter === 'COOL') {
+      list = list.filter(a => a.tags.includes(filter));
     } else if (VERTICALS.some(v => v.value === filter)) {
       list = list.filter(a => a.vertical === filter);
     } else if (filter === 'crypto') {
@@ -133,6 +135,11 @@ export function AccountsTable({
   const chips: FilterChip[] = [
     { id: 'all', label: 'All', count: accounts.length },
     { id: 'mine', label: 'Mine', count: accounts.filter(a => a.owner_id === currentUserId).length },
+    ...(['HOT', 'WARM', 'COOL'] as const).map(band => ({
+      id: band,
+      label: band.charAt(0) + band.slice(1).toLowerCase(),
+      count: accounts.filter(a => a.tags.includes(band)).length,
+    })),
     ...VERTICALS.map(v => ({
       id: v.value,
       label: v.label,
