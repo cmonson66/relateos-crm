@@ -13,14 +13,20 @@ export default async function AccountsPage() {
   const { profile } = await getUser();
   const supabase = await createClient();
 
+  // Trimmed select narrows Supabase's inferred type; rows still carry every
+  // field the table reads, so pin the shape at the boundary.
   const accounts = await fetchAllRows<AccountWithOwner>((from, to) =>
-    supabase
+    (supabase
       .from('accounts')
-      .select('*, owner:profiles!accounts_owner_id_fkey(id, full_name, email)')
+      .select(
+        // Trimmed to what the list renders — select('*') was shipping 28K
+        // full rows (notes text included) to the browser on every visit
+        'id, name, vertical, city, state, tags, owner_id, created_at, last_activity_at, crypto_score, crypto_atm_count, crypto_native, owner:profiles!accounts_owner_id_fkey(id, full_name, email)'
+      )
       .order('last_activity_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
       .order('id', { ascending: true }) // stable tiebreaker
-      .range(from, to)
+      .range(from, to)) as unknown as PromiseLike<{ data: AccountWithOwner[] | null; error: { message: string } | null }>
   );
 
   const list = accounts || [];
