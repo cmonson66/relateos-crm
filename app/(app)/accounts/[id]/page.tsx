@@ -75,8 +75,11 @@ export default async function AccountDetailPage({
             />
           </div>
           <div className="flex gap-2 shrink-0">
+            <Link href={`/call/${id}`}>
+              <Button size="sm" className="font-display tracking-wider btn-glow">📞 Start call</Button>
+            </Link>
             <Link href={`/deals/new?account=${id}`}>
-              <Button size="sm" className="font-display tracking-wider btn-glow">+ Deal</Button>
+              <Button variant="outline" size="sm" className="font-display tracking-wider">+ Deal</Button>
             </Link>
             <Link href={`/accounts/${id}/edit`}>
               <Button variant="outline" size="sm">Edit</Button>
