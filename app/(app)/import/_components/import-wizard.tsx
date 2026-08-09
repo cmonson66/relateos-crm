@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Papa from 'papaparse';
 import {
   Upload, ArrowRight, ArrowLeft, CheckCircle2, AlertCircle, FileText,
-  BookOpen, Download, Link2,
+  BookOpen, Download, Link2, UserCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { VERTICALS } from '@/lib/verticals';
-import { executeImport, type ImportRow, type ImportResult } from '../actions';
+import { executeImport, preflightImport, type ImportRow, type ImportResult, type Preflight } from '../actions';
 import { bulkEnrichAccounts } from '@/app/(app)/accounts/enrich';
 
 type Step = 'upload' | 'map' | 'preview' | 'done';
@@ -32,6 +32,7 @@ const TARGET_FIELDS = [
   { key: 'title', label: 'Title' },
   { key: 'status', label: 'Lifecycle status' },
   { key: 'legacy_id', label: 'Legacy / Place ID' },
+  { key: 'rep', label: 'Assign to rep' },
 ] as const;
 
 type TargetKey = typeof TARGET_FIELDS[number]['key'];
@@ -54,6 +55,7 @@ const AUTO_MATCH: Record<string, TargetKey> = {
   'title': 'title', 'job title': 'title', 'role': 'title',
   'status': 'status', 'lifecycle': 'status', 'stage': 'status',
   'id': 'legacy_id', 'place id': 'legacy_id', 'place_id': 'legacy_id', 'legacy id': 'legacy_id',
+  'rep': 'rep', 'assigned to': 'rep', 'assigned': 'rep', 'salesperson': 'rep', 'sales rep': 'rep',
 };
 
 // ---- Column reference data (rendered on the upload step) ----
@@ -70,6 +72,7 @@ const COLUMN_DOCS: { col: string; aliases: string; req: string; notes: string }[
   { col: 'State', aliases: 'st', req: 'Optional', notes: 'Defaults to AZ.' },
   { col: 'Notes', aliases: 'comments', req: 'Optional', notes: 'Lands on the account.' },
   { col: 'Status', aliases: 'lifecycle, stage', req: 'Optional', notes: 'new / working / engaged / customer / disqualified.' },
+  { col: 'Rep', aliases: 'assigned to, salesperson', req: 'Optional', notes: "First name or login email. Overrides the whole-file assignment picked on the preview step." },
 ];
 
 function downloadTemplate() {
@@ -95,6 +98,9 @@ export function ImportWizard() {
   const [mapping, setMapping] = useState<Record<string, TargetKey | 'skip'>>({});
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<ImportResult | null>(null);
+  const [pre, setPre] = useState<Preflight | null>(null);
+  const [ownerId, setOwnerId] = useState<string>('');
+  const [vMap, setVMap] = useState<Record<string, string>>({});
 
   function handleFile(file: File) {
     if (!file) return;
@@ -150,7 +156,10 @@ export function ImportWizard() {
     const rows = buildImportRows();
     startTransition(async () => {
       try {
-        const res = await executeImport(rows, filename);
+        const res = await executeImport(rows, filename, {
+          defaultOwnerId: ownerId || undefined,
+          verticalOverrides: vMap,
+        });
         setResult(res);
         setStep('done');
       } catch (err) {
@@ -187,13 +196,25 @@ export function ImportWizard() {
           setMapping={setMapping}
           rowCount={rawRows.length}
           onBack={() => setStep('upload')}
-          onNext={() => setStep('preview')}
+          onNext={() => {
+            setStep('preview');
+            const rows = buildImportRows();
+            startTransition(async () => {
+              try { setPre(await preflightImport(rows)); }
+              catch { setPre(null); }
+            });
+          }}
         />
       )}
 
       {step === 'preview' && (
         <PreviewStep
           rows={buildImportRows()}
+          pre={pre}
+          ownerId={ownerId}
+          setOwnerId={setOwnerId}
+          vMap={vMap}
+          setVMap={setVMap}
           onBack={() => setStep('map')}
           onImport={handleImport}
           pending={pending}
@@ -327,7 +348,7 @@ function ColumnReference() {
             {VERTICALS.map(v => v.value).join(' · ')}
           </div>
           <div className="mt-2 text-xs text-muted-foreground">
-            Map pins, Hot/Warm/Cool bands, and crypto scores don't come from the CSV — the <b className="text-foreground">Sync step after import</b> matches each new account on Google and computes them, same as scraped leads.
+            Map pins, Hot/Warm/Cool bands, and crypto scores don&apos;t come from the CSV — the <b className="text-foreground">Sync step after import</b> matches each new account on Google and computes them, same as scraped leads.
           </div>
         </div>
       )}
@@ -392,9 +413,14 @@ function MapStep({
 }
 
 function PreviewStep({
-  rows, onBack, onImport, pending,
+  rows, pre, ownerId, setOwnerId, vMap, setVMap, onBack, onImport, pending,
 }: {
   rows: ImportRow[];
+  pre: Preflight | null;
+  ownerId: string;
+  setOwnerId: (v: string) => void;
+  vMap: Record<string, string>;
+  setVMap: (v: Record<string, string>) => void;
   onBack: () => void;
   onImport: () => void;
   pending: boolean;
@@ -402,6 +428,7 @@ function PreviewStep({
   const sample = rows.slice(0, 5);
   const accountCount = new Set(rows.map(r => r.organization?.trim()).filter(Boolean)).size;
   const contactCount = rows.filter(r => r.first_name || r.email || r.phone).length;
+  const perRowReps = new Set(rows.map(r => r.rep?.trim()).filter(Boolean)).size;
   return (
     <div>
       <div className="grid grid-cols-3 gap-4 mb-5">
@@ -409,6 +436,88 @@ function PreviewStep({
         <PreviewKpi label="Unique accounts" value={accountCount.toString()} accent />
         <PreviewKpi label="Contacts to create" value={contactCount.toString()} />
       </div>
+
+      {/* ---- who owns these ---- */}
+      <div className="mb-5 rounded-md border border-border/40 p-4">
+        <div className="mb-1 flex items-center gap-2 text-sm font-bold">
+          <UserCheck className="h-4 w-4 text-primary" /> Assign this file to
+        </div>
+        <p className="mb-2.5 text-xs text-muted-foreground">
+          Reps only see accounts they own - unassigned rows are invisible to them.
+          {perRowReps > 0 && <> Rows with their own <b>Rep</b> value override this.</>}
+        </p>
+        <select
+          value={ownerId}
+          onChange={e => setOwnerId(e.target.value)}
+          className="w-full max-w-sm rounded-md border border-border/60 bg-background px-2.5 py-2 text-sm"
+        >
+          <option value="">Me (the person importing)</option>
+          {(pre?.people ?? []).map(p => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* ---- duplicates ---- */}
+      {pre && (pre.accountsExisting.length > 0 || pre.contactsDuplicate.length > 0) && (
+        <div className="mb-5 rounded-md border border-amber-500/40 bg-amber-500/5 p-4">
+          <div className="mb-1.5 flex items-center gap-2 text-sm font-bold text-amber-300">
+            <AlertCircle className="h-4 w-4" /> Already in the CRM
+          </div>
+          {pre.accountsExisting.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              <b className="text-foreground">{pre.accountsExisting.length}</b> of {accountCount} accounts exist already
+              ({pre.accountsNew} new). Rows will attach to the existing account rather than duplicate it
+              {pre.accountsExisting.some(a => a.owner) && <> - note some are owned by another rep and will stay that way</>}.
+              <span className="block mt-1 italic">
+                {pre.accountsExisting.slice(0, 6).map(a => a.name + (a.owner ? ` (${a.owner})` : '')).join(' · ')}
+                {pre.accountsExisting.length > 6 && ` + ${pre.accountsExisting.length - 6} more`}
+              </span>
+            </p>
+          )}
+          {pre.contactsDuplicate.length > 0 && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              <b className="text-foreground">{pre.contactsDuplicate.length}</b> contact emails already exist and will be skipped:
+              <span className="block mt-1 italic">
+                {pre.contactsDuplicate.slice(0, 5).map(c => c.email).join(' · ')}
+                {pre.contactsDuplicate.length > 5 && ` + ${pre.contactsDuplicate.length - 5} more`}
+              </span>
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* ---- unknown verticals ---- */}
+      {pre && pre.unknownVerticals.length > 0 && (
+        <div className="mb-5 rounded-md border border-destructive/40 bg-destructive/5 p-4">
+          <div className="mb-1.5 flex items-center gap-2 text-sm font-bold text-destructive">
+            <AlertCircle className="h-4 w-4" /> Verticals we don&apos;t recognize
+          </div>
+          <p className="mb-3 text-xs text-muted-foreground">
+            These would land in the default vertical, which breaks the story cluster their emails use. Map each one:
+          </p>
+          {pre.unknownVerticals.map(u => (
+            <div key={u.raw} className="mb-2 flex flex-wrap items-center gap-2 text-sm">
+              <span className="font-mono font-bold">{u.raw}</span>
+              <span className="text-xs text-muted-foreground">({u.count} row{u.count === 1 ? '' : 's'})</span>
+              <span className="text-muted-foreground">-&gt;</span>
+              <select
+                value={vMap[u.raw] ?? ''}
+                onChange={e => setVMap({ ...vMap, [u.raw]: e.target.value })}
+                className="rounded-md border border-border/60 bg-background px-2 py-1.5 text-xs"
+              >
+                <option value="">Default vertical</option>
+                {(pre.knownVerticals ?? []).map(v => (
+                  <option key={v.value} value={v.value}>{v.label}</option>
+                ))}
+              </select>
+            </div>
+          ))}
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Need a vertical that truly doesn&apos;t exist yet? It has to be added to the instance&apos;s vertical list first - mapping here is the safe move for today.
+          </p>
+        </div>
+      )}
       <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-2">
         First 5 rows
       </div>
