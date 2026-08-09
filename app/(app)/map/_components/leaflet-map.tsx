@@ -246,6 +246,7 @@ export default function LeafletMap({
                     </a>
                     {' · '}
                     <Link href={`/call/${a.id}`} style={{ marginRight: 10 }}>📞 Call mode</Link>
+                    <Link href={`/appointments/new?account=${a.id}`} style={{ marginRight: 10 }}>📅 Schedule</Link>
                     <Link href={`/accounts/${a.id}`}>Open account →</Link>
                   </div>
                 </div>

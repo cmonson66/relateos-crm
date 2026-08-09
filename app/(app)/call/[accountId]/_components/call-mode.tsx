@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Phone, Zap, CalendarCheck, MessageSquareText, Link2, PhoneMissed, XCircle, Ban, ChevronLeft } from 'lucide-react';
 import { logCallOutcome, type CallOutcome } from '../../actions';
+import { DaySlotPicker } from '@/components/day-slot-picker';
 import type { CallScript } from '@/lib/call-scripts';
 
 const STEPS = ['OPENER', 'HOOK', 'DISCOVERY', 'THE MATH', 'CLOSE'] as const;
@@ -29,11 +30,18 @@ export function CallMode({ account, contact, intel, recent, script }: Props) {
   const [volTouched, setVolTouched] = useState(false);
   const [notes, setNotes] = useState('');
   const [logged, setLogged] = useState<CallOutcome | null>(null);
+  const [scheduling, setScheduling] = useState<'booked' | 'callback' | null>(null);
   const [pending, startTransition] = useTransition();
 
   const lossYr = useMemo(() => vol * 0.03 * 12, [vol]);
 
-  const dispo = (outcome: CallOutcome) => {
+  const dispo = (outcome: CallOutcome, scheduledAt?: string, scheduleLabel?: string) => {
+    // Booked + callback expand into the scheduler first - the appointment
+    // gets locked while they're still on the line
+    if ((outcome === 'booked' || outcome === 'callback') && !scheduledAt) {
+      setScheduling((s) => (s === outcome ? null : outcome));
+      return;
+    }
     startTransition(async () => {
       await logCallOutcome({
         accountId: account.id,
@@ -42,6 +50,8 @@ export function CallMode({ account, contact, intel, recent, script }: Props) {
         outcome,
         notes,
         volume: volTouched || intel.monthlyVolume ? vol : null,
+        scheduledAt: scheduledAt ?? null,
+        scheduleLabel: scheduleLabel ?? null,
       });
       setLogged(outcome);
     });
@@ -251,15 +261,24 @@ export function CallMode({ account, contact, intel, recent, script }: Props) {
                 <Link href={`/accounts/${account.id}`} className="ml-2 underline">Back to account</Link>
               </div>
             ) : (
+              <>
               <div className="grid grid-cols-2 gap-2">
-                <DispoBtn full icon={<CalendarCheck className="h-4 w-4" />} label="BOOKED VISIT" onClick={() => dispo('booked')} pending={pending} />
+                <DispoBtn full icon={<CalendarCheck className="h-4 w-4" />} label={scheduling === 'booked' ? 'BOOKED VISIT ▴' : 'BOOKED VISIT'} onClick={() => dispo('booked')} pending={pending} />
                 <DispoBtn good icon={<MessageSquareText className="h-4 w-4" />} label="Sent one-pager" onClick={() => dispo('sent_onepager')} pending={pending} />
                 <DispoBtn good icon={<Link2 className="h-4 w-4" />} label="Sent Pulse link" onClick={() => dispo('sent_pulse')} pending={pending} />
-                <DispoBtn warn icon={<Phone className="h-4 w-4" />} label="Callback later" onClick={() => dispo('callback')} pending={pending} />
+                <DispoBtn warn icon={<Phone className="h-4 w-4" />} label={scheduling === 'callback' ? 'Callback ▴' : 'Callback later'} onClick={() => dispo('callback')} pending={pending} />
                 <DispoBtn warn icon={<PhoneMissed className="h-4 w-4" />} label="No answer" onClick={() => dispo('no_answer')} pending={pending} />
                 <DispoBtn bad icon={<XCircle className="h-4 w-4" />} label="Not interested" onClick={() => dispo('not_interested')} pending={pending} />
                 <DispoBtn bad wide icon={<Ban className="h-4 w-4" />} label="DNC - never contact" onClick={() => dispo('dnc')} pending={pending} />
               </div>
+              {scheduling && (
+                <DaySlotPicker
+                  busy={pending}
+                  confirmPrefix={scheduling === 'booked' ? 'Book visit' : 'Schedule callback'}
+                  onConfirm={(iso, label) => dispo(scheduling, iso, label)}
+                />
+              )}
+              </>
             )}
           </Rail>
         </div>

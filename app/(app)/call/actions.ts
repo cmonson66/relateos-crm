@@ -29,8 +29,10 @@ export async function logCallOutcome(input: {
   outcome: CallOutcome;
   notes: string;
   volume: number | null;
+  scheduledAt?: string | null;   // ISO - booked visit / callback time
+  scheduleLabel?: string | null; // human label for the timeline
 }) {
-  const { accountId, contactId, legacyId, outcome, notes, volume } = input;
+  const { accountId, contactId, legacyId, outcome, notes, volume, scheduledAt, scheduleLabel } = input;
 
   // Timeline entry via the existing activity rails (org, audit, revalidate)
   await logActivity({
@@ -42,6 +44,31 @@ export async function logCallOutcome(input: {
     account_id: accountId,
     contact_id: contactId,
   });
+
+  // Booked visit / callback become CALENDAR entries: scheduled activities
+  if (scheduledAt && (outcome === 'booked' || outcome === 'callback')) {
+    await logActivity({
+      type: outcome === 'booked' ? 'meeting' : 'task',
+      subject: (outcome === 'booked' ? 'Demo visit' : 'Callback') + (scheduleLabel ? ' - ' + scheduleLabel : ''),
+      body: notes.trim() || null,
+      account_id: accountId,
+      contact_id: contactId,
+      scheduled_at: scheduledAt,
+    });
+  }
+
+  // Anything sent gets a follow-up task in 3 days - nothing sent goes unfollowed
+  if (outcome === 'sent_onepager' || outcome === 'sent_pulse') {
+    const followUp = new Date(Date.now() + 3 * 86400000);
+    followUp.setUTCHours(16, 0, 0, 0); // ~9 AM Phoenix
+    await logActivity({
+      type: 'task',
+      subject: 'Follow up: did they look at the ' + (outcome === 'sent_onepager' ? 'one-pager' : 'Pulse card') + '?',
+      account_id: accountId,
+      contact_id: contactId,
+      scheduled_at: followUp.toISOString(),
+    });
+  }
 
   // Lead-side write-back through the security-definer bridge (034):
   // captured volume feeds every future email/card/call; DNC ends contact
