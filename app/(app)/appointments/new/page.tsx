@@ -1,16 +1,18 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import { QuickAppointment } from './_components/quick-appointment';
+import { AccountFinder } from './_components/account-finder';
 
 export const dynamic = 'force-dynamic';
 
 export default async function NewAppointmentPage({
   searchParams,
 }: {
-  searchParams: Promise<{ account?: string }>;
+  searchParams: Promise<{ account?: string; date?: string }>;
 }) {
-  const { account: accountId } = await searchParams;
-  if (!accountId) notFound();
+  const { account: accountId, date } = await searchParams;
+  // Calendar-first flow: no account yet - find one, carrying the date along
+  if (!accountId) return <AccountFinder date={date} />;
 
   const supabase = await createClient();
   const { data: account } = await supabase
@@ -32,6 +34,7 @@ export default async function NewAppointmentPage({
     <QuickAppointment
       account={{ id: account.id, name: account.name, city: [account.city, account.state].filter(Boolean).join(', ') }}
       contactId={contact?.id ?? null}
+      presetDate={date}
     />
   );
 }

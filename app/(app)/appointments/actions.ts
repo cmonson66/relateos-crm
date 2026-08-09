@@ -31,6 +31,20 @@ export async function createAppointment(input: {
   return { ok: true };
 }
 
+// Calendar-first booking: find the account by name
+export async function searchAccounts(q: string) {
+  const { createClient } = await import('@/lib/supabase/server');
+  const supabase = await createClient();
+  if (!q || q.trim().length < 2) return [];
+  const { data } = await supabase
+    .from('accounts')
+    .select('id, name, city')
+    .ilike('name', `%${q.trim()}%`)
+    .order('name')
+    .limit(8);
+  return data ?? [];
+}
+
 // A customer wandered in and the visit already happened - log it done, now
 export async function logWalkIn(input: { accountId: string; contactId: string | null; note: string }) {
   await logActivity({

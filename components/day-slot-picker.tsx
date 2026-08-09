@@ -25,10 +25,12 @@ export function DaySlotPicker({
   onConfirm,
   confirmPrefix = 'Confirm',
   busy = false,
+  presetDate,
 }: {
   onConfirm: (iso: string, label: string) => void;
   confirmPrefix?: string;
   busy?: boolean;
+  presetDate?: string; // YYYY-MM-DD - preselects Pick date
 }) {
   const days = useMemo(() => {
     const out: Date[] = [];
@@ -37,8 +39,8 @@ export function DaySlotPicker({
     return out;
   }, []);
 
-  const [dayIdx, setDayIdx] = useState<number | 'custom'>(1);
-  const [customDate, setCustomDate] = useState('');
+  const [dayIdx, setDayIdx] = useState<number | 'custom'>(presetDate ? 'custom' : 1);
+  const [customDate, setCustomDate] = useState(presetDate ?? '');
   const [slotIdx, setSlotIdx] = useState<number | 'custom'>(0);
   const [customTime, setCustomTime] = useState('');
 
@@ -90,7 +92,7 @@ export function DaySlotPicker({
             type="date"
             value={customDate}
             onChange={(e) => setCustomDate(e.target.value)}
-            className="rounded-md border border-border/40 bg-background px-2 py-1 text-xs"
+            className="rounded-md border border-border/40 bg-background px-2 py-1 text-xs [color-scheme:dark]"
           />
         )}
       </div>
@@ -108,7 +110,7 @@ export function DaySlotPicker({
             type="time"
             value={customTime}
             onChange={(e) => setCustomTime(e.target.value)}
-            className="rounded-md border border-border/40 bg-background px-2 py-1 text-xs"
+            className="rounded-md border border-border/40 bg-background px-2 py-1 text-xs [color-scheme:dark]"
           />
         )}
       </div>

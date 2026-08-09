@@ -110,6 +110,11 @@ export default async function ContactDetailPage({
                 <Button size="sm" className="font-display tracking-wider btn-glow">📞 Start call</Button>
               </Link>
             )}
+            {contact.account_id && (
+              <Link href={`/appointments/new?account=${contact.account_id}`}>
+                <Button variant="outline" size="sm" className="font-display tracking-wider">📅 Appt</Button>
+              </Link>
+            )}
             <Link href={`/deals/new?contact=${id}${contact.account_id ? `&account=${contact.account_id}` : ''}`}>
               <Button variant="outline" size="sm" className="font-display tracking-wider">+ Deal</Button>
             </Link>

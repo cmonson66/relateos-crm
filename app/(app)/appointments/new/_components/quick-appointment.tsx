@@ -18,9 +18,11 @@ const KINDS: { id: ApptKind; label: string }[] = [
 export function QuickAppointment({
   account,
   contactId,
+  presetDate,
 }: {
   account: { id: string; name: string; city: string };
   contactId: string | null;
+  presetDate?: string;
 }) {
   const [kind, setKind] = useState<ApptKind>('demo');
   const [note, setNote] = useState('');
@@ -94,7 +96,7 @@ export function QuickAppointment({
               ))}
             </div>
 
-            <DaySlotPicker busy={pending} confirmPrefix="Save" onConfirm={save} />
+            <DaySlotPicker busy={pending} confirmPrefix="Save" onConfirm={save} presetDate={presetDate} />
 
             <input
               value={note}
