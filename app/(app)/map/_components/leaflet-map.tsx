@@ -245,6 +245,7 @@ export default function LeafletMap({
                       Directions ↗
                     </a>
                     {' · '}
+                    <Link href={`/call/${a.id}`} style={{ marginRight: 10 }}>📞 Call mode</Link>
                     <Link href={`/accounts/${a.id}`}>Open account →</Link>
                   </div>
                 </div>
