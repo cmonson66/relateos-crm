@@ -60,7 +60,7 @@ export type CallScript = {
 const SHARED_DISCOVERY = [
   { q: `"Roughly what's going through the card reader a month?"`, placeholder: '$12,000' },
   { q: `"Who's your processor now - Square, Clover... ?"`, placeholder: 'Square' },
-  { q: `"Anybody ever ask to pay with crypto at the counter?"`, placeholder: 'yes / no / weekly' },
+  { q: `"Anybody ever ask to pay with crypto at the register?"`, placeholder: 'yes / no / weekly' },
 ];
 
 const SHARED_OBJECTIONS: Objection[] = [
@@ -93,7 +93,7 @@ const SHARED_OBJECTIONS: Objection[] = [
 const SHARED_CLOSES = (ctx: CallCtx): ClosePath[] => [
   {
     title: '① The walk-in (best)',
-    script: `"I'm working ${ctx.city} this week - ten minutes at your counter, I'll run a live payment and you watch it settle. Morning or afternoon better?"`,
+    script: `"I'm working ${ctx.city} this week - ten minutes at your shop, I'll run a live payment and you watch it settle. Morning or afternoon better?"`,
   },
   {
     title: '② The one-pager text',
@@ -139,7 +139,7 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
         clusterLabel: 'Processor-pain story (control)',
         hook: [
           `"You've probably seen it - a card processor like Square or Stripe decides your industry is 'high risk' and some shop down the street is begging a new processor to take their money at a worse rate."`,
-          `"What we do is simple: a small terminal on your counter that takes crypto - zero processing fee, money lands in a wallet you own the second they pay. Nobody can hold it, reverse it, or fire you from it."`,
+          `"What we do is simple: a small terminal by your register that takes crypto - zero processing fee, money lands in a wallet you own the second they pay. Nobody can hold it, reverse it, or fire you from it."`,
           `"Your card reader keeps doing its job. This is the no-fee lane next to it."`,
         ],
         hookHint: `Lead with sovereignty; switch to money if they engage on fees.`,
@@ -151,7 +151,7 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
         clusterLabel: 'Napkin-math story',
         hook: [
           `"On your ticket sizes, card processing is real money - roughly 3% comes off the top of every sale, and a delivered sale can still get reversed weeks later."`,
-          `"We put a small terminal on the counter that takes crypto - zero processing fee, settles to your own wallet in seconds, can't be charged back. Flat $19 a month, never a percentage."`,
+          `"We put a small terminal by the register that takes crypto - zero processing fee, settles to your own wallet in seconds, can't be charged back. Flat $19 a month, never a percentage."`,
         ],
         hookHint: `This cluster buys on arithmetic - get to Discovery fast and let the numbers pitch.`,
         mathLine: `"So at {vol} a month, that's about {loss} a year going to the card networks. Our whole first year costs $727. That's the entire pitch - you can do that math without me."`,
@@ -161,7 +161,7 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
         ...base,
         clusterLabel: 'Young-crowd story',
         hook: [
-          `"Somebody's probably already asked at your counter - your crowd skews young, and that's exactly who holds crypto and picks the shops that take it."`,
+          `"Somebody's probably already asked at the register - your crowd skews young, and that's exactly who holds crypto and picks the shops that take it."`,
           `"We put a small terminal next to your register - crypto payments, zero processing fee, money hits your own wallet instantly. Cards keep working exactly like today."`,
           `"Being the first spot on the block that takes it is worth more than the fees it saves - and it saves those too."`,
         ],
@@ -174,7 +174,7 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
         clusterLabel: 'Final-payment story',
         hook: [
           `"You know the worst invoice in this business - the one that comes back. Work's finished, service delivered, and weeks later a dispute claws the money back with a fee stacked on top."`,
-          `"We put a terminal on your counter that takes crypto - zero fee, and a settled payment is final. No dispute window, no clawbacks. Work done means paid."`,
+          `"We put a terminal by your register that takes crypto - zero fee, and a settled payment is final. No dispute window, no clawbacks. Work done means paid."`,
         ],
         hookHint: `Chargebacks are the wound here - press gently and let them tell you a story.`,
         mathLine: `"On the fee side, at {vol} a month you're giving the networks about {loss} a year - and every reversed job on top of that. This lane closes both doors."`,
@@ -186,7 +186,7 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
         hook: [
           `"So you already take crypto - which tells me you did the homework years before your neighbors. Respect. I'm not calling to explain bitcoin to you."`,
           `"Here's what I keep seeing at shops that already take it: either a BitPay-style processor skimming 1-2% plus a quarter per transaction and settling to the bank in a day or two - card-fee economics on crypto rails - or a bare wallet QR by the register that's free but clunky enough the staff steer around it."`,
-          `"We're the third option: a real counter terminal - staff types the amount, customer scans, ten seconds - zero processing fee, settlement straight to a wallet you control, instantly. Processor-grade checkout, DIY-grade economics."`,
+          `"We're the third option: a real terminal - staff types the amount, customer scans, ten seconds - zero processing fee, settlement straight to a wallet you control, instantly. Processor-grade checkout, DIY-grade economics."`,
         ],
         hookHint: `NEVER pitch "have you considered crypto" - open with respect, then the third option.`,
         mathLine: `"If you're on a processor rail today, run the comparison: their cut on {vol} a month against our flat $19. If you're on a bare QR, you're already at zero - so the pitch is the terminal experience and the directory listing, not the fee."`,
@@ -210,7 +210,7 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
         objections: [
           {
             q: `"My QR setup works fine."`,
-            a: `"And it's free, which I respect. The gap is everything around the payment - amount entry, staff being able to run it, receipts, refunds. That's what keeps the crypto lane from actually getting used. Run both for a month and watch which one the counter reaches for."`,
+            a: `"And it's free, which I respect. The gap is everything around the payment - amount entry, staff being able to run it, receipts, refunds. That's what keeps the crypto lane from actually getting used. Run both for a month and watch which one your staff reaches for."`,
           },
           {
             q: `"I'm on BitPay already."`,

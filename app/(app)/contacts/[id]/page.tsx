@@ -105,8 +105,13 @@ export default async function ContactDetailPage({
             </div>
           </div>
           <div className="flex gap-2 shrink-0">
+            {contact.account_id && (
+              <Link href={`/call/${contact.account_id}`}>
+                <Button size="sm" className="font-display tracking-wider btn-glow">📞 Start call</Button>
+              </Link>
+            )}
             <Link href={`/deals/new?contact=${id}${contact.account_id ? `&account=${contact.account_id}` : ''}`}>
-              <Button size="sm" className="font-display tracking-wider btn-glow">+ Deal</Button>
+              <Button variant="outline" size="sm" className="font-display tracking-wider">+ Deal</Button>
             </Link>
             {contact.account && (
               <Link href={`/map?focus=${contact.account.id}`}>
