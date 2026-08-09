@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { Phone, Zap, CalendarCheck, MessageSquareText, Link2, PhoneMissed, XCircle, Ban, ChevronLeft } from 'lucide-react';
+import { Phone, Zap, CalendarCheck, MessageSquareText, Link2, PhoneMissed, XCircle, Ban, ChevronLeft, Copy, Check } from 'lucide-react';
 import { logCallOutcome, type CallOutcome } from '../../actions';
 import { DaySlotPicker } from '@/components/day-slot-picker';
 import type { CallScript } from '@/lib/call-scripts';
@@ -16,7 +16,7 @@ type Props = {
     band: string; cryptoNative: boolean; cryptoScore: number | null; atmCount: number | null;
   };
   contact: { id: string; name: string | null; phone: string | null; legacyId: string | null } | null;
-  intel: { score: number | null; emailStage: number; monthlyVolume: number | null; status: string | null; emailable: boolean };
+  intel: { score: number | null; emailStage: number; monthlyVolume: number | null; status: string | null; emailable: boolean; pulseUrl?: string | null };
   recent: { type: string; subject: string; at: string }[];
   script: CallScript;
 };
@@ -31,6 +31,7 @@ export function CallMode({ account, contact, intel, recent, script }: Props) {
   const [notes, setNotes] = useState('');
   const [logged, setLogged] = useState<CallOutcome | null>(null);
   const [scheduling, setScheduling] = useState<'booked' | 'callback' | null>(null);
+  const [copied, setCopied] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const lossYr = useMemo(() => vol * 0.03 * 12, [vol]);
@@ -233,6 +234,37 @@ export function CallMode({ account, contact, intel, recent, script }: Props) {
             {intel.monthlyVolume && <Intel k="Self-reported vol" v={money(intel.monthlyVolume) + '/mo'} accent />}
             {intel.status && <Intel k="Pipeline status" v={intel.status} />}
           </Rail>
+
+          {intel.pulseUrl && (
+          <Rail title="THEIR PULSE PAGE">
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/[0.06] p-2.5">
+              <div className="break-all font-mono text-[11.5px] text-amber-200">{intel.pulseUrl}</div>
+              <div className="mt-2 flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(intel.pulseUrl!);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border/40 py-1.5 text-[11.5px] font-bold hover:bg-background/60"
+                >
+                  {copied ? <><Check className="h-3.5 w-3.5 text-emerald-400" /> Copied</> : <><Copy className="h-3.5 w-3.5" /> Copy link</>}
+                </button>
+                {contact?.phone && (
+                  <a
+                    href={`sms:${contact.phone}?&body=${encodeURIComponent(
+                      `${contact.name ? contact.name + ', ' : ''}here is that page I mentioned for ${account.name} - slide your own numbers: ${intel.pulseUrl}`
+                    )}`}
+                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border/40 py-1.5 text-[11.5px] font-bold hover:bg-background/60"
+                  >
+                    <MessageSquareText className="h-3.5 w-3.5" /> Text it
+                  </a>
+                )}
+              </div>
+            </div>
+          </Rail>
+          )}
 
           <Rail title="RECENT TOUCHES">
             {recent.length === 0 && <div className="text-xs text-muted-foreground">No activity yet - this is first contact.</div>}

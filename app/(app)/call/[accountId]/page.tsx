@@ -11,6 +11,7 @@ type Intel = {
   status?: string;
   email_stage?: number;
   monthly_volume?: number | null;
+  pulse_token?: string | null;
   crypto_volume?: number | null;
   crypto_native?: boolean;
   owner_first_name?: string | null;
@@ -72,6 +73,15 @@ export default async function CallPage({
     intel.owner_first_name ??
     (contact && contact.title !== 'Business' ? contact.first_name : null);
 
+  // The rep needs the actual URL mid-call, not just a "sent it" button.
+  // Base URL comes from campaign settings via a security-definer RPC
+  // (campaign_settings itself is admin-only - the key lives there).
+  let pulseUrl: string | null = null;
+  if (intel.pulse_token) {
+    const { data: base } = await supabase.rpc('get_pulse_base');
+    if (base) pulseUrl = `${String(base).replace(/\/$/, '')}/s/${intel.pulse_token}`;
+  }
+
   const band =
     account.tags?.find((t: string) => t === 'HOT' || t === 'WARM' || t === 'COOL') ??
     intel.band ??
@@ -110,6 +120,7 @@ export default async function CallPage({
         score: intel.score ?? null,
         emailStage: intel.email_stage ?? 0,
         monthlyVolume: intel.monthly_volume ?? null,
+        pulseUrl,
         status: intel.status ?? null,
         emailable: (intel.emails ?? 0) > 0,
       }}
