@@ -10,16 +10,16 @@ export default async function EditContactPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [{ data: contact }, { data: accounts }] = await Promise.all([
-    supabase.from('contacts').select('*').eq('id', id).single(),
-    supabase.from('accounts').select('id, name').order('name'),
-  ]);
+  const { data: contact } = await supabase.from('contacts').select('*').eq('id', id).single();
   if (!contact) notFound();
+  const { data: currentAccount } = contact.account_id
+    ? await supabase.from('accounts').select('id, name').eq('id', contact.account_id).maybeSingle()
+    : { data: null };
 
   return (
     <div className="p-8 max-w-3xl">
       <PageHeader kicker={`Editing · ${contact.first_name} ${contact.last_name || ''}`} title="Edit" highlight="Contact" />
-      <ContactForm existing={contact} accounts={accounts || []} />
+      <ContactForm existing={contact} initialAccount={currentAccount} />
     </div>
   );
 }

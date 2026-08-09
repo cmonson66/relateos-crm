@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   Select, SelectContent, SelectItem, SelectTrigger,
 } from '@/components/ui/select';
+import { AccountCombobox } from '@/components/account-combobox';
 import { toast } from 'sonner';
 import { createContact, updateContact, type ContactFormData } from '../actions';
 import type { Contact } from '@/lib/db/types';
@@ -23,12 +24,11 @@ const LIFECYCLE_LABEL: Record<string, string> = {
 
 export function ContactForm({
   existing,
-  accounts,
-  defaultAccountId,
+  initialAccount,
 }: {
   existing?: Contact;
-  accounts: { id: string; name: string }[];
-  defaultAccountId?: string;
+  // The pre-bound account (from ?account= or the contact's current one)
+  initialAccount?: { id: string; name: string } | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -39,7 +39,7 @@ export function ContactForm({
     phone: existing?.phone || '',
     title: existing?.title || '',
     linkedin_url: existing?.linkedin_url || '',
-    account_id: existing?.account_id || defaultAccountId || null,
+    account_id: existing?.account_id || initialAccount?.id || null,
     lifecycle_stage: existing?.lifecycle_stage || 'new',
     notes: existing?.notes || '',
     tags: existing?.tags || [],
@@ -50,7 +50,7 @@ export function ContactForm({
     setData(d => ({ ...d, [key]: value }));
   }
 
-  const accountLabel = accounts.find(a => a.id === data.account_id)?.name;
+  const [accountRef, setAccountRef] = useState<{ id: string; name: string } | null>(initialAccount ?? null);
   const lifecycleLabel = LIFECYCLE_LABEL[data.lifecycle_stage] || data.lifecycle_stage;
 
   function handleSubmit(e: React.FormEvent) {
@@ -106,22 +106,10 @@ export function ContactForm({
         </div>
         <div className="space-y-2">
           <Label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Account</Label>
-          <Select
-            value={data.account_id || 'none'}
-            onValueChange={(v: string | null) => set('account_id', !v || v === 'none' ? null : v)}
-          >
-            <SelectTrigger>
-              <span className={accountLabel ? '' : 'text-muted-foreground'}>
-                {accountLabel || 'None'}
-              </span>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">— None —</SelectItem>
-              {accounts.map(a => (
-                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <AccountCombobox
+            value={accountRef}
+            onChange={(v) => { setAccountRef(v); set('account_id', v?.id ?? null); }}
+          />
         </div>
         <div className="space-y-2">
           <Label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Lifecycle stage</Label>

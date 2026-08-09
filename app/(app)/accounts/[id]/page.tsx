@@ -81,6 +81,9 @@ export default async function AccountDetailPage({
             <Link href={`/appointments/new?account=${id}`}>
               <Button variant="outline" size="sm" className="font-display tracking-wider">📅 Appt</Button>
             </Link>
+            <Link href={`/contacts/new?account=${id}`}>
+              <Button variant="outline" size="sm" className="font-display tracking-wider">+ Contact</Button>
+            </Link>
             <Link href={`/deals/new?account=${id}`}>
               <Button variant="outline" size="sm" className="font-display tracking-wider">+ Deal</Button>
             </Link>
