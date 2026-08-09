@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { enrichFromDetail } from '../enrich';
+import { SyncButton } from '../_components/sync-button';
 import { getUser } from '@/lib/auth/get-user';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -85,9 +85,7 @@ export default async function AccountDetailPage({
             <Link href={`/contacts/new?account=${id}`}>
               <Button variant="outline" size="sm" className="font-display tracking-wider">+ Contact</Button>
             </Link>
-            <form action={enrichFromDetail.bind(null, id)}>
-              <Button type="submit" variant="outline" size="sm" className="font-display tracking-wider" title="Match on Google - pin, band, crypto score">🔗 Sync</Button>
-            </form>
+            <SyncButton accountId={id} />
             <Link href={`/deals/new?account=${id}`}>
               <Button variant="outline" size="sm" className="font-display tracking-wider">+ Deal</Button>
             </Link>

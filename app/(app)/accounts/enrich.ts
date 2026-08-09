@@ -26,7 +26,7 @@ function similar(a: string, b: string): boolean {
 
 export async function enrichAccount(accountId: string): Promise<EnrichResult> {
   const key = process.env.GOOGLE_PLACES_API_KEY;
-  if (!key) return { status: 'skipped', reason: 'GOOGLE_PLACES_API_KEY not set' };
+  if (!key) return { status: 'skipped', reason: 'GOOGLE_PLACES_API_KEY is not set on this deployment' };
 
   const supabase = await createClient();
   const { data: account } = await supabase
@@ -48,8 +48,9 @@ export async function enrichAccount(accountId: string): Promise<EnrichResult> {
     body: JSON.stringify({ textQuery: query, maxResultCount: 3 }),
   });
   if (!res.ok) {
-    console.error('places search:', res.status, await res.text());
-    return { status: 'skipped', reason: 'places error' };
+    const detail = await res.text();
+    console.error('places search:', res.status, detail);
+    return { status: 'skipped', reason: `Places API ${res.status} - ${detail.slice(0, 120)}` };
   }
   const json = await res.json();
   const hit = (json.places ?? []).find((p: { displayName?: { text?: string } }) =>
@@ -83,11 +84,6 @@ export async function enrichAccount(accountId: string): Promise<EnrichResult> {
   revalidatePath('/map');
   if (out?.duplicate_of) return { status: 'duplicate', accountId: out.duplicate_of };
   return { status: 'linked', cryptoScore: out?.crypto_score ?? null };
-}
-
-// Form-action wrapper for the account detail header button
-export async function enrichFromDetail(accountId: string): Promise<void> {
-  await enrichAccount(accountId);
 }
 
 // Post-import bulk sync: the wizard feeds created account ids through this
