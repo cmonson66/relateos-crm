@@ -50,7 +50,9 @@ export type CallScript = {
   hook: string[];
   hookHint: string;
   discovery: { q: string; placeholder: string }[];
-  mathLine: (volumeWords: string, lossPerYear: string) => string;
+  // Template - client replaces {vol} and {loss} live. (A function here
+  // would crash the RSC boundary: functions can't serialize to clients.)
+  mathLine: string;
   closes: ClosePath[];
   objections: Objection[];
 };
@@ -141,8 +143,7 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
           `"Your card reader keeps doing its job. This is the no-fee lane next to it."`,
         ],
         hookHint: `Lead with sovereignty; switch to money if they engage on fees.`,
-        mathLine: (v, loss) =>
-          `"So at ${v} a month, cards are taking about ${loss} a year off your top line - and that's before a processor ever gets twitchy about your industry. If even part of that moves to the no-fee lane, the terminal pays for itself the first month."`,
+        mathLine: `"So at {vol} a month, cards are taking about {loss} a year off your top line - and that's before a processor ever gets twitchy about your industry. If even part of that moves to the no-fee lane, the terminal pays for itself the first month."`,
       };
     case 'math':
       return {
@@ -153,8 +154,7 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
           `"We put a small terminal on the counter that takes crypto - zero processing fee, settles to your own wallet in seconds, can't be charged back. Flat $19 a month, never a percentage."`,
         ],
         hookHint: `This cluster buys on arithmetic - get to Discovery fast and let the numbers pitch.`,
-        mathLine: (v, loss) =>
-          `"So at ${v} a month, that's about ${loss} a year going to the card networks. Our whole first year costs $727. That's the entire pitch - you can do that math without me."`,
+        mathLine: `"So at {vol} a month, that's about {loss} a year going to the card networks. Our whole first year costs $727. That's the entire pitch - you can do that math without me."`,
       };
     case 'crowd':
       return {
@@ -166,8 +166,7 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
           `"Being the first spot on the block that takes it is worth more than the fees it saves - and it saves those too."`,
         ],
         hookHint: `Lead with the customers, not the fees - this cluster buys relevance.`,
-        mathLine: (v, loss) =>
-          `"And the fee side isn't nothing either - at ${v} a month, cards take about ${loss} a year. The crowd angle gets you customers, the zero-fee side keeps more of what they spend."`,
+        mathLine: `"And the fee side isn't nothing either - at {vol} a month, cards take about {loss} a year. The crowd angle gets you customers, the zero-fee side keeps more of what they spend."`,
       };
     case 'simple':
       return {
@@ -178,8 +177,7 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
           `"We put a terminal on your counter that takes crypto - zero fee, and a settled payment is final. No dispute window, no clawbacks. Work done means paid."`,
         ],
         hookHint: `Chargebacks are the wound here - press gently and let them tell you a story.`,
-        mathLine: (v, loss) =>
-          `"On the fee side, at ${v} a month you're giving the networks about ${loss} a year - and every reversed job on top of that. This lane closes both doors."`,
+        mathLine: `"On the fee side, at {vol} a month you're giving the networks about {loss} a year - and every reversed job on top of that. This lane closes both doors."`,
       };
     case 'native':
       return {
@@ -191,8 +189,7 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
           `"We're the third option: a real counter terminal - staff types the amount, customer scans, ten seconds - zero processing fee, settlement straight to a wallet you control, instantly. Processor-grade checkout, DIY-grade economics."`,
         ],
         hookHint: `NEVER pitch "have you considered crypto" - open with respect, then the third option.`,
-        mathLine: (v, loss) =>
-          `"If you're on a processor rail today, run the comparison: their cut on ${v} a month against our flat $19. If you're on a bare QR, you're already at zero - so the pitch is the terminal experience and the directory listing, not the fee."`,
+        mathLine: `"If you're on a processor rail today, run the comparison: their cut on {vol} a month against our flat $19. If you're on a bare QR, you're already at zero - so the pitch is the terminal experience and the directory listing, not the fee."`,
         discovery: [
           { q: `"What are you running today - BitPay-style processor, or your own wallet QR?"`, placeholder: 'BitPay / QR / other' },
           { q: `"Roughly how much crypto volume a month?"`, placeholder: '$2,000' },

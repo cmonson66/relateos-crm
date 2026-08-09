@@ -182,7 +182,7 @@ export function CallMode({ account, contact, intel, recent, script }: Props) {
                     <Row k="Stays in the shop, year one" v={'+' + money(Math.max(0, lossYr - 727))} vClass="text-emerald-400 font-extrabold" last />
                   </div>
                 </div>
-                <Say text={script.mathLine(words(vol), money(lossYr))} />
+                <Say text={script.mathLine.replace('{vol}', words(vol)).replace('{loss}', money(lossYr))} />
               </Section>
             )}
             {step === 4 && (
