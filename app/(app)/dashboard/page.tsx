@@ -231,7 +231,7 @@ export default async function DashboardPage() {
             </div>
           </Card>
 
-          {scoreboard.length > 0 && (
+          {scoreboard.length > 1 && (
             <Card title="REP SCOREBOARD · WEEK" icon={Zap}>
               {scoreboard.map(r => (
                 <div key={r.name} className="flex justify-between border-b border-dashed border-border/30 py-1.5 text-sm last:border-0">

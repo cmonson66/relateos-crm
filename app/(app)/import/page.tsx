@@ -1,7 +1,13 @@
+import { redirect } from 'next/navigation';
+import { getUser } from '@/lib/auth/get-user';
 import { PageHeader } from '@/components/app/page-header';
 import { ImportWizard } from './_components/import-wizard';
 
-export default function ImportPage() {
+export default async function ImportPage() {
+  // The nav hides this from reps, but a typed URL doesn't care
+  const { profile } = await getUser();
+  if (!['super_admin', 'admin'].includes(profile.role)) redirect('/dashboard');
+
   return (
     <div className="p-8 max-w-5xl">
       <PageHeader
