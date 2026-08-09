@@ -11,6 +11,8 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { createDeal, updateDeal, type DealFormData } from '../actions';
+import { contactsForAccount } from '../actions';
+import { AccountCombobox } from '@/components/account-combobox';
 import type { Deal, PipelineStage } from '@/lib/db/deals';
 
 type ContactOption = { id: string; first_name: string; last_name: string | null; account_id: string | null };
@@ -18,17 +20,18 @@ type AccountOption = { id: string; name: string };
 
 export function DealForm({
   existing,
-  accounts,
+  initialAccount,
   contacts,
   stages,
-  defaultAccountId,
   defaultContactId,
 }: {
   existing?: Deal;
-  accounts: AccountOption[];
+  // Pre-bound account from ?account= (or the deal's own) - the old
+  // fetch-every-account dropdown capped at 1,000 rows, so accounts past
+  // the A's rendered as a blank trigger even when correctly prefilled
+  initialAccount?: AccountOption | null;
   contacts: ContactOption[];
   stages: PipelineStage[];
-  defaultAccountId?: string;
   defaultContactId?: string;
 }) {
   const router = useRouter();
@@ -39,7 +42,9 @@ export function DealForm({
   );
 
   const [name, setName] = useState<string>(existing?.name || '');
-  const [accountId, setAccountId] = useState<string>(existing?.account_id || defaultAccountId || '');
+  const [accountRef, setAccountRef] = useState<AccountOption | null>(initialAccount ?? null);
+  const accountId = accountRef?.id ?? '';
+  const [contactOptions, setContactOptions] = useState<ContactOption[]>(contacts);
   const [contactId, setContactId] = useState<string>(existing?.primary_contact_id || defaultContactId || '');
   const [stageId, setStageId] = useState<string>(existing?.stage_id || firstStage?.id || '');
   const [valueDollars, setValueDollars] = useState<string>(
@@ -52,16 +57,10 @@ export function DealForm({
     if (!stageId && firstStage) setStageId(firstStage.id);
   }, [firstStage, stageId]);
 
-  const filteredContacts = useMemo(
-    () => accountId
-      ? contacts.filter(c => c.account_id === accountId || c.id === contactId)
-      : contacts,
-    [contacts, accountId, contactId]
-  );
+  const filteredContacts = contactOptions;
 
-  const accountLabel = accounts.find(a => a.id === accountId)?.name;
   const contactLabel = (() => {
-    const c = contacts.find(x => x.id === contactId);
+    const c = contactOptions.find(x => x.id === contactId);
     return c ? (c.first_name + ' ' + (c.last_name || '')).trim() : null;
   })();
   const stageLabel = stages.find(s => s.id === stageId)?.name;
@@ -110,16 +109,18 @@ export function DealForm({
 
         <div className="space-y-2">
           <Label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Account *</Label>
-          <Select value={accountId} onValueChange={(v: string | null) => setAccountId(v ?? '')}>
-            <SelectTrigger>
-              <span className={accountLabel ? '' : 'text-muted-foreground'}>
-                {accountLabel || 'Select account…'}
-              </span>
-            </SelectTrigger>
-            <SelectContent>
-              {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <AccountCombobox
+            value={accountRef}
+            onChange={(v) => {
+              setAccountRef(v);
+              setContactId('');
+              if (v) {
+                contactsForAccount(v.id).then(setContactOptions).catch(() => setContactOptions([]));
+              } else {
+                setContactOptions([]);
+              }
+            }}
+          />
         </div>
 
         <div className="space-y-2">

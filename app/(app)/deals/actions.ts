@@ -15,6 +15,18 @@ export type DealFormData = {
   notes?: string | null;
 };
 
+// Contacts for one account - the deal form used to receive EVERY contact
+// in the org just to populate this dropdown
+export async function contactsForAccount(accountId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('contacts')
+    .select('id, first_name, last_name, account_id')
+    .eq('account_id', accountId)
+    .order('created_at');
+  return data ?? [];
+}
+
 export async function createDeal(data: DealFormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

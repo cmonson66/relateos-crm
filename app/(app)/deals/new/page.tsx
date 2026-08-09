@@ -9,9 +9,24 @@ export default async function NewDealPage({
 }) {
   const params = await searchParams;
   const supabase = await createClient();
-  const [{ data: accounts }, { data: contacts }, { data: stages }] = await Promise.all([
-    supabase.from('accounts').select('id, name').order('name'),
-    supabase.from('contacts').select('id, first_name, last_name, account_id').order('first_name'),
+
+  // Arriving from an account or contact page? Bind that account and load
+  // only ITS contacts. (Fetching all accounts/contacts hit the 1,000-row
+  // cap, which made a correctly prefilled account render blank.)
+  let accountId = params.account ?? null;
+  if (!accountId && params.contact) {
+    const { data: c } = await supabase
+      .from('contacts').select('account_id').eq('id', params.contact).maybeSingle();
+    accountId = c?.account_id ?? null;
+  }
+
+  const [{ data: boundAccount }, { data: contacts }, { data: stages }] = await Promise.all([
+    accountId
+      ? supabase.from('accounts').select('id, name').eq('id', accountId).maybeSingle()
+      : Promise.resolve({ data: null }),
+    accountId
+      ? supabase.from('contacts').select('id, first_name, last_name, account_id').eq('account_id', accountId).order('created_at')
+      : Promise.resolve({ data: [] }),
     supabase.from('pipeline_stages').select('*').order('position'),
   ]);
 
@@ -19,10 +34,9 @@ export default async function NewDealPage({
     <div className="p-8 max-w-3xl">
       <PageHeader kicker="New record" title="Add" highlight="Deal" />
       <DealForm
-        accounts={accounts || []}
+        initialAccount={boundAccount}
         contacts={contacts || []}
         stages={stages || []}
-        defaultAccountId={params.account || undefined}
         defaultContactId={params.contact || undefined}
       />
     </div>
