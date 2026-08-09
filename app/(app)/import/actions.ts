@@ -1,5 +1,11 @@
 'use server';
 
+// NectarPay import: CSVs are shop lists more often than people lists, so a
+// row is valid with EITHER an organization or a first name. Accounts carry
+// city/state/phone/website (city matters - the Places bridge matches on
+// "name, city AZ"). Contact-less business rows get the standard 'Business'
+// placeholder contact when they carry a phone/email worth keeping.
+
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { logAudit } from '@/lib/db/audit';
@@ -8,19 +14,25 @@ import { VERTICALS, DEFAULT_VERTICAL } from '@/lib/verticals';
 export type ImportRow = {
   organization?: string;
   vertical?: string;
+  city?: string;
+  state?: string;
+  phone?: string;
+  website?: string;
+  notes?: string;
   first_name?: string;
   last_name?: string;
   email?: string;
   title?: string;
   status?: string;
-  sport_focus?: string;
-  school_tier?: string;
   legacy_id?: string;
 };
 
 export type ImportResult = {
   importId: string;
-  successCount: number;
+  successCount: number;      // contacts created
+  accountsCreated: number;
+  createdAccountIds: string[]; // fuel for the post-import bulk sync
+  skippedCount: number;      // dupes we refused to double-import
   errorCount: number;
   errors: { row: number; message: string }[];
 };
@@ -29,19 +41,6 @@ const verticalMap: Record<string, string> = {};
 for (const v of VERTICALS) {
   verticalMap[v.value.toLowerCase()] = v.value;
   verticalMap[v.label.toLowerCase()] = v.value;
-}
-// Legacy aliases apply only when their target vertical exists in this instance
-const legacyAliases: Record<string, string> = {
-  athletics: 'sports',
-  k12: 'education',
-  'higher ed': 'education',
-  'public safety': 'public_safety',
-  publicsafety: 'public_safety',
-  fire: 'public_safety',
-  police: 'public_safety',
-};
-for (const [alias, target] of Object.entries(legacyAliases)) {
-  if (VERTICALS.some(v => v.value === target)) verticalMap[alias] = target;
 }
 
 const lifecycleMap: Record<string, string> = {
@@ -87,9 +86,16 @@ export async function executeImport(
 
   const errors: { row: number; message: string }[] = [];
   let successCount = 0;
+  let skippedCount = 0;
+  const createdAccountIds: string[] = [];
 
-  // 1. Group rows by organization name to dedupe accounts
-  const accountsByName = new Map<string, { vertical: string; tags: Set<string>; rows: number[] }>();
+  // 1. Group rows by organization; account-level fields come from the
+  //    first row that carries them
+  type AcctInfo = {
+    vertical: string; city: string | null; state: string | null;
+    website: string | null; notes: string | null; rows: number[];
+  };
+  const accountsByName = new Map<string, AcctInfo>();
   rows.forEach((row, idx) => {
     const orgName = row.organization?.trim();
     if (!orgName) return;
@@ -97,17 +103,19 @@ export async function executeImport(
       const v = (row.vertical || '').toLowerCase().trim();
       accountsByName.set(orgName, {
         vertical: verticalMap[v] || DEFAULT_VERTICAL,
-        tags: new Set(),
+        city: null, state: null, website: null, notes: null,
         rows: [],
       });
     }
     const entry = accountsByName.get(orgName)!;
-    if (row.sport_focus?.trim()) entry.tags.add(row.sport_focus.trim());
-    if (row.school_tier?.trim()) entry.tags.add(row.school_tier.trim());
+    if (!entry.city && row.city?.trim()) entry.city = row.city.trim();
+    if (!entry.state && row.state?.trim()) entry.state = row.state.trim();
+    if (!entry.website && row.website?.trim()) entry.website = row.website.trim();
+    if (!entry.notes && row.notes?.trim()) entry.notes = row.notes.trim();
     entry.rows.push(idx);
   });
 
-  // 2. Insert accounts
+  // 2. Accounts: match existing by name (case-insensitive), else create
   const accountIdByName = new Map<string, string>();
   for (const [name, info] of accountsByName.entries()) {
     const { data: existing } = await supabase
@@ -128,7 +136,11 @@ export async function executeImport(
         org_id: profile.org_id,
         name,
         vertical: info.vertical,
-        tags: Array.from(info.tags),
+        city: info.city,
+        state: info.state ?? 'AZ',
+        website: info.website,
+        notes: info.notes,
+        tags: [],
         created_by: user.id,
         owner_id: user.id,
       })
@@ -140,31 +152,57 @@ export async function executeImport(
       continue;
     }
     accountIdByName.set(name, created.id);
+    createdAccountIds.push(created.id);
     await logAudit({ entityType: 'account', entityId: created.id, action: 'imported' });
   }
 
-  // 3. Insert contacts
+  // 3. Contacts. A row without a first name still yields a 'Business'
+  //    placeholder contact when it carries a phone or email (Call Mode and
+  //    the Places bridge both want a contact to hang data on).
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    if (!row.first_name?.trim()) {
-      errors.push({ row: i + 1, message: 'Missing first name' });
+    const orgName = row.organization?.trim();
+    const accountId = orgName ? accountIdByName.get(orgName) ?? null : null;
+    const hasPerson = !!row.first_name?.trim();
+    const hasReachInfo = !!(row.email?.trim() || row.phone?.trim());
+
+    if (!hasPerson && !orgName) {
+      errors.push({ row: i + 1, message: 'Needs an organization or a first name' });
       continue;
     }
+    if (!hasPerson && !hasReachInfo) continue; // account-only row - fine, nothing more to add
 
-    const accountId = row.organization ? accountIdByName.get(row.organization.trim()) : null;
+    // Dedupe: same email in this org, or same legacy id, means we've got them
+    if (row.email?.trim()) {
+      const { data: dupe } = await supabase
+        .from('contacts')
+        .select('id')
+        .eq('org_id', profile.org_id)
+        .ilike('email', row.email.trim())
+        .maybeSingle();
+      if (dupe) { skippedCount++; continue; }
+    }
+    if (row.legacy_id?.trim()) {
+      const { data: dupe } = await supabase
+        .from('contacts')
+        .select('id')
+        .eq('legacy_id', row.legacy_id.trim())
+        .maybeSingle();
+      if (dupe) { skippedCount++; continue; }
+    }
+
     const stage = (row.status || '').toLowerCase().trim();
-    const lifecycle = lifecycleMap[stage] || 'new';
-
     const { data: created, error } = await supabase
       .from('contacts')
       .insert({
         org_id: profile.org_id,
         account_id: accountId,
-        first_name: row.first_name.trim(),
-        last_name: row.last_name?.trim() || null,
+        first_name: hasPerson ? row.first_name!.trim() : (orgName ?? 'Business'),
+        last_name: hasPerson ? row.last_name?.trim() || null : null,
+        title: hasPerson ? row.title?.trim() || null : 'Business',
         email: row.email?.trim() || null,
-        title: row.title?.trim() || null,
-        lifecycle_stage: lifecycle,
+        phone: row.phone?.trim() || null,
+        lifecycle_stage: lifecycleMap[stage] || 'new',
         legacy_id: row.legacy_id?.trim() || null,
         owner_id: user.id,
         created_by: user.id,
@@ -198,6 +236,9 @@ export async function executeImport(
   return {
     importId: importRecord.id,
     successCount,
+    accountsCreated: createdAccountIds.length,
+    createdAccountIds,
+    skippedCount,
     errorCount: errors.length,
     errors,
   };

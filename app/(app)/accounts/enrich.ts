@@ -89,3 +89,23 @@ export async function enrichAccount(accountId: string): Promise<EnrichResult> {
 export async function enrichFromDetail(accountId: string): Promise<void> {
   await enrichAccount(accountId);
 }
+
+// Post-import bulk sync: the wizard feeds created account ids through this
+// in small chunks so serverless limits never bite. Each account gets the
+// full Places-match + lead-link treatment.
+export async function bulkEnrichAccounts(accountIds: string[]) {
+  const out = { linked: 0, noMatch: 0, duplicate: 0, skipped: 0 };
+  for (const id of accountIds) {
+    try {
+      const r = await enrichAccount(id);
+      if (r.status === 'linked') out.linked++;
+      else if (r.status === 'no-match') out.noMatch++;
+      else if (r.status === 'duplicate') out.duplicate++;
+      else out.skipped++;
+    } catch {
+      out.skipped++;
+    }
+    await new Promise((res) => setTimeout(res, 200));
+  }
+  return out;
+}
