@@ -26,6 +26,9 @@ export function AccountsTable({
   canAssign?: boolean;
 }) {
   const [filter, setFilter] = useState('all');
+  // Band is its own dimension - it COMBINES with the category chips
+  // (Hot + Med Spa, Warm + Pool/Landscape, etc.)
+  const [bandFilter, setBandFilter] = useState<'HOT' | 'WARM' | 'COOL' | null>(null);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('recent');
 
@@ -43,10 +46,11 @@ export function AccountsTable({
 
   const filtered = useMemo(() => {
     let list = accounts;
+    if (bandFilter) {
+      list = list.filter(a => a.tags.includes(bandFilter));
+    }
     if (filter === 'mine') {
       list = list.filter(a => a.owner_id === currentUserId);
-    } else if (filter === 'HOT' || filter === 'WARM' || filter === 'COOL') {
-      list = list.filter(a => a.tags.includes(filter));
     } else if (filter === 'crypto-native-flag') {
       list = list.filter(a => a.crypto_native);
     } else if (VERTICALS.some(v => v.value === filter)) {
@@ -88,7 +92,7 @@ export function AccountsTable({
       list = [...list].sort((a, b) => a.name.localeCompare(b.name));
     }
     return list;
-  }, [accounts, filter, search, currentUserId, sort]);
+  }, [accounts, filter, bandFilter, search, currentUserId, sort]);
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
@@ -141,23 +145,42 @@ export function AccountsTable({
     });
   };
 
+  // Count bases: each dimension's counts reflect the OTHER dimension's pick
+  const bandBase = useMemo(
+    () => (bandFilter ? accounts.filter(a => a.tags.includes(bandFilter)) : accounts),
+    [accounts, bandFilter]
+  );
+  const categoryBase = useMemo(() => {
+    let list = accounts;
+    if (filter === 'mine') list = list.filter(a => a.owner_id === currentUserId);
+    else if (filter === 'crypto-native-flag') list = list.filter(a => a.crypto_native);
+    else if (VERTICALS.some(v => v.value === filter)) list = list.filter(a => a.vertical === filter);
+    else if (filter === 'crypto') list = list.filter(a => (a.crypto_score ?? 0) >= 70);
+    else if (filter === 'cold') {
+      const cutoff = Date.now() - 14 * 86400000;
+      list = list.filter(a => !a.last_activity_at || new Date(a.last_activity_at).getTime() < cutoff);
+    }
+    return list;
+  }, [accounts, filter, currentUserId]);
+
+  const bandChips: FilterChip[] = (['HOT', 'WARM', 'COOL'] as const).map(b => ({
+    id: b,
+    label: b.charAt(0) + b.slice(1).toLowerCase(),
+    count: categoryBase.filter(a => a.tags.includes(b)).length,
+  }));
+
   const chips: FilterChip[] = [
     { id: 'all', label: 'All', count: accounts.length },
     { id: 'mine', label: 'Mine', count: accounts.filter(a => a.owner_id === currentUserId).length },
-    ...(['HOT', 'WARM', 'COOL'] as const).map(band => ({
-      id: band,
-      label: band.charAt(0) + band.slice(1).toLowerCase(),
-      count: accounts.filter(a => a.tags.includes(band)).length,
-    })),
     {
       id: 'crypto-native-flag',
       label: 'Crypto Native',
-      count: accounts.filter(a => a.crypto_native).length,
+      count: bandBase.filter(a => a.crypto_native).length,
     },
     ...VERTICALS.map(v => ({
       id: v.value,
       label: v.label,
-      count: accounts.filter(a => a.vertical === v.value).length,
+      count: bandBase.filter(a => a.vertical === v.value).length,
     })),
     ...(hasCrypto
       ? [{
@@ -176,6 +199,11 @@ export function AccountsTable({
     <>
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4 mb-5">
         <div className="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
+          <FilterChips
+            chips={bandChips}
+            activeId={bandFilter ?? ''}
+            onChange={(id) => setBandFilter(cur => (cur === id ? null : (id as 'HOT' | 'WARM' | 'COOL')))}
+          />
           <FilterChips chips={chips} activeId={filter} onChange={setFilter} />
         </div>
         <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
