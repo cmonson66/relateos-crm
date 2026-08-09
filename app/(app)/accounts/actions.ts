@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { logAudit } from '@/lib/db/audit';
+import { enrichAccount } from './enrich';
 
 export type AccountFormData = {
   name: string;
@@ -43,6 +44,16 @@ export async function createAccount(data: AccountFormData) {
   if (error) throw new Error(error.message);
 
   await logAudit({ entityType: 'account', entityId: created.id, action: 'created' });
+
+  // Bridge to the leads layer: Places-match the business so the map pin,
+  // band tags, and crypto density light up like any scraped lead.
+  // Best-effort - a failed match must never block the create.
+  try {
+    await enrichAccount(created.id);
+  } catch (e) {
+    console.error('enrichAccount:', e);
+  }
+
   revalidatePath('/accounts');
   redirect(`/accounts/${created.id}`);
 }
