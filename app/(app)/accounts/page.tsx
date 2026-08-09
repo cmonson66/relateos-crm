@@ -29,12 +29,25 @@ export default async function AccountsPage() {
 
   const list = accounts || [];
 
-  // Assignable reps (mirrors the sender's routing table)
-  const { data: reps } = await supabase
-    .from('reps')
-    .select('profile_id, first_name')
-    .eq('active', true)
-    .order('is_default', { ascending: false });
+  // Assignable = anyone with an active CRM account. (This used to read the
+  // `reps` table, which is the SENDING identity - so a rep who signed up but
+  // had no email alias yet was invisible here. Owning accounts and sending
+  // email are different capabilities.)
+  const [{ data: people }, { data: senders }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, full_name, email, role')
+      .eq('is_active', true)
+      .in('role', ['super_admin', 'admin', 'manager', 'rep'])
+      .order('full_name'),
+    supabase.from('reps').select('profile_id').eq('active', true),
+  ]);
+  const senderIds = new Set((senders ?? []).map(r => r.profile_id));
+  const reps = (people ?? []).map(p => ({
+    profile_id: p.id,
+    first_name: (p.full_name || p.email || 'Rep').split(' ')[0],
+    can_send: senderIds.has(p.id),
+  }));
   const canAssign = profile.role === 'super_admin' || profile.role === 'admin';
 
   return (

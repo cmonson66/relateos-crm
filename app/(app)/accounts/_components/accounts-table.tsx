@@ -22,7 +22,7 @@ export function AccountsTable({
 }: {
   accounts: (AccountWithOwner & { crypto_native?: boolean | null })[];
   currentUserId: string;
-  reps?: { profile_id: string; first_name: string }[];
+  reps?: { profile_id: string; first_name: string; can_send?: boolean }[];
   canAssign?: boolean;
 }) {
   const [filter, setFilter] = useState('all');
@@ -440,7 +440,9 @@ export function AccountsTable({
                 >
                   <option value="">Assign to…</option>
                   {reps.map(r => (
-                    <option key={r.profile_id} value={r.profile_id}>{r.first_name}</option>
+                    <option key={r.profile_id} value={r.profile_id}>
+                      {r.first_name}{r.can_send === false ? ' (no email identity yet)' : ''}
+                    </option>
                   ))}
                 </select>
                 <button
