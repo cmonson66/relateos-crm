@@ -7,6 +7,7 @@ import {
   Upload, Settings, ShieldCheck, LockKeyhole, Palette, X,
   Map as MapIcon,
   CalendarDays,
+  Megaphone,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Profile, UserRole } from '@/lib/auth/get-user';
@@ -24,6 +25,7 @@ const navItems: {
   { href: '/deals',      label: 'Deals',      icon: Briefcase,       roles: ['super_admin','admin','manager','rep'] },
   { href: '/map',        label: 'Map',        icon: MapIcon,         roles: ['super_admin','admin','manager','rep'] },
   { href: '/calendar',   label: 'Calendar',   icon: CalendarDays,    roles: ['super_admin','admin','manager','rep'] },
+  { href: '/campaigns',  label: 'Campaign',   icon: Megaphone,       roles: ['super_admin','admin'] },
   { href: '/activities', label: 'Activities', icon: Activity,        roles: ['super_admin','admin','manager','rep'] },
   { href: '/import',     label: 'Import',     icon: Upload,          roles: ['super_admin','admin'] },
   { href: '/admin',      label: 'Admin',      icon: Settings,        roles: ['super_admin','admin'] },
