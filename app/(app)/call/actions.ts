@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { logActivity } from '@/app/(app)/activities/actions';
+import { advanceDealTo } from '@/app/(app)/deals/automation';
 
 export type CallOutcome =
   | 'booked'
@@ -44,6 +45,11 @@ export async function logCallOutcome(input: {
     account_id: accountId,
     contact_id: contactId,
   });
+
+  // A booked demo puts the account in the pipeline at Demo booked
+  if (outcome === 'booked') {
+    await advanceDealTo(accountId, 'demo-booked');
+  }
 
   // Booked visit / callback become CALENDAR entries: scheduled activities
   if (scheduledAt && (outcome === 'booked' || outcome === 'callback')) {

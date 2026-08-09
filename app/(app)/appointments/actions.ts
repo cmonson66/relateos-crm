@@ -1,6 +1,7 @@
 'use server';
 
 import { logActivity } from '@/app/(app)/activities/actions';
+import { advanceDealTo } from '@/app/(app)/deals/automation';
 
 export type ApptKind = 'demo' | 'install' | 'followup' | 'callback';
 
@@ -20,6 +21,9 @@ export async function createAppointment(input: {
   note: string;
 }) {
   const meta = KIND_META[input.kind];
+  // Pipeline automation: demo appointments -> Demo booked, installs -> Install scheduled
+  if (input.kind === 'demo') await advanceDealTo(input.accountId, 'demo-booked');
+  if (input.kind === 'install') await advanceDealTo(input.accountId, 'install-scheduled');
   await logActivity({
     type: meta.type,
     subject: `${meta.label} - ${input.scheduleLabel}`,
