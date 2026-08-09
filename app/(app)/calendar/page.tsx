@@ -13,12 +13,19 @@ export default async function CalendarPage({
   const { w } = await searchParams;
   const offset = Number(w ?? '0') || 0;
 
-  // Monday-start week in local server time; client renders in Phoenix time
-  const now = new Date();
-  const dow = (now.getDay() + 6) % 7; // Mon=0
-  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + offset * 7);
-  const weekStart = monday.toISOString();
-  const weekEnd = new Date(monday.getTime() + 7 * DAY_MS).toISOString();
+  // Anchor the week to PHOENIX days (UTC-7, no DST). The server runs in
+  // UTC - anchoring to its local "today" put the grid a day ahead every
+  // evening, so bookings for "tomorrow" fell past the last visible column.
+  const PHX_MS = 7 * 3600000;
+  const phx = new Date(Date.now() - PHX_MS);
+  const dow = (phx.getUTCDay() + 6) % 7; // Mon=0, in Phoenix terms
+  const mondayUtcMs = Date.UTC(
+    phx.getUTCFullYear(), phx.getUTCMonth(),
+    phx.getUTCDate() - dow + offset * 7,
+    7, 0, 0 // Phoenix midnight = 07:00 UTC
+  );
+  const weekStart = new Date(mondayUtcMs).toISOString();
+  const weekEnd = new Date(mondayUtcMs + 7 * DAY_MS).toISOString();
 
   const supabase = await createClient();
   const {
