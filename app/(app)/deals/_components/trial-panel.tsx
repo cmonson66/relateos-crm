@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -187,14 +188,19 @@ export function TrialPanel({
             No trial on this deal. If the owner is interested but not ready to pay, put a
             terminal in on a free trial and let the thing sell itself.
           </p>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setEditing(true)}
-            className="font-display tracking-wider"
-          >
-            Set up a trial
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/deals/${dealId}/agreement`}>
+              <Button size="sm" className="font-display tracking-wider btn-glow">Sign the trial agreement</Button>
+            </Link>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setEditing(true)}
+              className="font-display tracking-wider"
+            >
+              Start without signing
+            </Button>
+          </div>
         </div>
       )}
 
