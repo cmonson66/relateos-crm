@@ -3,7 +3,11 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import Link from 'next/link';
-import { Clock, AlertTriangle } from 'lucide-react';
+import { Clock, AlertTriangle, X } from 'lucide-react';
+import { useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { deleteDealInline } from '../actions';
 import { cn } from '@/lib/utils';
 import { initials, formatRelative } from '@/lib/utils/format';
 import { formatDealValue, type DealWithRefs, type PipelineStage } from '@/lib/db/deals';
@@ -12,11 +16,30 @@ export function DealCard({
   deal,
   stages,
   dragging,
+  canDelete,
 }: {
   deal: DealWithRefs;
   stages: PipelineStage[];
   dragging?: boolean;
+  canDelete?: boolean;
 }) {
+  const [deletePending, startDelete] = useTransition();
+  const router = useRouter();
+
+  // Quick cleanup straight from the board - handy after demo/test deals
+  const removeDeal = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm(`Delete the deal "${deal.name}"?\n\nThe account and its history stay. This cannot be undone.`)) return;
+    startDelete(async () => {
+      try {
+        await deleteDealInline(deal.id);
+        router.refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Delete failed');
+      }
+    });
+  };
   const {
     attributes, listeners, setNodeRef, transform, transition, isDragging,
   } = useSortable({ id: deal.id });
@@ -36,7 +59,7 @@ export function DealCard({
       {...attributes}
       {...listeners}
       className={cn(
-        'card-lit border border-border/40 rounded-md p-3 mb-2 cursor-grab active:cursor-grabbing',
+        'card-lit group border border-border/40 rounded-md p-3 mb-2 cursor-grab active:cursor-grabbing',
         'hover:border-primary/40 transition-colors',
         dragging && 'shadow-2xl border-primary/60 glow-stripe-soft cursor-grabbing',
         stale && 'border-destructive/30'
@@ -51,9 +74,21 @@ export function DealCard({
           <div className="font-medium text-sm leading-tight line-clamp-2 min-w-0">
             {deal.name}
           </div>
-          {stale && (
-            <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />
-          )}
+          <div className="flex items-center gap-1 shrink-0">
+            {stale && <AlertTriangle className="h-3.5 w-3.5 text-destructive" />}
+            {canDelete && (
+              <button
+                type="button"
+                onPointerDown={e => e.stopPropagation()}
+                onClick={removeDeal}
+                disabled={deletePending}
+                title="Delete deal"
+                className="rounded p-0.5 text-muted-foreground/50 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 disabled:opacity-30"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </div>
 
         {deal.account && (

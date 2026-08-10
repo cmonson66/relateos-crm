@@ -4,6 +4,7 @@ import { getUser } from '@/lib/auth/get-user';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { DeleteDealButton } from '../_components/delete-deal-button';
 import { VerticalBadge } from '@/components/app/vertical-badge';
 import { Attribution } from '@/components/app/attribution';
 import { ActivityLogPanel } from '@/components/app/activity-log-panel';
@@ -88,6 +89,7 @@ export default async function DealDetailPage({
             <Link href={`/deals/${id}/edit`}>
               <Button variant="outline" size="sm">Edit</Button>
             </Link>
+            <DeleteDealButton dealId={id} dealName={deal.name} />
           </div>
         </div>
 

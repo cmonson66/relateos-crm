@@ -82,3 +82,15 @@ export async function deleteDeal(id: string) {
   revalidatePath('/deals');
   redirect('/deals');
 }
+
+
+// Same delete, without the redirect - used by the X on a kanban card so
+// the board just refreshes in place.
+export async function deleteDealInline(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from('deals').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+  await logAudit({ entityType: 'deal', entityId: id, action: 'deleted' });
+  revalidatePath('/deals');
+  return { ok: true };
+}

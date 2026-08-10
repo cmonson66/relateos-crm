@@ -16,9 +16,11 @@ import { formatDealValue, type DealWithRefs, type PipelineStage } from '@/lib/db
 export function PipelineKanban({
   initialDeals,
   stages,
+  canDelete,
 }: {
   initialDeals: DealWithRefs[];
   stages: PipelineStage[];
+  canDelete?: boolean;
 }) {
   const [deals, setDeals] = useState(initialDeals);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -116,6 +118,7 @@ export function PipelineKanban({
               count={totals.count}
               totalValue={formatDealValue(totals.value)}
               stages={stages}
+              canDelete={canDelete}
             />
           );
         })}

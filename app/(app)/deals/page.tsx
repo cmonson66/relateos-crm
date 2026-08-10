@@ -9,7 +9,8 @@ import { PipelineKanban } from './_components/pipeline-kanban';
 import { formatDealValue } from '@/lib/db/deals';
 
 export default async function DealsPage() {
-  await getUser();
+  const { profile } = await getUser();
+  const canDelete = profile.role === 'super_admin' || profile.role === 'admin';
   const supabase = await createClient();
 
   const [{ data: deals }, { data: stages }] = await Promise.all([
@@ -60,7 +61,7 @@ export default async function DealsPage() {
           }
         />
       ) : (
-        <PipelineKanban initialDeals={dealList} stages={stageList} />
+        <PipelineKanban initialDeals={dealList} stages={stageList} canDelete={canDelete} />
       )}
     </div>
   );

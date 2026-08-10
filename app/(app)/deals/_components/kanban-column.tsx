@@ -5,18 +5,20 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { DealCard } from './deal-card';
 import type { DealWithRefs, PipelineStage } from '@/lib/db/deals';
 
-export function KanbanColumn({
-  stage,
-  deals,
-  count,
-  totalValue,
+export function KanbanColumn({
+  stage,
+  deals,
+  count,
+  totalValue,
   stages,
-}: {
-  stage: PipelineStage;
-  deals: DealWithRefs[];
-  count: number;
-  totalValue: string;
+  canDelete,
+}: {
+  stage: PipelineStage;
+  deals: DealWithRefs[];
+  count: number;
+  totalValue: string;
   stages: PipelineStage[];
+  canDelete?: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.id });
   const stageColor = stage.color || '#94A3B8';
@@ -54,7 +56,7 @@ export function KanbanColumn({
               Drop deals here
             </div>
           ) : (
-            deals.map(d => <DealCard key={d.id} deal={d} stages={stages} />)
+            deals.map(d => <DealCard key={d.id} deal={d} stages={stages} canDelete={canDelete} />)
           )}
         </SortableContext>
       </div>
