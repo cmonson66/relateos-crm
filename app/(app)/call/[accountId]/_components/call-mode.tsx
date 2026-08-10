@@ -84,6 +84,13 @@ export function CallMode({ account, contact, intel, recent, script }: Props) {
             <span className={cn(CONTROL, 'border-emerald-500/50 bg-emerald-500/10 text-emerald-300')}>CRYPTO NATIVE</span>
           )}
           <Link
+            href={`/send/${account.id}${contact?.id ? `?contact=${contact.id}` : ''}`}
+            className="rounded-lg border border-border/40 px-3 py-2 text-xs font-bold hover:bg-sidebar-accent/50"
+            title="Send a message from a template"
+          >
+            ✉ Send
+          </Link>
+          <Link
             href={`/call/${account.id}/sheet`}
             className="rounded-lg border border-border/40 px-3 py-2 text-xs font-bold hover:bg-sidebar-accent/50"
             title="Printable walk-in sheet"
