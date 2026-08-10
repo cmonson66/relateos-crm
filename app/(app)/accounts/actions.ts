@@ -140,3 +140,56 @@ export async function bulkAssignAccounts(accountIds: string[], newOwnerId: strin
 
   return { accountsUpdated, contactsUpdated };
 }
+
+
+// ---------------------------------------------------------------------
+// Bulk delete. Admin-only, and deliberately unglamorous: dependent rows
+// go first so nothing dangles, and everything is chunked so a big
+// selection can't time out halfway and leave a mess.
+// ---------------------------------------------------------------------
+export async function bulkDeleteAccounts(accountIds: string[]) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Unauthorized');
+
+  const { data: me } = await supabase
+    .from('profiles').select('role, org_id').eq('id', user.id).single();
+  if (!me || (me.role !== 'super_admin' && me.role !== 'admin')) {
+    throw new Error('Only admins can bulk-delete');
+  }
+  if (accountIds.length === 0) return { accountsDeleted: 0, contactsDeleted: 0 };
+
+  const CHUNK = 200;
+  let accountsDeleted = 0;
+  let contactsDeleted = 0;
+
+  for (let i = 0; i < accountIds.length; i += CHUNK) {
+    const ids = accountIds.slice(i, i + CHUNK);
+
+    // Contacts on these accounts (needed for their activities + the count)
+    const { data: kids } = await supabase
+      .from('contacts').select('id').in('account_id', ids);
+    const contactIds = (kids ?? []).map(c => c.id);
+
+    if (contactIds.length > 0) {
+      await supabase.from('activities').delete().in('contact_id', contactIds);
+    }
+    await supabase.from('activities').delete().in('account_id', ids);
+    await supabase.from('deals').delete().in('account_id', ids);
+
+    const { count: cCount } = await supabase
+      .from('contacts').delete({ count: 'exact' }).in('account_id', ids);
+    contactsDeleted += cCount ?? 0;
+
+    const { count: aCount, error } = await supabase
+      .from('accounts').delete({ count: 'exact' }).eq('org_id', me.org_id).in('id', ids);
+    if (error) throw new Error(error.message);
+    accountsDeleted += aCount ?? 0;
+  }
+
+  await logAudit({ entityType: 'account', entityId: accountIds[0], action: 'deleted' });
+  revalidatePath('/accounts');
+  revalidatePath('/contacts');
+  revalidatePath('/map');
+  return { accountsDeleted, contactsDeleted };
+}

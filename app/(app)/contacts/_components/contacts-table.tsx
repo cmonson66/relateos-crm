@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useTransition } from 'react';
+import { bulkDeleteContacts } from '../actions';
 import Link from 'next/link';
 import { ChevronRight, MapPin, SlidersHorizontal, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -48,6 +49,13 @@ export function ContactsTable({
   const [lifecycle, setLifecycle] = useState<'any' | ContactLifecycle>('any');
   const [ownerId, setOwnerId] = useState<string>('any');
   const [tagQuery, setTagQuery] = useState('');
+  // Row selection (admins only) - the cleanup path when a rep imports
+  // a batch wrong and wants a do-over
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [allMatching, setAllMatching] = useState(false);
+  const [deleteMsg, setDeleteMsg] = useState<string | null>(null);
+  const [isDeleting, startDelete] = useTransition();
+  const canDelete = currentRole === 'super_admin' || currentRole === 'admin';
 
   const canFilterByOwner = currentRole === 'super_admin' || currentRole === 'admin' || currentRole === 'manager';
   const refineActiveCount = [
@@ -126,8 +134,44 @@ export function ContactsTable({
   // Render a window and expand on demand; reset when filters change.
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
+    setSelected(new Set());
+    setAllMatching(false);
   }, [chip, search, vertical, lifecycle, ownerId, tagQuery]);
   const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+
+  const selectedCount = allMatching ? filtered.length : selected.size;
+  const allVisibleSelected = visible.length > 0 && visible.every(c => allMatching || selected.has(c.id));
+  const toggleOne = (id: string) => {
+    setAllMatching(false);
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleVisible = () => {
+    if (allVisibleSelected) { setSelected(new Set()); setAllMatching(false); }
+    else setSelected(new Set(visible.map(c => c.id)));
+  };
+  const applyDelete = () => {
+    const ids = allMatching ? filtered.map(c => c.id) : [...selected];
+    if (ids.length === 0) return;
+    if (!confirm(
+      `Delete ${ids.length.toLocaleString()} contact${ids.length === 1 ? '' : 's'}?\n\n` +
+      `Their logged activities go too. This cannot be undone.`
+    )) return;
+    setDeleteMsg(null);
+    startDelete(async () => {
+      try {
+        const res = await bulkDeleteContacts(ids);
+        setDeleteMsg(`Deleted ${res.contactsDeleted.toLocaleString()} contacts`);
+        setSelected(new Set());
+        setAllMatching(false);
+      } catch (err) {
+        setDeleteMsg(err instanceof Error ? err.message : 'Delete failed');
+      }
+    });
+  };
 
   const chips: FilterChip[] = [
     { id: 'all', label: 'All', count: contacts.length },
@@ -278,7 +322,16 @@ export function ContactsTable({
 
       {/* DESKTOP TABLE */}
       <div className="hidden md:block card-lit border border-border/40 rounded-md overflow-hidden">
-        <div className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_0.6fr_64px] items-center gap-4 px-5 py-3 text-[10px] uppercase tracking-[0.15em] text-muted-foreground border-b border-border/40 bg-background/30">
+        <div className={`grid ${canDelete ? 'grid-cols-[28px_2fr_2fr_1fr_1fr_1fr_0.6fr_64px]' : 'grid-cols-[2fr_2fr_1fr_1fr_1fr_0.6fr_64px]'} items-center gap-4 px-5 py-3 text-[10px] uppercase tracking-[0.15em] text-muted-foreground border-b border-border/40 bg-background/30`}>
+          {canDelete && (
+            <input
+              type="checkbox"
+              checked={allVisibleSelected}
+              onChange={toggleVisible}
+              className="h-3.5 w-3.5 accent-primary cursor-pointer"
+              aria-label="Select visible contacts"
+            />
+          )}
           <div>Contact</div>
           <div>Account</div>
           <div>Stage</div>
@@ -289,8 +342,18 @@ export function ContactsTable({
         </div>
         {visible.map(c => (
           <Link key={c.id} href={`/contacts/${c.id}`}
-            className="grid grid-cols-[2fr_2fr_1fr_1fr_1fr_0.6fr_64px] items-center gap-4 px-5 py-4 border-b border-border/20 last:border-0 hover:bg-primary/5 transition-colors group min-h-[44px]"
+            className={`grid ${canDelete ? 'grid-cols-[28px_2fr_2fr_1fr_1fr_1fr_0.6fr_64px]' : 'grid-cols-[2fr_2fr_1fr_1fr_1fr_0.6fr_64px]'} items-center gap-4 px-5 py-4 border-b border-border/20 last:border-0 hover:bg-primary/5 transition-colors group min-h-[44px]`}
           >
+            {canDelete && (
+              <input
+                type="checkbox"
+                checked={allMatching || selected.has(c.id)}
+                onChange={() => toggleOne(c.id)}
+                onClick={e => { e.stopPropagation(); e.preventDefault(); toggleOne(c.id); }}
+                className="h-3.5 w-3.5 accent-primary cursor-pointer"
+                aria-label={`Select ${c.first_name}`}
+              />
+            )}
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-9 h-9 rounded-full bg-primary/15 text-primary text-xs font-medium flex items-center justify-center shrink-0">
                 {initials(`${c.first_name} ${c.last_name || ''}`, c.email || undefined)}
@@ -421,6 +484,47 @@ export function ContactsTable({
           </button>
         </div>
       )}
+
+      {canDelete && (selectedCount > 0 || deleteMsg) && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-xl">
+          <div className="card-lit border border-destructive/40 rounded-lg px-4 py-3 bg-background/95 backdrop-blur flex items-center gap-3 flex-wrap shadow-2xl">
+            {selectedCount > 0 ? (
+              <>
+                <span className="text-sm font-medium tabular-nums flex-1">
+                  {selectedCount.toLocaleString()} selected
+                  {!allMatching && filtered.length > visible.length && selected.size === visible.length && (
+                    <button type="button" onClick={() => setAllMatching(true)} className="ml-2 text-primary underline text-xs">
+                      select all {filtered.length.toLocaleString()} matching
+                    </button>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={applyDelete}
+                  className="text-[11px] uppercase tracking-[0.15em] px-4 py-2 rounded-md border border-destructive/50 text-destructive hover:bg-destructive/10 disabled:opacity-40 transition-colors shrink-0"
+                >
+                  {isDeleting ? 'Deleting…' : 'Delete'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setSelected(new Set()); setAllMatching(false); setDeleteMsg(null); }}
+                  className="text-[11px] uppercase tracking-[0.15em] px-3 py-2 rounded-md text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                >
+                  Clear
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="text-sm text-primary flex-1">{deleteMsg}</span>
+                <button type="button" onClick={() => setDeleteMsg(null)} className="text-[11px] uppercase tracking-[0.15em] px-3 py-2 text-muted-foreground hover:text-foreground">
+                  Dismiss
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -438,5 +542,6 @@ function ActivePill({ label, onClear }: { label: string; onClear: () => void }) 
         <X className="h-3 w-3" />
       </button>
     </span>
+
   );
 }

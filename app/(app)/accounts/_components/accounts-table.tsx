@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useTransition } from 'react';
 import Link from 'next/link';
 import { Check, ChevronRight } from 'lucide-react';
-import { bulkAssignAccounts } from '../actions';
+import { bulkAssignAccounts, bulkDeleteAccounts } from '../actions';
 import { FilterChips, type FilterChip } from '@/components/app/filter-chips';
 import { VerticalBadge } from '@/components/app/vertical-badge';
 import { Input } from '@/components/ui/input';
@@ -29,6 +29,9 @@ export function AccountsTable({
   // Band is its own dimension - it COMBINES with the category chips
   // (Hot + Med Spa, Warm + Pool/Landscape, etc.)
   const [bandFilter, setBandFilter] = useState<'HOT' | 'WARM' | 'COOL' | null>(null);
+  // Owner is a third dimension - combines with band and category
+  const [ownerFilter, setOwnerFilter] = useState<string | null>(null);
+  const [isDeleting, setDeleting] = useState(false);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('recent');
 
@@ -48,6 +51,11 @@ export function AccountsTable({
     let list = accounts;
     if (bandFilter) {
       list = list.filter(a => a.tags.includes(bandFilter));
+    }
+    if (ownerFilter) {
+      list = ownerFilter === 'unassigned'
+        ? list.filter(a => !a.owner_id)
+        : list.filter(a => a.owner_id === ownerFilter);
     }
     if (filter === 'mine') {
       list = list.filter(a => a.owner_id === currentUserId);
@@ -92,7 +100,7 @@ export function AccountsTable({
       list = [...list].sort((a, b) => a.name.localeCompare(b.name));
     }
     return list;
-  }, [accounts, filter, bandFilter, search, currentUserId, sort]);
+  }, [accounts, filter, bandFilter, ownerFilter, search, currentUserId, sort]);
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
@@ -124,6 +132,43 @@ export function AccountsTable({
     } else {
       setSelected(new Set(visible.map(a => a.id)));
     }
+  };
+
+  const ownerChips: FilterChip[] = canAssign
+    ? [
+        ...reps.map(r => ({
+          id: r.profile_id,
+          label: r.first_name,
+          count: accounts.filter(a => a.owner_id === r.profile_id).length,
+        })),
+        { id: 'unassigned', label: 'Unassigned', count: accounts.filter(a => !a.owner_id).length },
+      ]
+    : [];
+
+  const applyDelete = () => {
+    const ids = allMatching ? filtered.map(a => a.id) : [...selected];
+    if (ids.length === 0) return;
+    const who = ownerFilter
+      ? ` owned by ${ownerChips.find(o => o.id === ownerFilter)?.label ?? 'this rep'}`
+      : '';
+    if (!confirm(
+      `Delete ${ids.length.toLocaleString()} account${ids.length === 1 ? '' : 's'}${who}?\n\n` +
+      `Their contacts, activities and deals go too. This cannot be undone.`
+    )) return;
+    setAssignMsg(null);
+    setDeleting(true);
+    startAssign(async () => {
+      try {
+        const res = await bulkDeleteAccounts(ids);
+        setAssignMsg(`Deleted ${res.accountsDeleted.toLocaleString()} accounts (+${res.contactsDeleted.toLocaleString()} contacts)`);
+        setSelected(new Set());
+        setAllMatching(false);
+      } catch (err) {
+        setAssignMsg(err instanceof Error ? err.message : 'Delete failed');
+      } finally {
+        setDeleting(false);
+      }
+    });
   };
 
   const applyAssign = () => {
@@ -199,6 +244,13 @@ export function AccountsTable({
     <>
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4 mb-5">
         <div className="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
+          {canAssign && ownerChips.length > 0 && (
+            <FilterChips
+              chips={ownerChips}
+              activeId={ownerFilter ?? ''}
+              onChange={(id) => setOwnerFilter(cur => (cur === id ? null : id))}
+            />
+          )}
           <FilterChips
             chips={bandChips}
             activeId={bandFilter ?? ''}
@@ -452,6 +504,14 @@ export function AccountsTable({
                   className="text-[11px] uppercase tracking-[0.15em] px-4 py-2 rounded-md bg-primary text-primary-foreground disabled:opacity-40 transition-opacity shrink-0"
                 >
                   {isAssigning ? 'Assigning…' : 'Apply'}
+                </button>
+                <button
+                  type="button"
+                  disabled={isAssigning || isDeleting}
+                  onClick={applyDelete}
+                  className="text-[11px] uppercase tracking-[0.15em] px-3 py-2 rounded-md border border-destructive/50 text-destructive hover:bg-destructive/10 disabled:opacity-40 transition-colors shrink-0"
+                >
+                  {isDeleting ? 'Deleting…' : 'Delete'}
                 </button>
                 <button
                   type="button"
