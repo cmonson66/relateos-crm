@@ -22,7 +22,36 @@ export function WalkInSheet({
   const loss = vol * 0.03 * 12;
 
   return (
-    <div className="mx-auto max-w-3xl p-4 md:p-8">
+    <div className="mx-auto w-full max-w-3xl p-4 md:p-8">
+      {/* Printing inside the app shell clipped the right edge - isolate the
+          sheet, kill the chrome, and let it own the page. */}
+      <style>{`
+        @media print {
+          @page { size: letter portrait; margin: 0.5in; }
+          html, body {
+            background: #fff !important;
+            width: auto !important;
+            height: auto !important;
+            overflow: visible !important;
+          }
+          body * { visibility: hidden !important; }
+          #walkin-sheet, #walkin-sheet * { visibility: visible !important; }
+          #walkin-sheet {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: 0 !important;
+            box-shadow: none !important;
+            color: #000 !important;
+            background: #fff !important;
+          }
+          #walkin-sheet .avoid-break { break-inside: avoid; page-break-inside: avoid; }
+        }
+      `}</style>
       {/* screen-only controls */}
       <div className="mb-5 flex items-center justify-between print:hidden">
         <Link href={`/call/${account.id}`} className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground">
@@ -37,7 +66,7 @@ export function WalkInSheet({
       </div>
 
       {/* the sheet itself - forced to black-on-white for printing */}
-      <div className="rounded-md border border-border/40 bg-white p-8 text-black print:border-0 print:p-0">
+      <div id="walkin-sheet" className="w-full overflow-hidden rounded-md border border-border/40 bg-white p-6 text-black sm:p-8 print:border-0 print:p-0">
         <div className="mb-4 flex items-start justify-between border-b-2 border-black pb-3">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500">Walk-in sheet</div>
@@ -83,7 +112,7 @@ export function WalkInSheet({
         </Section>
 
         <Section n="4" title="THE MATH, OUT LOUD">
-          <table className="mb-2 w-full text-sm">
+          <table className="mb-2 w-full table-fixed text-sm">
             <tbody>
               <tr className="border-b border-neutral-300"><td className="py-1">Their card volume / month</td><td className="py-1 text-right font-bold">{money(vol)}</td></tr>
               <tr className="border-b border-neutral-300"><td className="py-1">Lost to card fees / year (~3%)</td><td className="py-1 text-right font-bold">-{money(loss)}</td></tr>
@@ -130,7 +159,7 @@ export function WalkInSheet({
 
 function Section({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
   return (
-    <div className="mb-3.5">
+    <div className="avoid-break mb-3.5">
       <div className="mb-1 flex items-center gap-2">
         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black text-[11px] font-bold text-white">{n}</span>
         <h2 className="text-[11px] font-extrabold uppercase tracking-[0.15em]">{title}</h2>
