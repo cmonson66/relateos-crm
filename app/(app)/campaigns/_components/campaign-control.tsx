@@ -34,10 +34,12 @@ type Run = {
 type PreviewItem = { placeId: string; stage: number; to: string; name: string; vertical: string; band: string; repFirst: string };
 
 export function CampaignControl({
-  settings, cap, day, queued, emailable, runs, people,
+  settings, cap, day, queued, emailable, runs, people, stageCounts, engagedCount,
 }: {
   settings: Settings; cap: number; day: number; queued: number; emailable: number; runs: Run[];
   people: { id: string; name: string }[];
+  stageCounts: number[];
+  engagedCount: number;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -242,6 +244,40 @@ export function CampaignControl({
           </div>
         </div>
       )}
+
+      <div className="card-lit relative mb-6 rounded-md border border-border/40 p-5">
+        <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-md bg-primary/50" />
+        <h2 className="mb-3 font-display text-lg tracking-wider">WHERE THE POOL STANDS</h2>
+        <div className="grid gap-1.5">
+          {stageCounts.map((n, i) => {
+            const max = Math.max(1, ...stageCounts);
+            return (
+              <div key={i} className="flex items-center gap-2.5 text-[12.5px]">
+                <span className="w-[104px] shrink-0 text-muted-foreground">
+                  {i === 0 ? 'Never emailed' : `Got email ${i}`}
+                </span>
+                <div className="h-4 flex-1 overflow-hidden rounded bg-background/60">
+                  <div
+                    className={i === 0 ? 'h-full bg-border' : 'h-full bg-primary/70'}
+                    style={{ width: `${Math.round((n / max) * 100)}%` }}
+                  />
+                </div>
+                <span className="w-14 text-right font-bold tabular-nums">{n.toLocaleString()}</span>
+              </div>
+            );
+          })}
+          <div className="mt-1.5 flex items-center gap-2.5 border-t border-dashed border-border/40 pt-2 text-[12.5px]">
+            <span className="w-[104px] shrink-0 text-emerald-400">Engaged / done</span>
+            <div className="h-4 flex-1 overflow-hidden rounded bg-background/60">
+              <div className="h-full bg-emerald-500" style={{ width: `${Math.min(100, Math.round((engagedCount / Math.max(1, ...stageCounts)) * 100))}%` }} />
+            </div>
+            <span className="w-14 text-right font-bold tabular-nums text-emerald-400">{engagedCount.toLocaleString()}</span>
+          </div>
+        </div>
+        <p className="mt-3 text-[11px] text-muted-foreground">
+          Engaged shops leave the sequence for good - they belong to a rep now.
+        </p>
+      </div>
 
       <div className="card-lit relative rounded-md border border-border/40 p-5">
         <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-md bg-primary/50" />

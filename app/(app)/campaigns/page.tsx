@@ -21,6 +21,22 @@ export default async function CampaignsPage() {
       .in('role', ['super_admin', 'admin', 'manager', 'rep']).order('full_name'),
   ]);
 
+  // Sequence progress across the whole pool: how many shops sit at each stage
+  const stageCounts: number[] = [];
+  for (let stg = 0; stg <= 6; stg++) {
+    const { count } = await supabase
+      .from('nectarpay_leads')
+      .select('place_id', { count: 'exact', head: true })
+      .eq('email_stage', stg)
+      .neq('emails', '{}')
+      .eq('compliance_hold', false);
+    stageCounts.push(count ?? 0);
+  }
+  const { count: engagedCount } = await supabase
+    .from('nectarpay_leads')
+    .select('place_id', { count: 'exact', head: true })
+    .not('status', 'in', '(NEW,EMAILED)');
+
   if (!settings) {
     return (
       <div className="p-8">
@@ -53,6 +69,8 @@ export default async function CampaignsPage() {
       day={campaignDay(s)}
       queued={queued ?? 0}
       emailable={emailable ?? 0}
+      stageCounts={stageCounts}
+      engagedCount={engagedCount ?? 0}
       runs={(runs ?? []).map(r => ({
         id: r.id, ran_at: r.ran_at, trigger: r.trigger,
         planned: r.planned, sent: r.sent, failed: r.failed,

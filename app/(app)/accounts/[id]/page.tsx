@@ -8,6 +8,7 @@ import { VerticalBadge } from '@/components/app/vertical-badge';
 import { Attribution } from '@/components/app/attribution';
 import { ActivityLogPanel } from '@/components/app/activity-log-panel';
 import { ActivityTimelineInner } from '@/components/app/activity-timeline-inner';
+import { CampaignPanel } from '../_components/campaign-panel';
 import { CommentsPanel } from '@/components/app/comments-panel';
 import { RecordTabs } from '@/components/app/record-tabs';
 import { formatRelative, initials } from '@/lib/utils/format';
@@ -36,7 +37,7 @@ export default async function AccountDetailPage({
       .from('accounts')
       .select('*, owner:profiles!accounts_owner_id_fkey(id, full_name, email), creator:profiles!accounts_created_by_fkey(id, full_name, email)')
       .eq('id', id).single(),
-    supabase.from('contacts').select('id, first_name, last_name, title, email, lifecycle_stage').eq('account_id', id).order('created_at', { ascending: false }),
+    supabase.from('contacts').select('id, first_name, last_name, title, email, lifecycle_stage, legacy_id').eq('account_id', id).order('created_at', { ascending: false }),
     supabase.from('deals_with_stage').select('id, name, value_cents, stage_name, stage_color').eq('account_id', id).order('value_cents', { ascending: false }),
     supabase.from('activities')
       .select('*, owner:profiles!activities_owner_id_fkey(id, full_name, email), assignee:profiles!activities_assigned_to_fkey(id, full_name, email)')
@@ -49,6 +50,25 @@ export default async function AccountDetailPage({
       .select('id, body, mentions, created_at, author:profiles!comments_author_id_fkey(id, full_name, email)')
       .eq('entity_type', 'account').eq('entity_id', id).order('created_at', { ascending: false }).limit(50),
   ]);
+  // Where this shop stands in the email sequence. get_call_intel (034/041)
+  // is a security-definer bridge, so reps see it without lead-table access.
+  const legacyId = (contacts ?? []).map(c => (c as { legacy_id?: string }).legacy_id).find(Boolean) ?? null;
+  let campaign: {
+    email_stage?: number; status?: string; band?: string; score?: number;
+    monthly_volume?: number | null; pulse_token?: string | null; emails?: number;
+  } | null = null;
+  let pulseUrl: string | null = null;
+  if (legacyId) {
+    const { data: intel } = await supabase.rpc('get_call_intel', { p_legacy_id: legacyId });
+    if (intel && Object.keys(intel).length > 0) {
+      campaign = intel;
+      if (campaign?.pulse_token) {
+        const { data: base } = await supabase.rpc('get_pulse_base');
+        if (base) pulseUrl = `${String(base).replace(/\/$/, '')}/s/${campaign.pulse_token}`;
+      }
+    }
+  }
+
 
   if (!account) notFound();
 
@@ -120,6 +140,8 @@ export default async function AccountDetailPage({
           </div>
         )}
       </div>
+
+      {campaign && <CampaignPanel intel={campaign} pulseUrl={pulseUrl} />}
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
