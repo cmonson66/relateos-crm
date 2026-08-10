@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { buildScript } from '@/lib/call-scripts';
+import { pickPerson, pickLeadContact } from '@/lib/pick-contact';
 import { KitView, type KitSheet } from '../_components/kit-view';
 
 export const dynamic = 'force-dynamic';
@@ -9,9 +10,9 @@ export const dynamic = 'force-dynamic';
 export default async function KitPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ids?: string }>;
+  searchParams: Promise<{ ids?: string; blank?: string }>;
 }) {
-  const { ids } = await searchParams;
+  const { ids, blank } = await searchParams;
   const accountIds = (ids ?? '').split(',').map(s => s.trim()).filter(Boolean);
 
   const supabase = await createClient();
@@ -36,13 +37,13 @@ export default async function KitPage({
       .maybeSingle();
     if (!account) continue;
 
-    const { data: contact } = await supabase
+    const { data: contacts } = await supabase
       .from('contacts')
       .select('first_name, title, phone, legacy_id')
       .eq('account_id', accountId)
-      .order('created_at', { ascending: true })
-      .limit(1)
-      .maybeSingle();
+      .order('created_at', { ascending: true });
+    const person = pickPerson(contacts ?? [], account.name);
+    const contact = pickLeadContact(contacts ?? []);
 
     let intel: { owner_first_name?: string | null; monthly_volume?: number | null; email_stage?: number; band?: string; pulse_token?: string | null } = {};
     let pulseUrl: string | null = null;
@@ -54,7 +55,7 @@ export default async function KitPage({
         if (base) pulseUrl = `${String(base).replace(/\/$/, '')}/s/${intel.pulse_token}`;
       }
     }
-    const owner = intel.owner_first_name ?? (contact && contact.title !== 'Business' ? contact.first_name : null);
+    const owner = person?.first_name ?? intel.owner_first_name ?? null;
 
     sheets.push({
       account: {
@@ -65,7 +66,7 @@ export default async function KitPage({
         cryptoNative: !!account.crypto_native,
       },
       owner,
-      phone: contact?.phone ?? null,
+      phone: person?.phone ?? contact?.phone ?? null,
       emailStage: intel.email_stage ?? 0,
       volume: intel.monthly_volume ?? null,
       pulseUrl,
@@ -78,5 +79,7 @@ export default async function KitPage({
     });
   }
 
-  return <KitView sheets={sheets} rep={rep} />;
+  // Blank kit: no shop chosen yet - the packet a rep carries for the place
+  // they decide to walk into on impulse
+  return <KitView sheets={sheets} rep={rep} blank={blank === '1'} />;
 }

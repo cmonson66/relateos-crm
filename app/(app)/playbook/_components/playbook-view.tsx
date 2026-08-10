@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition, useRef } from 'react';
 import Link from 'next/link';
-import { Printer, FileText, BookOpen, PackageCheck } from 'lucide-react';
+import { Printer, FileText, BookOpen, PackageCheck, ChevronLeft, Search, X, MapPin } from 'lucide-react';
 import { OnePager } from './one-pager';
+import { searchAccounts } from '@/app/(app)/appointments/actions';
 
 type Visit = { id: string; accountId: string | null; name: string; city: string; at: string; subject: string };
 
@@ -45,8 +46,32 @@ export function PlaybookView({
   visits?: Visit[];
   rep?: { first: string; cell: string; email: string };
 }) {
-  const [tab, setTab] = useState<'script' | 'onepager' | 'kit'>('script');
+  // Land on a menu, not inside the script
+  const [tab, setTab] = useState<'home' | 'script' | 'onepager' | 'kit'>('home');
   const [picked, setPicked] = useState<Set<string>>(new Set());
+  // Shops added by search rather than from the calendar - for the rep who
+  // just walked past a promising restaurant
+  const [extra, setExtra] = useState<{ id: string; name: string; city: string | null }[]>([]);
+  const [q, setQ] = useState('');
+  const [results, setResults] = useState<{ id: string; name: string; city: string | null }[]>([]);
+  const [searching, startSearch] = useTransition();
+  const seq = useRef(0);
+
+  const runSearch = (val: string) => {
+    setQ(val);
+    const mine = ++seq.current;
+    if (val.trim().length < 2) { setResults([]); return; }
+    startSearch(async () => {
+      const rows = await searchAccounts(val);
+      if (seq.current === mine) setResults(rows);
+    });
+  };
+
+  const addExtra = (a: { id: string; name: string; city: string | null }) => {
+    setExtra(prev => (prev.some(x => x.id === a.id) ? prev : [...prev, a]));
+    setPicked(prev => new Set(prev).add(a.id));
+    setQ(''); setResults([]);
+  };
 
   const toggle = (id: string) =>
     setPicked(prev => {
@@ -72,8 +97,22 @@ export function PlaybookView({
 
       <div className="mb-4 flex items-center justify-between print:hidden">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Field</div>
-          <h1 className="font-display text-3xl tracking-wider">THE <span className="text-primary">WALK-IN</span></h1>
+          {tab !== 'home' ? (
+            <button
+              onClick={() => setTab('home')}
+              className="mb-1 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" /> Playbook
+            </button>
+          ) : (
+            <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Field</div>
+          )}
+          <h1 className="font-display text-3xl tracking-wider">
+            {tab === 'home' ? <>THE <span className="text-primary">PLAYBOOK</span></>
+              : tab === 'onepager' ? <>THE <span className="text-primary">ONE-PAGER</span></>
+              : tab === 'kit' ? <>PRINT A <span className="text-primary">KIT</span></>
+              : <>THE <span className="text-primary">WALK-IN</span></>}
+          </h1>
         </div>
         {tab !== 'kit' && (
           <button
@@ -85,23 +124,25 @@ export function PlaybookView({
         )}
       </div>
 
-      <div className="mb-5 flex flex-wrap gap-2 print:hidden">
-        {([
-          ['script', 'Script', BookOpen],
-          ['onepager', 'One-pager', FileText],
-          ['kit', 'Print a kit', PackageCheck],
-        ] as const).map(([id, label, Icon]) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-bold tracking-wide transition-colors ${
-              tab === id ? 'border-primary bg-primary text-primary-foreground' : 'border-border/40 text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Icon className="h-3.5 w-3.5" /> {label}
-          </button>
-        ))}
-      </div>
+      {tab === 'home' && (
+        <div className="grid gap-3 sm:grid-cols-3 print:hidden">
+          {([
+            ['script', 'The script', 'Opener, hooks, the math, closes, and the six walls. Learn it once.', BookOpen],
+            ['onepager', 'The one-pager', 'Your leave-behind, with your name and cell on it.', FileText],
+            ['kit', 'Print a kit', 'A packet per shop: their sheet plus a one-pager to leave.', PackageCheck],
+          ] as const).map(([id, title, blurb, Icon]) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className="card-lit rounded-md border border-border/40 p-5 text-left transition-colors hover:border-primary/50"
+            >
+              <Icon className="mb-2.5 h-6 w-6 text-primary" />
+              <div className="font-display text-lg tracking-wider">{title.toUpperCase()}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{blurb}</div>
+            </button>
+          ))}
+        </div>
+      )}
 
       {tab === 'onepager' && (
         <div id="playbook"><OnePager rep={rep} /></div>
@@ -113,9 +154,64 @@ export function PlaybookView({
           <p className="mb-4 text-xs text-muted-foreground">
             Pick the shops you are visiting. Each one prints a walk-in sheet written for that shop, followed by a one-pager to leave behind.
           </p>
+          <div className="mb-4 rounded-lg border border-border/40 bg-background/40 p-3">
+            <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+              Any shop - no appointment needed
+            </div>
+            <div className="flex items-center gap-2 rounded-md border border-border/40 bg-background px-3">
+              <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <input
+                value={q}
+                onChange={e => runSearch(e.target.value)}
+                placeholder="Type a shop name - for the place you just drove past…"
+                className="w-full bg-transparent py-2 text-sm outline-none"
+              />
+            </div>
+            {q.trim().length >= 2 && (
+              <div className="mt-1.5 overflow-hidden rounded-md border border-border/40">
+                {results.map(r => (
+                  <button
+                    key={r.id}
+                    onClick={() => addExtra(r)}
+                    className="block w-full px-3 py-2 text-left text-sm hover:bg-sidebar-accent/60"
+                  >
+                    <span className="font-semibold">{r.name}</span>
+                    {r.city && <span className="ml-2 text-xs text-muted-foreground">{r.city}</span>}
+                  </button>
+                ))}
+                {results.length === 0 && !searching && (
+                  <div className="px-3 py-2 text-xs text-muted-foreground">No matches in your accounts.</div>
+                )}
+              </div>
+            )}
+            {extra.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {extra.map(a => (
+                  <span key={a.id} className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/50 bg-amber-500/10 px-2.5 py-1 text-[11.5px] font-bold text-amber-300">
+                    <MapPin className="h-3 w-3" /> {a.name}
+                    <button
+                      onClick={() => {
+                        setExtra(prev => prev.filter(x => x.id !== a.id));
+                        setPicked(prev => { const n = new Set(prev); n.delete(a.id); return n; });
+                      }}
+                      className="opacity-70 hover:opacity-100"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {visits.length > 0 && (
+            <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+              This week&apos;s visits
+            </div>
+          )}
           {visits.length === 0 && (
-            <div className="py-4 text-sm text-muted-foreground">
-              Nothing on the calendar this week yet. Book a visit and it shows up here.
+            <div className="py-2 text-xs text-muted-foreground">
+              Nothing on the calendar this week - search above for any shop instead.
             </div>
           )}
           {visits.map(v => (
@@ -137,14 +233,23 @@ export function PlaybookView({
               </span>
             </label>
           ))}
-          {picked.size > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {picked.size > 0 && (
+              <Link
+                href={kitHref}
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-extrabold text-primary-foreground"
+              >
+                <Printer className="h-4 w-4" /> Build kit — {picked.size} shop{picked.size === 1 ? '' : 's'} ({picked.size * 2} pages)
+              </Link>
+            )}
             <Link
-              href={kitHref}
-              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-extrabold text-primary-foreground"
+              href="/playbook/kit?blank=1"
+              className="inline-flex items-center gap-2 rounded-lg border border-border/40 px-4 py-2.5 text-sm font-bold text-muted-foreground hover:text-foreground"
+              title="Script and one-pagers with no shop attached"
             >
-              <Printer className="h-4 w-4" /> Build kit — {picked.size} shop{picked.size === 1 ? '' : 's'} ({picked.size * 2} pages)
+              <Printer className="h-4 w-4" /> Blank kit for cold walking
             </Link>
-          )}
+          </div>
         </div>
       )}
 

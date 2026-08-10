@@ -19,10 +19,13 @@ export type KitSheet = {
 export function KitView({
   sheets,
   rep,
+  blank = false,
 }: {
   sheets: KitSheet[];
   rep: { first: string; cell: string; email: string };
+  blank?: boolean;
 }) {
+  const blankCount = 3; // three one-pagers - enough for a morning of walk-ins
   return (
     <div className="mx-auto w-full max-w-3xl p-4 md:p-8">
       <style>{`
@@ -47,7 +50,9 @@ export function KitView({
           <ChevronLeft className="h-3.5 w-3.5" /> Playbook
         </Link>
         <div className="text-sm text-muted-foreground">
-          {sheets.length} shop{sheets.length === 1 ? '' : 's'} · {sheets.length * 2} pages
+          {blank
+            ? `Blank kit · ${blankCount} one-pagers`
+            : `${sheets.length} shop${sheets.length === 1 ? '' : 's'} · ${sheets.length * 2} pages`}
         </div>
         <button
           onClick={() => window.print()}
@@ -57,13 +62,18 @@ export function KitView({
         </button>
       </div>
 
-      {sheets.length === 0 && (
+      {sheets.length === 0 && !blank && (
         <div className="rounded-md border border-border/40 p-6 text-center text-sm text-muted-foreground">
           No shops selected. Pick your visits on the Playbook page.
         </div>
       )}
 
       <div id="kit" className="space-y-6">
+        {blank && Array.from({ length: blankCount }).map((_, i) => (
+          <div key={`blank-${i}`} className="kit-page">
+            <OnePager rep={rep} />
+          </div>
+        ))}
         {sheets.map(s => (
           <div key={s.account.id}>
             <div className="kit-page">
