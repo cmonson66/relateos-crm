@@ -59,6 +59,8 @@ export function AccountsTable({
     }
     if (filter === 'mine') {
       list = list.filter(a => a.owner_id === currentUserId);
+    } else if (filter === 'hold') {
+      list = list.filter(a => a.tags.includes('HOLD'));
     } else if (filter === 'crypto-native-flag') {
       list = list.filter(a => a.crypto_native);
     } else if (VERTICALS.some(v => v.value === filter)) {
@@ -222,6 +224,14 @@ export function AccountsTable({
       label: 'Crypto Native',
       count: bandBase.filter(a => a.crypto_native).length,
     },
+    // Compliance hold (042): visible so nobody works a held shop
+    ...(accounts.some(a => a.tags.includes('HOLD'))
+      ? [{
+          id: 'hold',
+          label: 'On hold',
+          count: bandBase.filter(a => a.tags.includes('HOLD')).length,
+        }]
+      : []),
     ...VERTICALS.map(v => ({
       id: v.value,
       label: v.label,
@@ -338,7 +348,14 @@ export function AccountsTable({
               </button>
             )}
             <div className="min-w-0">
-              <div className="font-medium truncate">{a.name}</div>
+              <div className="font-medium truncate flex items-center gap-1.5">
+                {a.name}
+                {a.tags.includes('HOLD') && (
+                  <span className="shrink-0 rounded border border-destructive/50 bg-destructive/10 px-1.5 py-0.5 text-[9px] font-extrabold tracking-wider text-destructive">
+                    HOLD
+                  </span>
+                )}
+              </div>
               {a.tags.length > 0 && (
                 <div className="text-xs text-muted-foreground/70 mt-0.5 truncate">
                   {a.tags.slice(0, 3).join(' · ')}

@@ -139,6 +139,7 @@ export async function buildPlan(
       .eq('email_stage', stage - 1)
       .lte('last_emailed_at', cutoff(gap))
       .neq('emails', '{}')
+      .eq('compliance_hold', false) // held verticals never send (042)
       .limit(cap);
     for (const l of (data ?? []) as LeadRow[]) {
       if (stage > stageCap(l)) continue;
@@ -150,10 +151,12 @@ export async function buildPlan(
   const [{ data: e1Named }, { data: e1Unnamed }] = await Promise.all([
     supabase.from('nectarpay_leads').select(SELECT)
       .eq('status', 'NEW').eq('email_stage', 0).neq('emails', '{}')
+      .eq('compliance_hold', false) // held verticals never send (042)
       .not('owner_first_name', 'is', null)
       .order('score', { ascending: false }).limit(cap * 2),
     supabase.from('nectarpay_leads').select(SELECT)
       .eq('status', 'NEW').eq('email_stage', 0).neq('emails', '{}')
+      .eq('compliance_hold', false)
       .is('owner_first_name', null)
       .order('score', { ascending: false }).limit(cap * 2),
   ]);
