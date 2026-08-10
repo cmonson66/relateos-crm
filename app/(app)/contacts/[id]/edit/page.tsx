@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { BackLink } from '@/components/app/back-link';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/app/page-header';
 import { ContactForm } from '../../_components/contact-form';
@@ -18,6 +19,8 @@ export default async function EditContactPage({
 
   return (
     <div className="p-8 max-w-3xl">
+      <BackLink fallbackHref="/contacts" fallbackLabel="All contacts" />
+
       <PageHeader kicker={`Editing · ${contact.first_name} ${contact.last_name || ''}`} title="Edit" highlight="Contact" />
       <ContactForm existing={contact} initialAccount={currentAccount} />
     </div>

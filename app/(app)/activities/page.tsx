@@ -1,4 +1,5 @@
 import { getUser } from '@/lib/auth/get-user';
+import { BackLink } from '@/components/app/back-link';
 import { createClient } from '@/lib/supabase/server';
 import { Activity as ActivityIcon } from 'lucide-react';
 import { PageHeader } from '@/components/app/page-header';
@@ -28,6 +29,8 @@ export default async function ActivitiesPage() {
 
   return (
     <div className="p-8 max-w-[1400px]">
+      <BackLink fallbackHref="/dashboard" fallbackLabel="Dashboard" />
+
       <PageHeader
         kicker="Activities · last 200"
         title="All"

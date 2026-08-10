@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { BackLink } from '@/components/app/back-link';
 import { getUser } from '@/lib/auth/get-user';
 import { notFound } from 'next/navigation';
 import { CampaignControl } from './_components/campaign-control';
@@ -33,6 +34,8 @@ export default async function CampaignsPage() {
   if (!settings) {
     return (
       <div className="p-8">
+      <BackLink fallbackHref="/dashboard" fallbackLabel="Dashboard" />
+
         <h1 className="font-display text-3xl tracking-wider">CAMPAIGN</h1>
         <p className="mt-3 text-sm text-muted-foreground">
           No campaign settings row yet — apply migration 038, then reload.

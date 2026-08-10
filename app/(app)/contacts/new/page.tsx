@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { BackLink } from '@/components/app/back-link';
 import { PageHeader } from '@/components/app/page-header';
 import { ContactForm } from '../_components/contact-form';
 
@@ -18,6 +19,8 @@ export default async function NewContactPage({
 
   return (
     <div className="p-8 max-w-3xl">
+      <BackLink fallbackHref="/contacts" fallbackLabel="All contacts" />
+
       <PageHeader kicker="New record" title="Add" highlight="Contact" />
       <ContactForm initialAccount={boundAccount} />
     </div>

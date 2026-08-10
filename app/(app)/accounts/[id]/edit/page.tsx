@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { BackLink } from '@/components/app/back-link';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/app/page-header';
 import { AccountForm } from '../../_components/account-form';
@@ -19,6 +20,8 @@ export default async function EditAccountPage({
 
   return (
     <div className="p-8 max-w-3xl">
+      <BackLink fallbackHref="/accounts" fallbackLabel="All accounts" />
+
       <PageHeader kicker={`Editing · ${account.name}`} title="Edit" highlight="Account" />
       <AccountForm existing={account} />
     </div>

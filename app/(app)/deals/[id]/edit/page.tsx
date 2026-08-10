@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { BackLink } from '@/components/app/back-link';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/app/page-header';
 import { DealForm } from '../../_components/deal-form';
@@ -29,6 +30,8 @@ export default async function EditDealPage({
 
   return (
     <div className="p-8 max-w-3xl">
+      <BackLink fallbackHref="/deals" fallbackLabel="All deals" />
+
       <PageHeader kicker={`Editing · ${deal.name}`} title="Edit" highlight="Deal" />
       <DealForm
         existing={deal}

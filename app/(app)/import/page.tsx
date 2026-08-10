@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { BackLink } from '@/components/app/back-link';
 import { getUser } from '@/lib/auth/get-user';
 import { PageHeader } from '@/components/app/page-header';
 import { ImportWizard } from './_components/import-wizard';
@@ -10,6 +11,8 @@ export default async function ImportPage() {
 
   return (
     <div className="p-8 max-w-5xl">
+      <BackLink fallbackHref="/dashboard" fallbackLabel="Dashboard" />
+
       <PageHeader
         kicker="Bulk operations"
         title="Import"

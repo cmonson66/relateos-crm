@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { BackLink } from '@/components/app/back-link';
 import { PageHeader } from '@/components/app/page-header';
 import { DealForm } from '../_components/deal-form';
 
@@ -32,6 +33,8 @@ export default async function NewDealPage({
 
   return (
     <div className="p-8 max-w-3xl">
+      <BackLink fallbackHref="/deals" fallbackLabel="All deals" />
+
       <PageHeader kicker="New record" title="Add" highlight="Deal" />
       <DealForm
         initialAccount={boundAccount}
