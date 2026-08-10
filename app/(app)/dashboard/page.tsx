@@ -3,9 +3,10 @@ import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import {
   Zap, Briefcase, DoorOpen, Mail, PartyPopper, CalendarDays,
-  AlertCircle, Plus, TrendingUp, FileText,
+  AlertCircle, Plus, TrendingUp, FileText, Timer,
 } from 'lucide-react';
 import { formatDealValue } from '@/lib/db/deals';
+import { phxToday, trialStatus, type TrialFields } from '@/lib/db/trials';
 import { formatRelative, APP_TIMEZONE } from '@/lib/utils/format';
 
 export const dynamic = 'force-dynamic';
@@ -45,6 +46,7 @@ export default async function DashboardPage() {
   const [
     { data: openDeals },
     { data: wonDeals },
+    { data: trialDeals },
     { data: todayItems },
     { data: weekActivities },
     { data: myAlerts },
@@ -60,6 +62,12 @@ export default async function DashboardPage() {
       .select('id, name, updated_at, stage_is_won')
       .eq('stage_is_won', true)
       .gte('updated_at', prevWeekStart.toISOString()),
+    // Terminals physically sitting in shops right now. RLS-scoped, so a
+    // rep sees their own and Chad sees every one that is out.
+    supabase.from('deals_with_stage')
+      .select('id, trial_start, trial_days, trial_end, trial_outcome')
+      .not('trial_start', 'is', null)
+      .is('trial_outcome', null),
     // ONE list for today: appointments, callbacks, installs AND tasks.
     // (The old dashboard ran two overlapping queries, so a task due today
     // appeared in both "My tasks" and "On your calendar today".)
@@ -93,6 +101,15 @@ export default async function DashboardPage() {
 
   const liveThisWeek = (wonDeals ?? []).filter(d => d.updated_at && inWeek(d.updated_at)).length;
   const livePrevWeek = (wonDeals ?? []).filter(d => d.updated_at && inPrevWeek(d.updated_at)).length;
+
+  // Trials: how many terminals are out, and how many need a decision this week
+  const phxNow = phxToday();
+  const trials = (trialDeals ?? []) as TrialFields[];
+  const trialsRunning = trials.length;
+  const trialsClosing = trials.filter(t => {
+    const s = trialStatus(t, phxNow);
+    return s && s.daysLeft <= 2;
+  }).length;
 
   const acts = (weekActivities ?? []) as { type: string; subject: string | null; created_at: string }[];
   const demosThisWeek = acts.filter(a => inWeek(a.created_at) && a.type === 'meeting' && (a.subject ?? '').startsWith('Demo')).length;
@@ -151,7 +168,7 @@ export default async function DashboardPage() {
 
       {/* ---------------- KPIs ---------------- */}
       <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-2">This week</div>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-7">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-7">
         <Kpi href="/deals" icon={PartyPopper} label="Terminals live" value={liveThisWeek.toString()}
              sub={delta(liveThisWeek, livePrevWeek)} tone="green" />
         <Kpi href="/calendar" icon={CalendarDays} label="Demos booked" value={demosThisWeek.toString()}
@@ -160,6 +177,9 @@ export default async function DashboardPage() {
              sub={`${callsThisWeek} calls · ${visitsThisWeek} visits · ${delta(doorsThisWeek, doorsPrevWeek)}`} tone="blue" />
         <Kpi href="/activities" icon={Mail} label="Touches logged" value={(emailsThisWeek + pulseThisWeek).toString()}
              sub={`${pulseThisWeek} Pulse events`} />
+        <Kpi href="/deals" icon={Timer} label="Trials running" value={trialsRunning.toString()}
+             sub={trialsClosing > 0 ? `${trialsClosing} need a decision` : 'terminals in shops'}
+             tone={trialsClosing > 0 ? 'gold' : undefined} />
         <Kpi href="/deals" icon={Briefcase} label="Open pipeline" value={formatDealValue(openPipeline)}
              sub={`${openCount} deals`} tone="gold" />
       </div>

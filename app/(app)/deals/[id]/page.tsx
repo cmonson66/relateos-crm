@@ -15,6 +15,8 @@ import { RecordTabs } from '@/components/app/record-tabs';
 import { formatRelative, formatDate, initials } from '@/lib/utils/format';
 import { formatDealValue } from '@/lib/db/deals';
 import { StageSelector } from '../_components/stage-selector';
+import { TrialPanel } from '../_components/trial-panel';
+import { phxToday } from '@/lib/db/trials';
 
 export default async function DealDetailPage({
   params,
@@ -113,6 +115,18 @@ export default async function DealDetailPage({
           </div>
         )}
       </div>
+
+      <TrialPanel
+        dealId={deal.id}
+        trial={{
+          trial_start: deal.trial_start ?? null,
+          trial_days: deal.trial_days ?? null,
+          trial_end: deal.trial_end ?? null,
+          terminal_serial: deal.terminal_serial ?? null,
+          trial_outcome: deal.trial_outcome ?? null,
+        }}
+        today={phxToday()}
+      />
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">

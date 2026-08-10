@@ -11,6 +11,7 @@ import { deleteDealInline } from '../actions';
 import { cn } from '@/lib/utils';
 import { initials, formatRelative } from '@/lib/utils/format';
 import { formatDealValue, type DealWithRefs, type PipelineStage } from '@/lib/db/deals';
+import { trialStatus } from '@/lib/db/trials';
 
 export function DealCard({
   deal,
@@ -51,6 +52,11 @@ export function DealCard({
   };
 
   const stale = deal.days_in_stage >= 14 && !deal.stage.is_won && !deal.stage.is_lost;
+
+  // A running trial is its own clock - a terminal is sitting in someone's
+  // shop, so the days-in-stage counter is the wrong thing to watch.
+  const trial = trialStatus(deal);
+  const showTrial = trial && !trial.finished;
 
   return (
     <div
@@ -97,10 +103,22 @@ export function DealCard({
           </div>
         )}
 
-        <div className="flex items-baseline justify-between mb-2.5">
+        <div className="flex items-baseline justify-between gap-2 mb-2.5">
           <div className="font-display text-xl tracking-wider text-primary text-glow-primary">
             {formatDealValue(deal.value_cents)}
           </div>
+          {showTrial && (
+            <span className={cn(
+              'rounded-full border px-2 py-0.5 text-[10px] font-bold tabular-nums shrink-0',
+              trial.tone === 'over'
+                ? 'border-destructive/50 bg-destructive/10 text-destructive'
+                : trial.tone === 'closing'
+                  ? 'border-amber-500/60 bg-amber-500/10 text-amber-300'
+                  : 'border-border/40 text-muted-foreground'
+            )}>
+              {trial.tone === 'over' ? 'Trial over' : trial.label}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/30">

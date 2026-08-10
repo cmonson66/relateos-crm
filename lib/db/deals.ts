@@ -27,6 +27,11 @@ export type Deal = {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  trial_start: string | null;
+  trial_days: number | null;
+  trial_end: string | null;
+  terminal_serial: string | null;
+  trial_outcome: string | null;
 };
 
 export type DealWithRefs = Deal & {
