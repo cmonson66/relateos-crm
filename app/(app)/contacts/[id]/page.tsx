@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { DeleteContactButton } from '../_components/delete-contact-button';
 import { getUser } from '@/lib/auth/get-user';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -120,6 +121,11 @@ export default async function ContactDetailPage({
                 <Button variant="outline" size="sm" className="font-display tracking-wider">📅 Appt</Button>
               </Link>
             )}
+            <DeleteContactButton
+              contactId={id}
+              name={[contact.first_name, contact.last_name].filter(Boolean).join(' ')}
+              accountId={contact.account_id}
+            />
             <Link href={`/deals/new?contact=${id}${contact.account_id ? `&account=${contact.account_id}` : ''}`}>
               <Button variant="outline" size="sm" className="font-display tracking-wider">+ Deal</Button>
             </Link>
