@@ -30,6 +30,10 @@ export type CampaignSettings = {
   followup_gap_days: Record<string, number>;
   send_delay_ms: number;
   last_run_at: string | null;
+  // Launch scoping: when set, ONLY leads assigned to this rep are emailed.
+  // Keeps the sequence and the CRM in sync - a rep should never get a
+  // reply about a shop that isn't in their book.
+  send_owner_id: string | null;
 };
 
 type LeadRow = TemplateLead & {
@@ -123,6 +127,20 @@ export async function buildPlan(
   const { data: engaged } = await supabase.from('engagement_events').select('pulse_token').neq('event', 'view');
   const engagedTokens = new Set((engaged ?? []).map((e) => e.pulse_token));
 
+  // Scope to one rep's book when configured
+  let scopeIds: string[] | null = null;
+  if (settings.send_owner_id) {
+    const { data: owned } = await supabase
+      .from('contacts')
+      .select('legacy_id')
+      .eq('owner_id', settings.send_owner_id)
+      .not('legacy_id', 'is', null);
+    scopeIds = (owned ?? []).map((c) => c.legacy_id as string);
+    if (scopeIds.length === 0) return { plan: [], repFor, cap };
+  }
+  const scopeSet = scopeIds ? new Set(scopeIds) : null;
+  const inScope = (l: { place_id: string }) => !scopeSet || scopeSet.has(l.place_id);
+
   const cutoff = (days: number) => new Date(Date.now() - days * 86400000).toISOString();
   const isNative = (l: LeadRow) => !!l.crypto_native || l.vertical === 'crypto-native';
   const stageCap = (l: LeadRow) => maxStageFor(isNative(l) ? 'native' : ((CLUSTER_MAP[l.vertical] ?? 'math') as Cluster));
@@ -140,8 +158,9 @@ export async function buildPlan(
       .lte('last_emailed_at', cutoff(gap))
       .neq('emails', '{}')
       .eq('compliance_hold', false) // held verticals never send (042)
-      .limit(cap);
+      .limit(scopeSet ? 2000 : cap);
     for (const l of (data ?? []) as LeadRow[]) {
+      if (!inScope(l)) continue;
       if (stage > stageCap(l)) continue;
       followups.push({ lead: l, stage });
     }
@@ -153,16 +172,17 @@ export async function buildPlan(
       .eq('status', 'NEW').eq('email_stage', 0).neq('emails', '{}')
       .eq('compliance_hold', false) // held verticals never send (042)
       .not('owner_first_name', 'is', null)
-      .order('score', { ascending: false }).limit(cap * 2),
+      .order('score', { ascending: false }).limit(scopeSet ? 4000 : cap * 2),
     supabase.from('nectarpay_leads').select(SELECT)
       .eq('status', 'NEW').eq('email_stage', 0).neq('emails', '{}')
       .eq('compliance_hold', false)
       .is('owner_first_name', null)
-      .order('score', { ascending: false }).limit(cap * 2),
+      .order('score', { ascending: false }).limit(scopeSet ? 4000 : cap * 2),
   ]);
 
   const jobs: { lead: LeadRow; stage: Stage }[] = [...followups];
   for (const l of [...((e1Named ?? []) as LeadRow[]), ...((e1Unnamed ?? []) as LeadRow[])]) {
+    if (!inScope(l)) continue;
     jobs.push({ lead: l, stage: 1 as Stage });
   }
 

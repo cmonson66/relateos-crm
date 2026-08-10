@@ -28,10 +28,13 @@ export async function saveCampaignSettings(input: {
   pulse_base_url?: string | null;
   campaign_start?: string;
   send_delay_ms?: number;
+  send_owner_id?: string | null;
 }) {
   const current = await adminSettings();
   const supabase = await createClient();
   const patch: Record<string, unknown> = { ...input, updated_at: new Date().toISOString() };
+  // Empty string from the dropdown means "no scoping"
+  if (input.send_owner_id === '') patch.send_owner_id = null;
   // An empty key field means "leave it alone", never "erase it"
   if (!input.resend_api_key) delete patch.resend_api_key;
   const { error } = await supabase.from('campaign_settings').update(patch).eq('org_id', current.org_id);

@@ -11,12 +11,14 @@ export default async function CampaignsPage() {
   if (!['super_admin', 'admin'].includes(profile.role)) notFound();
 
   const supabase = await createClient();
-  const [{ data: settings }, { data: runs }, { count: queued }, { count: emailable }] = await Promise.all([
+  const [{ data: settings }, { data: runs }, { count: queued }, { count: emailable }, { data: people }] = await Promise.all([
     supabase.from('campaign_settings').select('*').eq('org_id', profile.org_id).maybeSingle(),
     supabase.from('campaign_runs').select('*').order('ran_at', { ascending: false }).limit(10),
     supabase.from('nectarpay_leads').select('place_id', { count: 'exact', head: true })
       .eq('status', 'NEW').eq('email_stage', 0).neq('emails', '{}'),
     supabase.from('nectarpay_leads').select('place_id', { count: 'exact', head: true }).neq('emails', '{}'),
+    supabase.from('profiles').select('id, full_name, email').eq('is_active', true)
+      .in('role', ['super_admin', 'admin', 'manager', 'rep']).order('full_name'),
   ]);
 
   if (!settings) {
@@ -44,7 +46,9 @@ export default async function CampaignsPage() {
         campaign_start: s.campaign_start,
         send_delay_ms: s.send_delay_ms,
         last_run_at: s.last_run_at,
+        send_owner_id: s.send_owner_id ?? null,
       }}
+      people={(people ?? []).map(p => ({ id: p.id, name: p.full_name || p.email || 'Rep' }))}
       cap={todaysCap(s)}
       day={campaignDay(s)}
       queued={queued ?? 0}

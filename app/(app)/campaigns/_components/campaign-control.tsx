@@ -23,6 +23,7 @@ type Settings = {
   campaign_start: string;
   send_delay_ms: number;
   last_run_at: string | null;
+  send_owner_id: string | null;
 };
 
 type Run = {
@@ -33,9 +34,10 @@ type Run = {
 type PreviewItem = { placeId: string; stage: number; to: string; name: string; vertical: string; band: string; repFirst: string };
 
 export function CampaignControl({
-  settings, cap, day, queued, emailable, runs,
+  settings, cap, day, queued, emailable, runs, people,
 }: {
   settings: Settings; cap: number; day: number; queued: number; emailable: number; runs: Run[];
+  people: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -49,6 +51,7 @@ export function CampaignControl({
     pulse_base_url: settings.pulse_base_url ?? '',
     campaign_start: settings.campaign_start,
     send_delay_ms: settings.send_delay_ms,
+    send_owner_id: settings.send_owner_id ?? '',
   });
   const [preview, setPreview] = useState<PreviewItem[] | null>(null);
   const [showSettings, setShowSettings] = useState(!settings.hasKey);
@@ -184,6 +187,16 @@ export function CampaignControl({
             <Field label="Campaign start (drives the warm-up ramp)">
               <Input type="date" className="[color-scheme:dark]" value={form.campaign_start}
                 onChange={e => setForm({ ...form, campaign_start: e.target.value })} />
+            </Field>
+            <Field label="Send only to this rep's accounts (launch scoping)">
+              <select
+                value={form.send_owner_id}
+                onChange={e => setForm({ ...form, send_owner_id: e.target.value })}
+                className="w-full rounded-md border border-border/60 bg-background px-2.5 py-2 text-sm"
+              >
+                <option value="">Everyone (whole pool)</option>
+                {people.map(p => <option key={p.id} value={p.id}>{p.name} only</option>)}
+              </select>
             </Field>
             <Field label="Delay between sends (ms)">
               <Input type="number" value={form.send_delay_ms}
