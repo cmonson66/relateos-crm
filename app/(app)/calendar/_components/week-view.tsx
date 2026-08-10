@@ -105,7 +105,10 @@ export function CalendarView({
   const EventCard = ({ e, compact }: { e: CalEvent; compact?: boolean }) => (
     <div
       draggable={!e.done && view !== 'day'}
-      onDragStart={(ev) => ev.dataTransfer.setData('text/plain', e.id)}
+      onDragStart={(ev) => {
+        ev.dataTransfer.setData('text/plain', e.id);
+        ev.dataTransfer.effectAllowed = 'move';
+      }}
       className={cn(
         'group/evt relative mb-1 rounded-lg border transition-opacity hover:opacity-90',
         view !== 'day' && !e.done && 'cursor-grab active:cursor-grabbing',
@@ -115,6 +118,8 @@ export function CalendarView({
     >
       <Link
         href={e.accountId ? `/accounts/${e.accountId}` : '/calendar'}
+        draggable={false}
+        onDragStart={(ev) => ev.preventDefault()}
         onClick={(ev) => ev.stopPropagation()}
         className={cn(
           'block w-full text-left',
