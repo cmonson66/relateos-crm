@@ -11,31 +11,24 @@ export default async function CampaignsPage() {
   if (!['super_admin', 'admin'].includes(profile.role)) notFound();
 
   const supabase = await createClient();
-  const [{ data: settings }, { data: runs }, { count: queued }, { count: emailable }, { data: people }] = await Promise.all([
+  const [{ data: settings }, { data: runs }, { data: people }] = await Promise.all([
     supabase.from('campaign_settings').select('*').eq('org_id', profile.org_id).maybeSingle(),
     supabase.from('campaign_runs').select('*').order('ran_at', { ascending: false }).limit(10),
-    supabase.from('nectarpay_leads').select('place_id', { count: 'exact', head: true })
-      .eq('status', 'NEW').eq('email_stage', 0).neq('emails', '{}'),
-    supabase.from('nectarpay_leads').select('place_id', { count: 'exact', head: true }).neq('emails', '{}'),
     supabase.from('profiles').select('id, full_name, email').eq('is_active', true)
       .in('role', ['super_admin', 'admin', 'manager', 'rep']).order('full_name'),
   ]);
 
-  // Sequence progress across the whole pool: how many shops sit at each stage
-  const stageCounts: number[] = [];
-  for (let stg = 0; stg <= 6; stg++) {
-    const { count } = await supabase
-      .from('nectarpay_leads')
-      .select('place_id', { count: 'exact', head: true })
-      .eq('email_stage', stg)
-      .neq('emails', '{}')
-      .eq('compliance_hold', false);
-    stageCounts.push(count ?? 0);
-  }
-  const { count: engagedCount } = await supabase
-    .from('nectarpay_leads')
-    .select('place_id', { count: 'exact', head: true })
-    .not('status', 'in', '(NEW,EMAILED)');
+  // Counted through a security-definer bridge (044): nectarpay_leads RLS
+  // gives app users nothing, so direct counts here all came back 0
+  const { data: statsRaw } = await supabase.rpc('get_campaign_stats');
+  const stats = (statsRaw ?? {}) as {
+    stages?: Record<string, number>;
+    queued?: number; emailable?: number; engaged?: number; held?: number;
+  };
+  const stageCounts = Array.from({ length: 7 }, (_, i) => stats.stages?.[String(i)] ?? 0);
+  const engagedCount = stats.engaged ?? 0;
+  const queued = stats.queued ?? 0;
+  const emailable = stats.emailable ?? 0;
 
   if (!settings) {
     return (
@@ -67,8 +60,8 @@ export default async function CampaignsPage() {
       people={(people ?? []).map(p => ({ id: p.id, name: p.full_name || p.email || 'Rep' }))}
       cap={todaysCap(s)}
       day={campaignDay(s)}
-      queued={queued ?? 0}
-      emailable={emailable ?? 0}
+      queued={queued}
+      emailable={emailable}
       stageCounts={stageCounts}
       engagedCount={engagedCount ?? 0}
       runs={(runs ?? []).map(r => ({
