@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Calendar, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DeleteDealButton } from '../_components/delete-deal-button';
+import { BackLink } from '@/components/app/back-link';
 import { VerticalBadge } from '@/components/app/vertical-badge';
 import { Attribution } from '@/components/app/attribution';
 import { ActivityLogPanel } from '@/components/app/activity-log-panel';
@@ -59,9 +60,7 @@ export default async function DealDetailPage({
 
   return (
     <div className="p-4 md:p-8 max-w-6xl">
-      <Link href="/deals" className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground mb-5 transition-colors">
-        <ArrowLeft className="h-3.5 w-3.5" /> All deals
-      </Link>
+      <BackLink fallbackHref="/deals" fallbackLabel="All deals" />
 
       <div className="card-lit border border-border/40 rounded-md p-5 md:p-7 mb-6 relative">
         <div className="h-[3px] bg-primary glow-stripe rounded-t-md absolute inset-x-0 top-0" />

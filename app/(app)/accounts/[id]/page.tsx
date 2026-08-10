@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { SyncButton } from '../_components/sync-button';
+import { BackLink } from '@/components/app/back-link';
 import { getUser } from '@/lib/auth/get-user';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -74,9 +75,7 @@ export default async function AccountDetailPage({
 
   return (
     <div className="p-4 md:p-8 max-w-6xl">
-      <Link href="/accounts" className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground mb-5 transition-colors">
-        <ArrowLeft className="h-3.5 w-3.5" /> All accounts
-      </Link>
+      <BackLink fallbackHref="/accounts" fallbackLabel="All accounts" />
 
       <div className="card-lit border border-border/40 rounded-md p-5 md:p-7 mb-6 relative">
         <div className="h-[3px] bg-primary glow-stripe rounded-t-md absolute inset-x-0 top-0" />

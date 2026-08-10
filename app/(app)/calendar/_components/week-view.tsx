@@ -9,7 +9,7 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, X, CheckCircle2, Trash2, ExternalLink, Plus, Phone, FileText } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, CheckCircle2, Trash2, ExternalLink, Plus, Phone, FileText, Pencil } from 'lucide-react';
 import { DaySlotPicker } from '@/components/day-slot-picker';
 import { rescheduleActivity, markActivityDone, cancelActivity } from '../actions';
 
@@ -100,33 +100,51 @@ export function CalendarView({
 
   const href = (o: number) => `/calendar?v=${view}${o !== 0 ? `&o=${o}` : ''}`;
 
+  // Clicking an event goes to the SHOP - that is what people are after.
+  // Rescheduling is a deliberate second action on the pencil.
   const EventCard = ({ e, compact }: { e: CalEvent; compact?: boolean }) => (
-    <button
-      type="button"
+    <div
       draggable={!e.done && view !== 'day'}
       onDragStart={(ev) => ev.dataTransfer.setData('text/plain', e.id)}
-      onClick={(ev) => { ev.stopPropagation(); setEditing(e); }}
       className={cn(
-        'mb-1 block w-full rounded-lg border text-left transition-opacity hover:opacity-80',
+        'group/evt relative mb-1 rounded-lg border transition-opacity hover:opacity-90',
         view !== 'day' && !e.done && 'cursor-grab active:cursor-grabbing',
-        compact ? 'px-1.5 py-0.5 text-[10.5px]' : 'px-2.5 py-1.5 text-[12px]',
         evtClass(e),
-        e.done && 'opacity-45 line-through'
+        e.done && 'opacity-45'
       )}
     >
-      {compact ? (
-        <div className="truncate font-bold">{fmtT(e.at)} {e.accountName}</div>
-      ) : (
-        <>
-          <div className="text-[10.5px] font-extrabold opacity-85">
-            {fmtT(e.at)}
-            {anyForeign && e.owner && <span className="ml-1 opacity-70">· {e.owner}</span>}
-          </div>
-          <div className="truncate font-bold">{e.accountName}</div>
-          <div className="truncate text-[11px] opacity-75">{e.subject}{e.city ? ` · ${e.city}` : ''}</div>
-        </>
-      )}
-    </button>
+      <Link
+        href={e.accountId ? `/accounts/${e.accountId}` : '/calendar'}
+        onClick={(ev) => ev.stopPropagation()}
+        className={cn(
+          'block w-full text-left',
+          compact ? 'px-1.5 py-0.5 text-[10.5px]' : 'px-2.5 py-1.5 text-[12px]',
+          e.done && 'line-through'
+        )}
+      >
+        {compact ? (
+          <div className="truncate pr-4 font-bold">{fmtT(e.at)} {e.accountName}</div>
+        ) : (
+          <>
+            <div className="text-[10.5px] font-extrabold opacity-85">
+              {fmtT(e.at)}
+              {anyForeign && e.owner && <span className="ml-1 opacity-70">· {e.owner}</span>}
+            </div>
+            <div className="truncate pr-4 font-bold">{e.accountName}</div>
+            <div className="truncate text-[11px] opacity-75">{e.subject}{e.city ? ` · ${e.city}` : ''}</div>
+          </>
+        )}
+      </Link>
+      <button
+        type="button"
+        title="Reschedule, mark done, cancel"
+        onPointerDown={(ev) => ev.stopPropagation()}
+        onClick={(ev) => { ev.preventDefault(); ev.stopPropagation(); setEditing(e); }}
+        className="absolute right-1 top-1 rounded p-0.5 opacity-0 transition-opacity hover:bg-black/20 focus:opacity-100 group-hover/evt:opacity-100"
+      >
+        <Pencil className="h-3 w-3" />
+      </button>
+    </div>
   );
 
   return (
@@ -195,7 +213,13 @@ export function CalendarView({
                   </button>
                 </div>
               </div>
-              <div className={cn('mt-1 text-base font-bold', e.done && 'line-through')}>{e.accountName}</div>
+              {e.accountId ? (
+                <Link href={`/accounts/${e.accountId}`} className={cn('mt-1 block text-base font-bold underline-offset-2 hover:underline', e.done && 'line-through')}>
+                  {e.accountName}
+                </Link>
+              ) : (
+                <div className={cn('mt-1 text-base font-bold', e.done && 'line-through')}>{e.accountName}</div>
+              )}
               <div className="text-xs opacity-75">{e.subject}{e.city ? ` · ${e.city}` : ''}</div>
             </div>
           ))}
