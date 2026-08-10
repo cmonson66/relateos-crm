@@ -111,6 +111,11 @@ export default async function ContactDetailPage({
               </Link>
             )}
             {contact.account_id && (
+              <Link href={`/call/${contact.account_id}/sheet`}>
+                <Button variant="outline" size="sm" className="font-display tracking-wider" title="Printable walk-in sheet">📄 Sheet</Button>
+              </Link>
+            )}
+            {contact.account_id && (
               <Link href={`/appointments/new?account=${contact.account_id}`}>
                 <Button variant="outline" size="sm" className="font-display tracking-wider">📅 Appt</Button>
               </Link>

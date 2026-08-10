@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import {
   Zap, Briefcase, DoorOpen, Mail, PartyPopper, CalendarDays,
-  AlertCircle, Plus, TrendingUp,
+  AlertCircle, Plus, TrendingUp, FileText,
 } from 'lucide-react';
 import { formatDealValue } from '@/lib/db/deals';
 import { formatRelative, APP_TIMEZONE } from '@/lib/utils/format';
@@ -309,9 +309,10 @@ function Row({ item, overdue }: { item: ActivityRow; overdue?: boolean }) {
     : '';
 
   return (
+    <div className="-mx-2 flex items-center gap-1.5 border-b border-dashed border-border/25 px-2 last:border-0">
     <Link
       href={acct ? `/accounts/${acct.id}` : '/calendar'}
-      className="-mx-2 flex items-start gap-2.5 border-b border-dashed border-border/25 px-2 py-2.5 last:border-0 hover:bg-primary/5"
+      className="flex flex-1 items-start gap-2.5 py-2.5 hover:bg-primary/5"
     >
       <span className={`mt-0.5 shrink-0 rounded border px-1.5 py-0.5 text-[9.5px] font-extrabold tracking-wider ${tagClass}`}>
         {tag}
@@ -326,5 +327,15 @@ function Row({ item, overdue }: { item: ActivityRow; overdue?: boolean }) {
         {overdue ? `overdue ${formatRelative(item.scheduled_at!)}` : time}
       </span>
     </Link>
+    {acct && (
+      <Link
+        href={`/call/${acct.id}/sheet`}
+        title="Walk-in sheet"
+        className="shrink-0 rounded-md border border-border/40 p-1.5 text-muted-foreground hover:text-primary"
+      >
+        <FileText className="h-3.5 w-3.5" />
+      </Link>
+    )}
+    </div>
   );
 }

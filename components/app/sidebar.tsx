@@ -8,6 +8,7 @@ import {
   Map as MapIcon,
   CalendarDays,
   Megaphone,
+  BookOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Profile, UserRole } from '@/lib/auth/get-user';
@@ -26,6 +27,7 @@ const navItems: {
   { href: '/map',        label: 'Map',        icon: MapIcon,         roles: ['super_admin','admin','manager','rep'] },
   { href: '/calendar',   label: 'Calendar',   icon: CalendarDays,    roles: ['super_admin','admin','manager','rep'] },
   { href: '/campaigns',  label: 'Campaign',   icon: Megaphone,       roles: ['super_admin','admin'] },
+  { href: '/playbook',   label: 'Playbook',   icon: BookOpen,        roles: ['super_admin','admin','manager','rep'] },
   { href: '/activities', label: 'Activities', icon: Activity,        roles: ['super_admin','admin','manager','rep'] },
   { href: '/import',     label: 'Import',     icon: Upload,          roles: ['super_admin','admin'] },
   { href: '/admin',      label: 'Admin',      icon: Settings,        roles: ['super_admin','admin'] },
