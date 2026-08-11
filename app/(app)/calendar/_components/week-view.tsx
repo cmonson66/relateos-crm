@@ -140,14 +140,17 @@ export function CalendarView({
           </>
         )}
       </Link>
+      {/* A phone has no hover, so an opacity-0 hover-gated control is both
+          invisible and unreachable there. Always shown on touch, still
+          hover-revealed on desktop where it would otherwise be clutter. */}
       <button
         type="button"
         title="Reschedule, mark done, cancel"
         onPointerDown={(ev) => ev.stopPropagation()}
         onClick={(ev) => { ev.preventDefault(); ev.stopPropagation(); setEditing(e); }}
-        className="absolute right-1 top-1 rounded p-0.5 opacity-0 transition-opacity hover:bg-black/20 focus:opacity-100 group-hover/evt:opacity-100"
+        className="absolute right-0.5 top-0.5 rounded p-1.5 opacity-100 transition-opacity hover:bg-black/20 focus:opacity-100 md:p-0.5 md:opacity-0 md:group-hover/evt:opacity-100"
       >
-        <Pencil className="h-3 w-3" />
+        <Pencil className="h-3.5 w-3.5 md:h-3 md:w-3" />
       </button>
     </div>
   );
