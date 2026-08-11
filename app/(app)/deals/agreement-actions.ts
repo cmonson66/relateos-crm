@@ -148,7 +148,7 @@ Thanks for taking a terminal for a run. Your signed agreement is here, and it st
 
 ${copyUrl}
 
-The short version: the trial runs ${input.startDate} through ${end}, it costs nothing while it runs, and at the end you either continue at $499 plus $19 a month or hand the terminal back.
+The short version: the trial runs ${input.startDate} through ${end}, it costs nothing while it runs, and at the end you either continue at $499 for the terminal plus $19.99 a month for each handheld scanner, or hand the equipment back.
 
 Anything at all, call me.
 

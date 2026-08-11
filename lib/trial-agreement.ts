@@ -55,7 +55,7 @@ The Merchant agrees to keep the terminal powered and reasonably secure, not to o
 If the terminal is not returned at the end of the trial, or comes back damaged beyond normal use, the Merchant agrees to pay the $499 replacement cost.
 
 8. WHEN THE TRIAL ENDS
-The Merchant either continues on the standard terms ($499 for the terminal plus $19 per month, flat, with no percentage of sales) or returns the terminal within five business days.
+The Merchant either continues on the standard terms ($499 for the touchscreen terminal, plus $19.99 per month for each handheld scanner, flat, with no percentage of sales) or returns the terminal within five business days.
 
 9. NO ADVICE
 ${COMPANY.name} does not provide tax, legal, or investment advice. The value of cryptocurrency can change. The Merchant decides what to hold and what to convert.

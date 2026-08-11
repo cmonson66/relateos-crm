@@ -17,6 +17,7 @@ import { formatDealValue } from '@/lib/db/deals';
 import { StageSelector } from '../_components/stage-selector';
 import { TrialPanel } from '../_components/trial-panel';
 import { WelcomePanel } from '../_components/welcome-panel';
+import { DealItemsPanel } from '../_components/deal-items-panel';
 import { phxToday } from '@/lib/db/trials';
 
 export default async function DealDetailPage({
@@ -60,6 +61,44 @@ export default async function DealDetailPage({
   ]);
 
   if (!deal) notFound();
+
+  // Line items and the catalogue. Fetched after the deal so a missing deal
+  // short-circuits before two more round trips.
+  const [{ data: itemRows }, { data: productRows }] = await Promise.all([
+    supabase
+      .from('deal_items')
+      .select('id, product_id, qty, unit_price_cents, billing, serial_number, products(name, sku)')
+      .eq('deal_id', id)
+      .order('created_at'),
+    supabase
+      .from('products')
+      .select('id, sku, name, kind, unit_price_cents, billing')
+      .eq('active', true)
+      .order('unit_price_cents', { ascending: false }),
+  ]);
+
+  const dealItems = (itemRows ?? []).map((r) => {
+    const prod = r.products as unknown as { name?: string; sku?: string } | null;
+    return {
+      id: r.id as string,
+      product_id: r.product_id as string,
+      qty: r.qty as number,
+      unit_price_cents: r.unit_price_cents as number,
+      billing: r.billing as 'one_time' | 'monthly',
+      serial_number: (r.serial_number as string | null) ?? null,
+      product_name: prod?.name ?? 'Item',
+      sku: prod?.sku ?? '',
+    };
+  });
+
+  const products = (productRows ?? []).map((p) => ({
+    id: p.id as string,
+    sku: p.sku as string,
+    name: p.name as string,
+    kind: p.kind as string,
+    unit_price_cents: p.unit_price_cents as number,
+    billing: p.billing as 'one_time' | 'monthly',
+  }));
 
   return (
     <div className="p-4 md:p-8 max-w-6xl">
@@ -116,6 +155,8 @@ export default async function DealDetailPage({
           </div>
         )}
       </div>
+
+      <DealItemsPanel dealId={deal.id} items={dealItems} products={products} />
 
       <TrialPanel
         dealId={deal.id}

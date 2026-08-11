@@ -78,7 +78,7 @@ const SHARED_OBJECTIONS: Objection[] = [
   },
   {
     q: `"What's it cost?"`,
-    a: `"$499 once for the terminal, $19 a month flat. Never a percentage of your sales - that's the whole point. Year one all-in is about $727, which is less than what cards take from most shops every two months."`,
+    a: `"$499 once for the terminal, then $19.99 a month per handheld scanner. Never a percentage of your sales - that's the whole point. Year one all-in is about $739, which is less than what cards take from most shops every two months."`,
   },
   {
     q: `"Crypto crashes / it's fake money."`,
@@ -151,10 +151,10 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
         clusterLabel: 'Napkin-math story',
         hook: [
           `"On your ticket sizes, card processing is real money - roughly 3% comes off the top of every sale, and a delivered sale can still get reversed weeks later."`,
-          `"We put a small terminal by the register that takes crypto - zero processing fee, settles to your own wallet in seconds, can't be charged back. Flat $19 a month, never a percentage."`,
+          `"We put a small terminal by the register that takes crypto - zero processing fee, settles to your own wallet in seconds, can't be charged back. $499 for the terminal, then $19.99 a month for each handheld scanner - never a percentage."`,
         ],
         hookHint: `This cluster buys on arithmetic - get to Discovery fast and let the numbers pitch.`,
-        mathLine: `"So at {vol} a month, that's about {loss} a year going to the card networks. Our whole first year costs $727. That's the entire pitch - you can do that math without me."`,
+        mathLine: `"So at {vol} a month, that's about {loss} a year going to the card networks. Our whole first year costs $739. That's the entire pitch - you can do that math without me."`,
       };
     case 'crowd':
       return {
@@ -189,7 +189,7 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
           `"We're the third option: a real terminal - staff types the amount, customer scans, ten seconds - zero processing fee, settlement straight to a wallet you control, instantly. Processor-grade checkout, DIY-grade economics."`,
         ],
         hookHint: `NEVER pitch "have you considered crypto" - open with respect, then the third option.`,
-        mathLine: `"If you're on a processor rail today, run the comparison: their cut on {vol} a month against our flat $19. If you're on a bare QR, you're already at zero - so the pitch is the terminal experience and the directory listing, not the fee."`,
+        mathLine: `"If you're on a processor rail today, run the comparison: their cut on {vol} a month against our flat $19.99 per scanner. If you're on a bare QR, you're already at zero - so the pitch is the terminal experience and the directory listing, not the fee."`,
         discovery: [
           { q: `"What are you running today - BitPay-style processor, or your own wallet QR?"`, placeholder: 'BitPay / QR / other' },
           { q: `"Roughly how much crypto volume a month?"`, placeholder: '$2,000' },

@@ -202,9 +202,9 @@ export function CallMode({ account, contact, intel, recent, script }: Props) {
                   </div>
                   <div className="rounded-xl border border-border/40 bg-background/40 p-4 text-sm">
                     <Row k="Lost to card fees / yr (~3%)" v={'-' + money(lossYr)} vClass="text-red-400 font-bold" />
-                    <Row k="NectarPay year one, all in" v="$727" />
-                    <Row k="Every year after" v="$228" />
-                    <Row k="Stays in the shop, year one" v={'+' + money(Math.max(0, lossYr - 727))} vClass="text-emerald-400 font-extrabold" last />
+                    <Row k="NectarPay year one, all in" v="$739" />
+                    <Row k="Every year after" v="$240" />
+                    <Row k="Stays in the shop, year one" v={'+' + money(Math.max(0, lossYr - 739))} vClass="text-emerald-400 font-extrabold" last />
                   </div>
                 </div>
                 <Say text={script.mathLine.replace('{vol}', words(vol)).replace('{loss}', money(lossYr))} />

@@ -70,8 +70,8 @@ export function SheetBody({
           <tbody>
             <tr className="border-b border-neutral-300"><td className="py-1">Their card volume / month</td><td className="py-1 text-right font-bold">{money(vol)}</td></tr>
             <tr className="border-b border-neutral-300"><td className="py-1">Lost to card fees / year (~3%)</td><td className="py-1 text-right font-bold">-{money(loss)}</td></tr>
-            <tr className="border-b border-neutral-300"><td className="py-1">NectarPay year one, all in</td><td className="py-1 text-right">$727</td></tr>
-            <tr><td className="py-1 font-bold">Stays in the shop, year one</td><td className="py-1 text-right font-extrabold">+{money(Math.max(0, loss - 727))}</td></tr>
+            <tr className="border-b border-neutral-300"><td className="py-1">NectarPay year one, all in</td><td className="py-1 text-right">$739</td></tr>
+            <tr><td className="py-1 font-bold">Stays in the shop, year one</td><td className="py-1 text-right font-extrabold">+{money(Math.max(0, loss - 739))}</td></tr>
           </tbody>
         </table>
         <Say>{script.mathLine.replace('{vol}', money(vol) + ' a month').replace('{loss}', money(loss))}</Say>
@@ -102,7 +102,7 @@ export function SheetBody({
         {pulseUrl && <span className="font-mono">{pulseUrl}</span>}
       </div>
       <div className="mt-1 text-[10px] text-neutral-500">
-        $499 terminal · $19/mo flat · zero processing fee · non-custodial · no chargebacks
+        $499 terminal · $19.99/mo per scanner · zero processing fee · non-custodial · no chargebacks
       </div>
     </div>
   );

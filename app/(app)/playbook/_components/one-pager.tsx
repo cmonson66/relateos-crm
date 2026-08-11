@@ -62,8 +62,8 @@ export function OnePager({ rep }: { rep: { first: string; cell: string; email: s
           <table className="w-full text-xs">
             <tbody>
               <tr className="border-b border-dashed border-neutral-300"><td className="py-1">Lost to card fees / year (~3%)</td><td className="py-1 text-right font-bold text-red-700">-$3,600</td></tr>
-              <tr className="border-b border-dashed border-neutral-300"><td className="py-1">NectarPay year one, all in</td><td className="py-1 text-right">$727</td></tr>
-              <tr className="border-b border-dashed border-neutral-300"><td className="py-1">Every year after</td><td className="py-1 text-right">$228</td></tr>
+              <tr className="border-b border-dashed border-neutral-300"><td className="py-1">NectarPay year one, all in</td><td className="py-1 text-right">$739</td></tr>
+              <tr className="border-b border-dashed border-neutral-300"><td className="py-1">Every year after</td><td className="py-1 text-right">$240</td></tr>
               <tr><td className="py-1 font-bold">Stays in the shop, year one</td><td className="py-1 text-right font-extrabold text-green-700">+$2,873</td></tr>
             </tbody>
           </table>
@@ -75,12 +75,12 @@ export function OnePager({ rep }: { rep: { first: string; cell: string; email: s
               <div className="text-[10px]">terminal, one-time</div>
             </div>
             <div>
-              <div className="text-2xl font-extrabold text-amber-400">$19</div>
-              <div className="text-[10px]">/month, flat</div>
+              <div className="text-2xl font-extrabold text-amber-400">$19.99</div>
+              <div className="text-[10px]">/month, per scanner</div>
             </div>
           </div>
           <div className="mt-2 border-t border-neutral-700 pt-2 text-xs">
-            Year one, all in: <b>~$727</b> · then ~$228/year
+            Year one, all in: <b>~$739</b> · then ~$240/year
           </div>
           <div className="mt-1.5 text-[11px] font-bold text-amber-400">
             No percentage of your sales. Ever.

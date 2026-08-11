@@ -34,7 +34,7 @@ const WALLS: { q: string; a: string }[] = [
   { q: '"My customers pay with cards."', a: 'Nothing changes about your card setup. Same reader, same flow. This adds a lane nobody can freeze.' },
   { q: '"I don\'t understand crypto."', a: 'You don\'t need to. Staff types the amount, customer scans, ten seconds, money is in your wallet.' },
   { q: '"Is this legal? Is it taxed?"', a: 'Completely legal - a payment method like cash or card. Recorded on the terminal, revenue like any other.' },
-  { q: '"What does it cost?"', a: '$499 once, $19 a month flat. Never a percentage. Year one about $727.' },
+  { q: '"What does it cost?"', a: '$499 once for the terminal, then $19.99 a month for each handheld scanner. Never a percentage. Year one about $739.' },
   { q: '"Crypto crashes."', a: 'Settles to a stablecoin if you want - a dollar in is a dollar out. You are not betting on anything.' },
   { q: '"I need to think about it."', a: 'Fair. Let me text you the one-pager so you are thinking about real numbers - and I am back through here [day].' },
 ];
@@ -296,8 +296,8 @@ export function PlaybookView({
           <table className="mb-2 w-full table-fixed text-sm">
             <tbody>
               <tr className="border-b border-neutral-300"><td className="py-1">Lost to card fees / year (~3% of $10K/mo)</td><td className="py-1 text-right font-bold">-$3,600</td></tr>
-              <tr className="border-b border-neutral-300"><td className="py-1">NectarPay year one, all in</td><td className="py-1 text-right">$727</td></tr>
-              <tr className="border-b border-neutral-300"><td className="py-1">Every year after</td><td className="py-1 text-right">$228</td></tr>
+              <tr className="border-b border-neutral-300"><td className="py-1">NectarPay year one, all in</td><td className="py-1 text-right">$739</td></tr>
+              <tr className="border-b border-neutral-300"><td className="py-1">Every year after</td><td className="py-1 text-right">$240</td></tr>
               <tr><td className="py-1 font-bold">Stays in the shop, year one</td><td className="py-1 text-right font-extrabold">+$2,873</td></tr>
             </tbody>
           </table>
@@ -325,7 +325,7 @@ export function PlaybookView({
         </div>
 
         <div className="mt-4 border-t border-neutral-300 pt-2 text-xs">
-          <span className="font-bold">PRICING, MEMORIZED:</span> $499 terminal · $19/mo flat · zero processing
+          <span className="font-bold">PRICING, MEMORIZED:</span> $499 terminal · $19.99/mo per scanner · zero processing
           fee · non-custodial · no chargebacks
         </div>
         <div className="mt-1 text-[11px] italic text-neutral-500">
