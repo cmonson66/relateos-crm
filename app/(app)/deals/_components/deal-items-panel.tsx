@@ -32,7 +32,7 @@ const money = (cents: number) =>
 
 /**
  * What is actually on this deal. A shop buys one touchscreen terminal and
- * subscribes one or several handheld scanners, so a single value_cents could
+ * takes a membership, and support tiers differ, so a single value_cents could
  * never describe it - and neither could an agreement built from one.
  */
 export function DealItemsPanel({

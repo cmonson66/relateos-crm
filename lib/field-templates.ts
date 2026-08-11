@@ -100,7 +100,7 @@ The short version: NectarPay is a small terminal that sits by the register and l
 
 Thanks for the few minutes today. I know you did not plan on a sales conversation while you were working.
 
-I am not going to chase you on this. I will say the one thing worth remembering: there is no percentage taken out of a crypto sale, and the money is in your wallet before the customer walks out. That is it. The terminal is $499 once, and each handheld scanner is $19.99 a month. No percentage of your sales, ever.
+I am not going to chase you on this. I will say the one thing worth remembering: there is no percentage taken out of a crypto sale, and the money is in your wallet before the customer walks out. That is it. The terminal is $499 once, and the membership is $19 a month billed annually. No percentage of your sales, ever.
 
 {{#pulse}}Everything we talked about is on this page, including the math on your own volume: {{pulseUrl}}
 
@@ -151,7 +151,7 @@ Here is what you asked for, kept short.
 
 What it is: a terminal by the register that lets a customer pay you in crypto. You type the amount, they scan a code, the money is in a wallet you control in seconds. Nobody sits in the middle of it.
 
-What it costs: $499 for the touchscreen terminal, once. Then $19.99 a month for each handheld scanner. No percentage of your sales, ever.
+What it costs: $499 for the terminal, once. Then $19 a month for the membership, paid up front for the year. No percentage of your sales, ever.
 
 What it saves: nothing is taken out of a crypto sale. A shop running $10,000 a month through cards at about 3 percent is paying roughly $3,600 a year to do it. Card processing still applies to card sales, so the real number depends on how much moves over, but every dollar that does move over arrives whole.
 
@@ -164,7 +164,7 @@ What it does not do: it does not replace your card system, and it is not somethi
 {{rep}}
 {{repCell}}
 {{repEmail}}`,
-    text: `{{#owner}}{{owner}}, {{/owner}}as promised. NectarPay: a terminal that takes crypto with zero percentage fee, money in your own wallet in seconds, works alongside your card system. $499 once, $19.99/mo per scanner.{{#pulse}} Full rundown with your numbers: {{pulseUrl}}{{/pulse}} - {{rep}}`,
+    text: `{{#owner}}{{owner}}, {{/owner}}as promised. NectarPay: a terminal that takes crypto with zero percentage fee, money in your own wallet in seconds, works alongside your card system. $499 once, $19/mo membership.{{#pulse}} Full rundown with your numbers: {{pulseUrl}}{{/pulse}} - {{rep}}`,
   },
   {
     id: "already-with-processor",
@@ -227,7 +227,7 @@ Thanks for letting me run that in the middle of your day.
 
 You saw the whole thing: amount in, customer scans, money in the wallet. No percentage came out of it and there is no way for it to be reversed three weeks from now.
 
-Where that leaves you: $499 for the terminal, then $19.99 a month per handheld scanner. I can have you set up and taking your first real payment in an afternoon, and I will train whoever works the register so it is not just you who knows how.
+Where that leaves you: $499 for the terminal, then $19 a month for the membership. I can have you set up and taking your first real payment in an afternoon, and I will train whoever works the register so it is not just you who knows how.
 
 {{#pulse}}Your page is here if you want to run the numbers again on your own time: {{pulseUrl}}
 
@@ -235,7 +235,7 @@ Where that leaves you: $499 for the terminal, then $19.99 a month per handheld s
 
 {{rep}}
 {{repCell}}`,
-    text: `{{#owner}}{{owner}}, {{/owner}}thanks for the time today and for letting me run that live. $499 for the terminal and $19.99/mo per scanner, and I can have you taking real payments in an afternoon. Anything you would want to be sure of before you say yes?{{#pulse}} Your numbers: {{pulseUrl}}{{/pulse}} - {{rep}}`,
+    text: `{{#owner}}{{owner}}, {{/owner}}thanks for the time today and for letting me run that live. $499 for the terminal and $19/mo for the membership, and I can have you taking real payments in an afternoon. Anything you would want to be sure of before you say yes?{{#pulse}} Your numbers: {{pulseUrl}}{{/pulse}} - {{rep}}`,
   },
 
   /* ------------------------------------------------------------------ *
@@ -251,7 +251,7 @@ Where that leaves you: $499 for the terminal, then $19.99 a month per handheld s
 
 You told me the timing was not right, so I am not going to pretend this is anything other than me checking back like I said I would.
 
-Nothing has changed on my end. $499 for the terminal, $19.99 a month per scanner, no percentage of your sales. It still sits alongside your card system rather than replacing it.
+Nothing has changed on my end. $499 for the terminal, $19 a month for the membership, no percentage of your sales. It still sits alongside your card system rather than replacing it.
 
 If the timing is better now, I need about two minutes and a slow hour. If it is not, tell me when to check back and I will put it on my calendar and leave you alone until then.
 
@@ -272,7 +272,7 @@ We talked a while back about NectarPay and then life happened on both ends.
 
 One thing has changed worth mentioning: CryptoPop is coming, a directory and deals map that points nearby crypto customers toward the shops that take it. Merchants who are already set up get listed. That turns the terminal from something that saves you fees into something that can also bring somebody through the door.
 
-The rest is the same. $499 once, $19.99 a month per scanner, no percentage, money straight to a wallet you own, no chargebacks.
+The rest is the same. $499 once, $19 a month, no percentage, money straight to a wallet you own, no chargebacks.
 
 {{#pulse}}Your page is still here: {{pulseUrl}}
 

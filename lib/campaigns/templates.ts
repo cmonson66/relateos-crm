@@ -113,7 +113,7 @@ const E1: Record<Cluster, (l: TemplateLead) => { subject: string; paras: string[
     subject: `What did cards cost ${l.name} last month?`,
     paras: [
       `On your ticket sizes, card processing is real money - roughly 3% comes off the top of every sale, and a delivered sale can still get reversed weeks later.`,
-      `I work with NectarPay here in the Valley: a terminal by the register that takes crypto payments with zero processing fee, settles to your own wallet in seconds, and can't be charged back. $499 for the terminal, then $19.99/month for each handheld scanner - never a percentage of your sales.`,
+      `I work with NectarPay here in the Valley: a terminal by the register that takes crypto payments with zero processing fee, settles to your own wallet in seconds, and can't be charged back. $499 for the terminal, then $19/month for the membership - never a percentage of your sales.`,
       `I put your shop's numbers on a page - slide your monthly volume and watch what stays in the business.`,
     ],
   }),
@@ -142,7 +142,7 @@ const E1: Record<Cluster, (l: TemplateLead) => { subject: string; paras: string[
     paras: [
       `Most shops in ${l.city} are still deciding whether crypto is real. You already take it - which tells me you did the homework years before your neighbors.`,
       `Here's what I keep seeing at shops that already take it, though: either a BitPay-style processor skimming 1-2% plus a quarter per transaction and settling to the bank in a day or two - card-fee economics on crypto rails - or a bare wallet QR taped by the register that's actually free, but clunky enough that the staff steer people away from it.`,
-      `NectarPay is the third option: a real terminal - staff type the amount, customer scans, ten seconds - with zero processing fee and settlement straight to a wallet you control, instantly. Processor-grade checkout, DIY-grade economics. $499 once, $19.99 a month, flat - never a percentage.`,
+      `NectarPay is the third option: a real terminal - staff type the amount, customer scans, ten seconds - with zero processing fee and settlement straight to a wallet you control, instantly. Processor-grade checkout, DIY-grade economics. $499 once, $19 a month, flat - never a percentage.`,
       `It sits beside whatever you run today - worth ten minutes comparing it against your current rail.`,
     ],
   }),
@@ -232,10 +232,10 @@ export function renderEmail(
     const table =
       `<table style="border-collapse:collapse;margin:10px 0 4px;font-size:14px">` +
       `<tr><td style="padding:4px 14px 4px 0">Lost to card fees / year (~3%)</td><td style="color:#C8442C;font-weight:700">&minus;$3,600</td></tr>` +
-      `<tr><td style="padding:4px 14px 4px 0">NectarPay, year one - all in</td><td style="font-weight:700">$739</td></tr>` +
-      `<tr><td style="padding:4px 14px 4px 0">Every year after</td><td style="font-weight:700">$240</td></tr>` +
+      `<tr><td style="padding:4px 14px 4px 0">NectarPay, year one - all in</td><td style="font-weight:700">$727</td></tr>` +
+      `<tr><td style="padding:4px 14px 4px 0">Every year after</td><td style="font-weight:700">$228</td></tr>` +
       `</table>`;
-    const tableText = `  Lost to card fees / year (~3%):  -$3,600\n  NectarPay, year one all-in:      $739\n  Every year after:                $240`;
+    const tableText = `  Lost to card fees / year (~3%):  -$3,600\n  NectarPay, year one all-in:      $727\n  Every year after:                $228`;
     const html = wrapHtml(
       `<p>${esc(g)}</p>` +
         `<p>${esc(E2_INTRO[cluster])}</p>` +

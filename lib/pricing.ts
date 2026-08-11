@@ -1,37 +1,48 @@
-// NectarPay pricing, in one place.
+// NectarPay pricing, in one place, matching the published /price page.
 //
-// The August 2026 correction: the $19.99 is NOT a flat platform fee. It is a
-// per-device subscription on the handheld scanner, and a shop can run several.
-// The $499 buys the touchscreen terminal that sits by the register, once.
+// The terminal is a one-time hardware purchase and includes the receipt
+// printer and the rugged handheld. The membership is the SERVICE, one per
+// merchant - it is not a per-device charge.
 //
-// Every quoted total below assumes ONE scanner, which is the common case and
-// the one the napkin math is built on. Anything that needs a different count
-// should call the helpers rather than hardcode a number.
+// A correction worth remembering: an earlier pass modelled the monthly as a
+// per-scanner subscription at $19.99. It is not. It is $19/month, billed a
+// year at a time.
 
 export const TERMINAL_ONCE = 499;
-export const SCANNER_MONTHLY = 19.99;
+export const MEMBERSHIP_MONTHLY = 19;
+export const WHITE_GLOVE_MONTHLY = 99;
 
-/** What a shop pays in the first twelve months. */
-export function yearOne(scanners = 1): number {
-  return TERMINAL_ONCE + SCANNER_MONTHLY * 12 * scanners;
+/** Standard membership is paid up front for the year. */
+export const MEMBERSHIP_YEAR = MEMBERSHIP_MONTHLY * 12; // 228
+
+export function yearOne(monthly: number = MEMBERSHIP_MONTHLY): number {
+  return TERMINAL_ONCE + monthly * 12;
 }
 
-/** What it costs every year after the hardware is bought. */
-export function ongoingYear(scanners = 1): number {
-  return SCANNER_MONTHLY * 12 * scanners;
+export function ongoingYear(monthly: number = MEMBERSHIP_MONTHLY): number {
+  return monthly * 12;
 }
 
 export function usd(n: number): string {
   return `$${Math.round(n).toLocaleString("en-US")}`;
 }
 
-/** ~$739 with one scanner. Rounded, because it is a napkin. */
-export const YEAR_ONE_ROUNDED = Math.round(yearOne());
-export const ONGOING_ROUNDED = Math.round(ongoingYear());
+export const YEAR_ONE_ROUNDED = yearOne();      // 727
+export const ONGOING_ROUNDED = ongoingYear();   // 228
 
 /** The line a rep says out loud. */
 export const PRICE_LINE =
-  "$499 once for the touchscreen terminal, then $19.99 a month for each handheld scanner";
+  "$499 once for the terminal, then $19 a month for the membership, paid up front for the year";
 
 /** The compact version for footers and chips. */
-export const PRICE_SHORT = "$499 terminal · $19.99/mo per scanner";
+export const PRICE_SHORT = "$499 terminal · $19/mo membership · zero processing fee";
+
+/**
+ * The two facts a rep will get asked about and should not improvise:
+ * there is a higher support tier, and there is a free tier that cannot
+ * drive the terminal.
+ */
+export const WHITE_GLOVE_LINE =
+  "Want us picking up the phone? White-glove support is $99 a month.";
+export const FREE_TIER_LINE =
+  "There is a free software-only tier, but it does not run the terminal hardware.";

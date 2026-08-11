@@ -62,8 +62,8 @@ export function OnePager({ rep }: { rep: { first: string; cell: string; email: s
           <table className="w-full text-xs">
             <tbody>
               <tr className="border-b border-dashed border-neutral-300"><td className="py-1">Lost to card fees / year (~3%)</td><td className="py-1 text-right font-bold text-red-700">-$3,600</td></tr>
-              <tr className="border-b border-dashed border-neutral-300"><td className="py-1">NectarPay year one, all in</td><td className="py-1 text-right">$739</td></tr>
-              <tr className="border-b border-dashed border-neutral-300"><td className="py-1">Every year after</td><td className="py-1 text-right">$240</td></tr>
+              <tr className="border-b border-dashed border-neutral-300"><td className="py-1">NectarPay year one, all in</td><td className="py-1 text-right">$727</td></tr>
+              <tr className="border-b border-dashed border-neutral-300"><td className="py-1">Every year after</td><td className="py-1 text-right">$228</td></tr>
               <tr><td className="py-1 font-bold">Stays in the shop, year one</td><td className="py-1 text-right font-extrabold text-green-700">+$2,873</td></tr>
             </tbody>
           </table>
@@ -75,16 +75,30 @@ export function OnePager({ rep }: { rep: { first: string; cell: string; email: s
               <div className="text-[10px]">terminal, one-time</div>
             </div>
             <div>
-              <div className="text-2xl font-extrabold text-amber-400">$19.99</div>
-              <div className="text-[10px]">/month, per scanner</div>
+              <div className="text-2xl font-extrabold text-amber-400">$19</div>
+              <div className="text-[10px]">/month, billed annually</div>
             </div>
           </div>
           <div className="mt-2 border-t border-neutral-700 pt-2 text-xs">
-            Year one, all in: <b>~$739</b> · then ~$240/year
+            Year one, all in: <b>~$727</b> · then ~$228/year
           </div>
           <div className="mt-1.5 text-[11px] font-bold text-amber-400">
             No percentage of your sales. Ever.
           </div>
+          <div className="mt-1.5 border-t border-neutral-700 pt-1.5 text-[10px] leading-snug text-neutral-300">
+            Want us picking up the phone? White-glove support is $99/mo.
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-4 rounded border border-neutral-300 bg-neutral-50 p-2.5">
+        <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-700">Good to know</div>
+        <div className="grid gap-x-4 gap-y-0.5 text-[10.5px] leading-snug text-neutral-700 sm:grid-cols-2">
+          <div><b>One-year warranty.</b> Fails on its own, we replace it. Break it yourself and you buy another.</div>
+          <div><b>Receipt printer built in.</b> You supply thermal paper - a few dollars anywhere.</div>
+          <div><b>Your Wi-Fi.</b> There is a SIM slot too if you want it mobile.</div>
+          <div><b>No hardware? No problem.</b> The Nectar.Pay app runs on your phone - you just skip the printer and handheld.</div>
+          <div className="sm:col-span-2"><b>There is a free software-only tier</b>, but it does not run the terminal. The $19 membership is what powers the hardware.</div>
         </div>
       </div>
 

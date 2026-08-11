@@ -34,9 +34,13 @@ const WALLS: { q: string; a: string }[] = [
   { q: '"My customers pay with cards."', a: 'Nothing changes about your card setup. Same reader, same flow. This adds a lane nobody can freeze.' },
   { q: '"I don\'t understand crypto."', a: 'You don\'t need to. Staff types the amount, customer scans, ten seconds, money is in your wallet.' },
   { q: '"Is this legal? Is it taxed?"', a: 'Completely legal - a payment method like cash or card. Recorded on the terminal, revenue like any other.' },
-  { q: '"What does it cost?"', a: '$499 once for the terminal, then $19.99 a month for each handheld scanner. Never a percentage. Year one about $739.' },
+  { q: '"What does it cost?"', a: '$499 once for the terminal, then $19 a month for the membership, billed annually. Never a percentage. Year one about $727.' },
   { q: '"Crypto crashes."', a: 'Settles to a stablecoin if you want - a dollar in is a dollar out. You are not betting on anything.' },
   { q: '"I need to think about it."', a: 'Fair. Let me text you the one-pager so you are thinking about real numbers - and I am back through here [day].' },
+  { q: '"It sounds complicated."', a: 'It is simpler than your card terminal. And if you do not even want hardware, the Nectar.Pay app runs on your phone - you just give up the receipt printer and the rugged handheld.' },
+  { q: '"What if it breaks?"', a: 'One-year warranty. Fails on its own, we replace it, full stop. Drop it off the roof and you buy another - fair is fair.' },
+  { q: '"Is there a cheaper plan?"', a: 'There is a free software-only tier, but it does not run the terminal. If you want the hardware, it is the $19 membership.' },
+  { q: '"What if I need real support?"', a: 'Standard is $19. White-glove is $99 a month and that means we pick up the phone. Most shops start standard and never move.' },
 ];
 
 export function PlaybookView({
@@ -239,7 +243,7 @@ export function PlaybookView({
                 href={kitHref}
                 className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-extrabold text-primary-foreground"
               >
-                <Printer className="h-4 w-4" /> Build kit — {picked.size} shop{picked.size === 1 ? '' : 's'} ({picked.size * 2} pages)
+                <Printer className="h-4 w-4" /> Build kit - {picked.size} shop{picked.size === 1 ? '' : 's'} ({picked.size * 2} pages)
               </Link>
             )}
             <Link
@@ -296,8 +300,8 @@ export function PlaybookView({
           <table className="mb-2 w-full table-fixed text-sm">
             <tbody>
               <tr className="border-b border-neutral-300"><td className="py-1">Lost to card fees / year (~3% of $10K/mo)</td><td className="py-1 text-right font-bold">-$3,600</td></tr>
-              <tr className="border-b border-neutral-300"><td className="py-1">NectarPay year one, all in</td><td className="py-1 text-right">$739</td></tr>
-              <tr className="border-b border-neutral-300"><td className="py-1">Every year after</td><td className="py-1 text-right">$240</td></tr>
+              <tr className="border-b border-neutral-300"><td className="py-1">NectarPay year one, all in</td><td className="py-1 text-right">$727</td></tr>
+              <tr className="border-b border-neutral-300"><td className="py-1">Every year after</td><td className="py-1 text-right">$228</td></tr>
               <tr><td className="py-1 font-bold">Stays in the shop, year one</td><td className="py-1 text-right font-extrabold">+$2,873</td></tr>
             </tbody>
           </table>
@@ -325,7 +329,7 @@ export function PlaybookView({
         </div>
 
         <div className="mt-4 border-t border-neutral-300 pt-2 text-xs">
-          <span className="font-bold">PRICING, MEMORIZED:</span> $499 terminal · $19.99/mo per scanner · zero processing
+          <span className="font-bold">PRICING, MEMORIZED:</span> $499 terminal · $19/mo membership · zero processing
           fee · non-custodial · no chargebacks
         </div>
         <div className="mt-1 text-[11px] italic text-neutral-500">

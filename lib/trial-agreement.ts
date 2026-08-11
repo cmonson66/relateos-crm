@@ -34,7 +34,7 @@ Between ${COMPANY.name} ("${COMPANY.name}") and ${t.businessName}${address ? `, 
 Delivered by ${t.repName}.
 
 1. WHAT IS PROVIDED
-${COMPANY.name} loans the Merchant one payment terminal, serial ${serial}, for a trial.
+${COMPANY.name} loans the Merchant one payment terminal, serial ${serial}, for a trial. The terminal includes its built-in receipt printer and handheld. The Merchant supplies the internet connection and the thermal receipt paper.
 
 2. HOW LONG
 The trial runs ${t.start} through ${t.end} (${t.days} days). Either party may end it earlier by telling the other.
@@ -51,11 +51,11 @@ Payments settle directly to a cryptocurrency wallet the Merchant owns and contro
 6. TAKING CARE OF IT
 The Merchant agrees to keep the terminal powered and reasonably secure, not to open or modify it, and to tell ${COMPANY.name} promptly if it is lost, stolen, or damaged.
 
-7. IF IT IS NOT RETURNED
-If the terminal is not returned at the end of the trial, or comes back damaged beyond normal use, the Merchant agrees to pay the $499 replacement cost.
+7. WARRANTY, AND IF IT IS NOT RETURNED
+The terminal carries a one-year warranty. If it stops working on its own, ${COMPANY.name} replaces it at no cost to the Merchant. The warranty does not cover damage the Merchant causes. If the terminal is not returned at the end of the trial, or comes back damaged beyond normal use, the Merchant agrees to pay the $499 replacement cost.
 
 8. WHEN THE TRIAL ENDS
-The Merchant either continues on the standard terms ($499 for the touchscreen terminal, plus $19.99 per month for each handheld scanner, flat, with no percentage of sales) or returns the terminal within five business days.
+The Merchant either continues on the standard terms ($499 for the terminal, plus $19 per month for the membership paid up front for the year, flat, with no percentage of sales) or returns the terminal within five business days.
 
 9. NO ADVICE
 ${COMPANY.name} does not provide tax, legal, or investment advice. The value of cryptocurrency can change. The Merchant decides what to hold and what to convert.
