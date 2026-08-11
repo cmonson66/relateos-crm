@@ -210,10 +210,11 @@ export async function markInvoicePaid(input: { invoiceId: string; method: string
   const supabase = await createClient();
   const { data: inv } = await supabase
     .from("invoices")
-    .select("id, number, deal_id, account_id, contact_id, total_cents")
+    .select("id, number, token, deal_id, account_id, contact_id, total_cents")
     .eq("id", input.invoiceId)
     .single();
   if (!inv) throw new Error("Invoice not found");
+  const invToken = inv.token as string;
 
   const { error } = await supabase
     .from("invoices")
@@ -236,6 +237,40 @@ export async function markInvoicePaid(input: { invoiceId: string; method: string
     .maybeSingle();
   if (wonStage?.id && inv.deal_id) {
     await supabase.from("deals").update({ stage_id: wonStage.id }).eq("id", inv.deal_id);
+  }
+
+  // Send the receipt. Same link, now showing paid in full.
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", (await supabase.auth.getUser()).data.user?.id ?? "")
+    .maybeSingle();
+  const { data: repRow } = await supabase
+    .from("reps")
+    .select("first_name, from_email, cell")
+    .eq("profile_id", (await supabase.auth.getUser()).data.user?.id ?? "")
+    .maybeSingle();
+
+  let payerEmail: string | null = null;
+  if (inv.contact_id) {
+    const { data: c } = await supabase
+      .from("contacts")
+      .select("email")
+      .eq("id", inv.contact_id)
+      .maybeSingle();
+    payerEmail = c?.email ?? null;
+  }
+
+  if (payerEmail && repRow?.from_email) {
+    const who = prof?.full_name ?? repRow.first_name ?? "NectarPay";
+    const siteBase = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+    await sendMail(
+      `${who} <${repRow.from_email}>`,
+      [payerEmail],
+      `Receipt ${inv.number} - paid in full`,
+      `Payment received, thank you.\n\nYour receipt is here and it stays there:\n\n${siteBase}/invoice/${invToken}\n\nAnything at all, call me.\n\n${who}\n${repRow.cell ?? ""}`,
+      repRow.from_email,
+    );
   }
 
   await logActivity({

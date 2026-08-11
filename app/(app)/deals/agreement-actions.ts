@@ -161,9 +161,40 @@ export async function signTrialAgreement(input: {
   const base = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
   const copyUrl = base ? `${base}/agreement/${t}` : `/agreement/${t}`;
 
+  // On a purchase the merchant needs the onboarding page too. A shop that
+  // trialled first already got it, so reuse the existing token rather than
+  // minting a second link to the same page.
+  let welcomeUrl: string | null = null;
+  let receiptUrl: string | null = null;
+  if (kind === "purchase") {
+    const { data: dealRow } = await supabase
+      .from("deals")
+      .select("welcome_token")
+      .eq("id", input.dealId)
+      .maybeSingle();
+
+    let wt = (dealRow?.welcome_token as string | null) ?? null;
+    if (!wt) {
+      wt = token();
+      await supabase.from("deals").update({ welcome_token: wt }).eq("id", input.dealId);
+    }
+    welcomeUrl = base ? `${base}/start/${wt}` : `/start/${wt}`;
+
+    // Include the invoice only if one already exists - creating it here
+    // would bill a merchant off the back of a signature.
+    const { data: inv } = await supabase
+      .from("invoices")
+      .select("token")
+      .eq("deal_id", input.dealId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (inv?.token) receiptUrl = base ? `${base}/invoice/${inv.token}` : `/invoice/${inv.token}`;
+  }
+
   await logActivity({
     type: "note",
-    subject: `Trial agreement signed by ${input.signerName.trim()}`,
+    subject: `${kind === "purchase" ? "Purchase" : "Trial"} agreement signed by ${input.signerName.trim()}`,
     body: `${input.businessName} - ${input.days} day trial, ${input.startDate} through ${end}.\nTerminal ${input.serial?.trim() || "serial not recorded"}.\nSigned copy: ${copyUrl}`,
     account_id: input.accountId,
     contact_id: input.contactId,
@@ -180,12 +211,28 @@ export async function signTrialAgreement(input: {
     process.env.AGREEMENT_COPY_TO,
   ].filter((x): x is string => !!x);
 
-  if (recipients.length > 0) {
-    await sendEmail(
-      from,
-      recipients,
-      `Your ${COMPANY.name} trial terminal agreement - ${input.businessName}`,
-      `${input.signerName.trim()},
+  // A merchant who just bought must not be told their trial runs until the
+  // 24th. Same document machinery, entirely different message.
+  const subject =
+    kind === "purchase"
+      ? `Your ${COMPANY.name} agreement and what happens next - ${input.businessName}`
+      : `Your ${COMPANY.name} trial terminal agreement - ${input.businessName}`;
+
+  const body =
+    kind === "purchase"
+      ? `${input.signerName.trim()},
+
+Thanks for going ahead. Your signed agreement is here, and it stays there if you need it later:
+
+${copyUrl}
+${welcomeUrl ? `\nTwo short phone calls are coming, and I wrote down what each one is for so nothing catches you off guard:\n\n${welcomeUrl}\n` : ""}${receiptUrl ? `\nYour invoice is here, and this same page becomes your receipt the moment it is paid:\n\n${receiptUrl}\n` : ""}
+Keep taking cards exactly as you do now. Nothing about that changes.
+
+Anything at all, call me.
+
+${repName}
+${repRow?.cell ?? ""}`
+      : `${input.signerName.trim()},
 
 Thanks for taking a terminal for a run. Your signed agreement is here, and it stays there if you need it later:
 
@@ -196,8 +243,10 @@ The short version: the trial runs ${input.startDate} through ${end}, it costs no
 Anything at all, call me.
 
 ${repName}
-${repRow?.cell ?? ""}`,
-    );
+${repRow?.cell ?? ""}`;
+
+  if (recipients.length > 0) {
+    await sendEmail(from, recipients, subject, body);
   }
 
   await logAudit({ entityType: "deal", entityId: input.dealId, action: "updated" });
