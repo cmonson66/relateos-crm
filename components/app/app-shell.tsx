@@ -30,7 +30,7 @@ export function AppShell({
           profile={profile}
           onMobileMenuClick={() => setMobileMenuOpen(true)}
         />
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-x-hidden overflow-y-auto">{children}</main>
       </div>
     </div>
   );

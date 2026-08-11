@@ -78,7 +78,7 @@ export function CallMode({ account, contact, intel, recent, script }: Props) {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className={cn(CONTROL, 'border-amber-500/50 bg-amber-500/10 text-amber-300')}>{account.band}</span>
           {account.cryptoNative && (
             <span className={cn(CONTROL, 'border-emerald-500/50 bg-emerald-500/10 text-emerald-300')}>CRYPTO NATIVE</span>

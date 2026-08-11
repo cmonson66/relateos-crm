@@ -86,7 +86,7 @@ export default async function DealDetailPage({
               timestamp={deal.created_at}
             />
           </div>
-          <div className="flex gap-2 shrink-0">
+          <div className="flex flex-wrap gap-2 md:shrink-0">
             <Link href={`/deals/${id}/edit`}>
               <Button variant="outline" size="sm">Edit</Button>
             </Link>

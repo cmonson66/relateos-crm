@@ -431,7 +431,7 @@ function PreviewStep({
   const perRowReps = new Set(rows.map(r => r.rep?.trim()).filter(Boolean)).size;
   return (
     <div>
-      <div className="grid grid-cols-3 gap-4 mb-5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
         <PreviewKpi label="Total rows" value={rows.length.toString()} />
         <PreviewKpi label="Unique accounts" value={accountCount.toString()} accent />
         <PreviewKpi label="Contacts to create" value={contactCount.toString()} />
