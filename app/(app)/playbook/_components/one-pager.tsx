@@ -17,14 +17,28 @@ export function OnePager({ rep }: { rep: { first: string; cell: string; email: s
         </div>
       </div>
 
-      <h1 className="mb-1 text-xl font-extrabold leading-tight">
-        Accept crypto with zero processing fees -<br />money in your wallet the second they pay.
-      </h1>
-      <p className="mb-4 text-sm text-neutral-700">
-        A small terminal by the register. Your card reader keeps working - this is the no-fee lane beside it.
-      </p>
+      {/* Photo beside the promise, matching the PDF. An owner who has never
+          seen one pictures a card reader until they see the real thing. */}
+      <div className="mb-4 flex items-start gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="mb-1 text-xl font-extrabold leading-tight">
+            Accept crypto with zero processing fees -<br />money in your wallet the second they pay.
+          </h1>
+          <p className="text-sm text-neutral-700">
+            A small terminal by the register. Your card reader keeps working - this is the no-fee lane beside it.
+          </p>
+        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/NPterminal.png"
+          alt="The NectarPay terminal by the register, showing a scan-to-pay code"
+          width={252}
+          height={222}
+          className="w-24 shrink-0 rounded border border-neutral-300 sm:w-28 print:w-28"
+        />
+      </div>
 
-      <div className="mb-4 grid grid-cols-4 gap-2">
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4 print:grid-cols-4">
         {[
           ['1', 'Enter the amount', 'Type the sale into the terminal'],
           ['2', 'Customer scans', 'QR appears, they scan with their wallet'],
