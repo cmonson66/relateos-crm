@@ -3,26 +3,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { logActivity } from "@/app/(app)/activities/actions";
-
-export type TerminalStatus =
-  | "in_stock"
-  | "with_rep"
-  | "deployed"
-  | "returned"
-  | "damaged"
-  | "lost";
-
-export const TERMINAL_STATUS_LABEL: Record<TerminalStatus, string> = {
-  in_stock: "In stock",
-  with_rep: "With a rep",
-  deployed: "In a shop",
-  returned: "Came back",
-  damaged: "Damaged",
-  lost: "Lost",
-};
+import type { ActionResult } from "@/lib/db/terminals";
 
 
-export type ActionResult = { ok: true; message?: string } | { ok: false; message: string };
+
 
 /**
  * Never let a thrown error cross the server-action boundary: Next replaces the
