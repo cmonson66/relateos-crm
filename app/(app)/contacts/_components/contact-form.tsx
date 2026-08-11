@@ -13,6 +13,7 @@ import { AccountCombobox } from '@/components/account-combobox';
 import { toast } from 'sonner';
 import { createContact, updateContact, type ContactFormData } from '../actions';
 import type { Contact } from '@/lib/db/types';
+import { errorMessage } from '@/lib/is-redirect-error';
 
 const LIFECYCLE_LABEL: Record<string, string> = {
   new: 'New',
@@ -70,7 +71,10 @@ export function ContactForm({
           await createContact({ ...data, tags });
         }
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Failed to save');
+        // A successful create redirects, and Next signals that by throwing.
+        // Without this guard the user sees NEXT_REDIRECT as an error toast.
+        const msg = errorMessage(err);
+        if (msg) toast.error(msg);
       }
     });
   }

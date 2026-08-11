@@ -14,6 +14,7 @@ import { createDeal, updateDeal, type DealFormData } from '../actions';
 import { contactsForAccount } from '../actions';
 import { AccountCombobox } from '@/components/account-combobox';
 import type { Deal, PipelineStage } from '@/lib/db/deals';
+import { errorMessage } from '@/lib/is-redirect-error';
 
 type ContactOption = { id: string; first_name: string; last_name: string | null; account_id: string | null };
 type AccountOption = { id: string; name: string };
@@ -92,7 +93,10 @@ export function DealForm({
           await createDeal(payload);
         }
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Failed to save');
+        // A successful create redirects, and Next signals that by throwing.
+        // Without this guard the user sees NEXT_REDIRECT as an error toast.
+        const msg = errorMessage(err);
+        if (msg) toast.error(msg);
       }
     });
   }

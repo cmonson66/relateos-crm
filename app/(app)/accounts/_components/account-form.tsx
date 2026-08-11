@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { createAccount, updateAccount, type AccountFormData } from '../actions';
 import type { Account } from '@/lib/db/types';
 import { VERTICALS, DEFAULT_VERTICAL, verticalLabel } from '@/lib/verticals';
+import { errorMessage } from '@/lib/is-redirect-error';
 
 export function AccountForm({ existing }: { existing?: Account }) {
   const router = useRouter();
@@ -53,7 +54,10 @@ export function AccountForm({ existing }: { existing?: Account }) {
           await createAccount({ ...data, tags });
         }
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Failed to save');
+        // A successful create redirects, and Next signals that by throwing.
+        // Without this guard the user sees NEXT_REDIRECT as an error toast.
+        const msg = errorMessage(err);
+        if (msg) toast.error(msg);
       }
     });
   }

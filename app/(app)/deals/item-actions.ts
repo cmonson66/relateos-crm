@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { logAudit } from "@/lib/db/audit";
+import { deployTerminal } from "@/app/(app)/terminals/actions";
 
 /**
  * value_cents stays on deals because the kanban, dashboard and pipeline all
@@ -65,6 +66,28 @@ export async function addDealItem(input: {
     serial_number: input.serial?.trim() || null,
   });
   if (error) throw new Error(error.message);
+
+  // A serial on a line item means a physical unit went somewhere. Register
+  // it so inventory and the deal can never disagree about where it is.
+  if (input.serial?.trim()) {
+    const { data: deal } = await supabase
+      .from("deals")
+      .select("account_id")
+      .eq("id", input.dealId)
+      .maybeSingle();
+    if (deal?.account_id) {
+      try {
+        await deployTerminal({
+          serial: input.serial,
+          accountId: deal.account_id as string,
+          dealId: input.dealId,
+        });
+      } catch (err) {
+        // Inventory is a record, not a gate - never block adding a line item
+        console.error("deployTerminal:", err);
+      }
+    }
+  }
 
   await resyncDealValue(input.dealId);
   await logAudit({ entityType: "deal", entityId: input.dealId, action: "updated" });

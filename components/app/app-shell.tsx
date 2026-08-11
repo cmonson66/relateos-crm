@@ -5,6 +5,7 @@ import { Sidebar } from '@/components/app/sidebar';
 import { Header } from '@/components/app/header';
 import type { Profile } from '@/lib/auth/get-user';
 import type { ResolvedBrand } from '@/lib/brand/brand';
+import { NavHistory } from './nav-history';
 
 export function AppShell({
   profile,
@@ -25,6 +26,7 @@ export function AppShell({
         mobileOpen={mobileMenuOpen}
         onMobileClose={() => setMobileMenuOpen(false)}
       />
+      <NavHistory />
       <div className="flex flex-1 flex-col min-w-0">
         <Header
           profile={profile}

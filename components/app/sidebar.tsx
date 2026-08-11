@@ -8,6 +8,7 @@ import {
   Map as MapIcon,
   CalendarDays,
   Megaphone,
+  HardDrive,
   BookOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -27,6 +28,7 @@ const navItems: {
   { href: '/map',        label: 'Map',        icon: MapIcon,         roles: ['super_admin','admin','manager','rep'] },
   { href: '/calendar',   label: 'Calendar',   icon: CalendarDays,    roles: ['super_admin','admin','manager','rep'] },
   { href: '/campaigns',  label: 'Campaign',   icon: Megaphone,       roles: ['super_admin','admin'] },
+  { href: '/terminals',  label: 'Terminals',  icon: HardDrive,       roles: ['super_admin','admin','manager'] },
   { href: '/playbook',   label: 'Playbook',   icon: BookOpen,        roles: ['super_admin','admin','manager','rep'] },
   { href: '/activities', label: 'Activities', icon: Activity,        roles: ['super_admin','admin','manager','rep'] },
   { href: '/import',     label: 'Import',     icon: Upload,          roles: ['super_admin','admin'] },

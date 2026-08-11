@@ -107,7 +107,11 @@ export function PipelineKanban({
         Swipe → between stages · tap a deal to change stage
       </div>
 
-      <div className="flex gap-3 md:gap-4 overflow-x-auto pb-4 snap-x-mandatory md:snap-none -mx-4 px-4 md:mx-0 md:px-0">
+      {/* Capped to the viewport on desktop: a deep column used to make the
+          whole page tall, pushing the horizontal scrollbar off-screen so you
+          had to scroll down before you could scroll across. Now each column
+          scrolls internally and the board bar stays where you can reach it. */}
+      <div className="flex gap-3 md:gap-4 overflow-x-auto overscroll-x-contain pb-3 snap-x-mandatory md:snap-none -mx-4 px-4 md:mx-0 md:px-0 md:h-[calc(100vh-15rem)] md:pb-2">
         {stages.map(stage => {
           const totals = stageTotals.get(stage.id) || { count: 0, value: 0 };
           return (

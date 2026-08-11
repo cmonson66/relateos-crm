@@ -48,6 +48,9 @@ export function DealItemsPanel({
   const [pending, start] = useTransition();
   const [productId, setProductId] = useState(products[0]?.id ?? "");
   const [qty, setQty] = useState(1);
+  const [serial, setSerial] = useState("");
+
+  const selected = products.find((p) => p.id === productId) ?? null;
 
   const oneTime = items
     .filter((i) => i.billing === "one_time")
@@ -136,10 +139,23 @@ export function DealItemsPanel({
           onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))}
           className="w-20 rounded-md border border-border/40 bg-background px-2.5 py-2 text-sm"
         />
+        {selected?.kind === "hardware" && (
+          <input
+            value={serial}
+            onChange={(e) => setSerial(e.target.value)}
+            placeholder="Serial (optional)"
+            className="w-40 rounded-md border border-border/40 bg-background px-2.5 py-2 font-mono text-sm"
+          />
+        )}
         <Button
           size="sm"
           disabled={pending || !productId}
-          onClick={() => run(() => addDealItem({ dealId, productId, qty }), "Added")}
+          onClick={() =>
+            run(async () => {
+              await addDealItem({ dealId, productId, qty, serial: serial || null });
+              setSerial("");
+            }, "Added")
+          }
           className="font-display tracking-wider"
         >
           <Plus className="mr-1 h-3.5 w-3.5" /> Add

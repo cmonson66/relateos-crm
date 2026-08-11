@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { NAV_PREV_KEY } from './nav-history';
 
 const LABELS: { test: RegExp; label: string }[] = [
   { test: /^\/accounts\/[^/]+/, label: 'Back to account' },
@@ -42,20 +43,18 @@ export function BackLink({
   const [prev, setPrev] = useState<{ label: string } | null>(null);
 
   useEffect(() => {
-    if (typeof document === 'undefined') return;
-    const ref = document.referrer;
-    if (!ref) return;
+    if (typeof window === 'undefined') return;
     try {
-      const url = new URL(ref);
-      if (url.origin !== window.location.origin) return;
-      if (url.pathname === window.location.pathname) return;
-      const hit = LABELS.find(l => l.test.test(url.pathname));
-      // Referrer is only readable on the client, so this has to happen in
-      // an effect - the state it sets is derived from outside React.
+      // The recorded previous path is what router.back() will actually do,
+      // unlike document.referrer which only changes on a full page load.
+      const prevPath = sessionStorage.getItem(NAV_PREV_KEY);
+      if (!prevPath || prevPath === window.location.pathname) return;
+      const hit = LABELS.find(l => l.test.test(prevPath));
+      // Derived from browser storage, so it can only be read after mount.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setPrev({ label: hit?.label ?? 'Back' });
     } catch {
-      // malformed referrer - stay with the fallback
+      // storage unavailable - stay with the fallback link
     }
   }, []);
 

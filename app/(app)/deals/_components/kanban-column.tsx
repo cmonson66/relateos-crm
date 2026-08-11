@@ -25,7 +25,7 @@ export function KanbanColumn({
   const isClosed = stage.is_won || stage.is_lost;
 
   return (
-    <div className="w-[85vw] sm:w-72 md:w-72 shrink-0 flex flex-col snap-start">
+    <div className="w-[85vw] sm:w-72 md:w-72 shrink-0 flex flex-col snap-start md:h-full md:min-h-0">
       <div
         className="flex items-center justify-between px-3 py-2.5 rounded-t-md border border-b-0 border-border/40 bg-card-foreground/[0.03]"
         style={{ borderTop: `2px solid ${stageColor}` }}
@@ -46,7 +46,7 @@ export function KanbanColumn({
 
       <div
         ref={setNodeRef}
-        className={`flex-1 min-h-[400px] p-2 rounded-b-md border border-t-0 border-border/40 transition-colors ${
+        className={`flex-1 min-h-[400px] md:min-h-0 md:overflow-y-auto p-2 rounded-b-md border border-t-0 border-border/40 transition-colors ${
           isOver ? 'bg-primary/5' : 'bg-background/30'
         } ${isClosed ? 'opacity-80' : ''}`}
       >
