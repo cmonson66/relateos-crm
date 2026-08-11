@@ -18,6 +18,7 @@ import { StageSelector } from '../_components/stage-selector';
 import { TrialPanel } from '../_components/trial-panel';
 import { WelcomePanel } from '../_components/welcome-panel';
 import { DealItemsPanel } from '../_components/deal-items-panel';
+import { PaperworkPanel } from '../_components/paperwork-panel';
 import { phxToday } from '@/lib/db/trials';
 
 export default async function DealDetailPage({
@@ -90,6 +91,32 @@ export default async function DealDetailPage({
       sku: prod?.sku ?? '',
     };
   });
+
+  const [{ data: invRows }, { data: purchaseAgreements }] = await Promise.all([
+    supabase
+      .from('invoices')
+      .select('id, number, token, total_cents, status, sent_at, paid_at, paid_method')
+      .eq('deal_id', id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('trial_agreements')
+      .select('id')
+      .eq('deal_id', id)
+      .eq('kind', 'purchase')
+      .limit(1),
+  ]);
+
+  const invoiceRows = (invRows ?? []).map((r) => ({
+    id: r.id as string,
+    number: r.number as string,
+    token: r.token as string,
+    total_cents: r.total_cents as number,
+    status: r.status as string,
+    sent_at: (r.sent_at as string | null) ?? null,
+    paid_at: (r.paid_at as string | null) ?? null,
+    paid_method: (r.paid_method as string | null) ?? null,
+  }));
+  const hasPurchaseAgreement = (purchaseAgreements ?? []).length > 0;
 
   const products = (productRows ?? []).map((p) => ({
     id: p.id as string,
@@ -168,6 +195,14 @@ export default async function DealDetailPage({
           trial_outcome: deal.trial_outcome ?? null,
         }}
         today={phxToday()}
+      />
+
+      <PaperworkPanel
+        dealId={deal.id}
+        hasItems={dealItems.length > 0}
+        hasPurchaseAgreement={hasPurchaseAgreement}
+        invoices={invoiceRows}
+        siteUrl={(process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '')}
       />
 
       <WelcomePanel

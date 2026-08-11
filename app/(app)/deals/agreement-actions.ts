@@ -6,6 +6,7 @@ import { logActivity } from "@/app/(app)/activities/actions";
 import { logAudit } from "@/lib/db/audit";
 import { startTrial } from "./trial-actions";
 import { buildTerms, COMPANY, TERMS_VERSION } from "@/lib/trial-agreement";
+import { buildPurchaseTerms, PURCHASE_TERMS_VERSION } from "@/lib/purchase-agreement";
 import { addDays } from "@/lib/db/trials";
 
 function token(): string {
@@ -43,6 +44,8 @@ export async function signTrialAgreement(input: {
   days: number;
   signaturePng: string;
   consent: boolean;
+  /** 'trial' loans a terminal; 'purchase' sells one. */
+  kind?: "trial" | "purchase";
 }) {
   if (!input.consent) throw new Error("The merchant has to agree to sign electronically");
   if (!input.signerName.trim()) throw new Error("The merchant has to type their name");
@@ -69,16 +72,50 @@ export async function signTrialAgreement(input: {
 
   const repName = profile.full_name ?? repRow?.first_name ?? "your rep";
   const end = addDays(input.startDate, input.days);
+  const kind = input.kind ?? "trial";
 
-  const terms = buildTerms({
-    businessName: input.businessName,
-    businessAddress: input.businessAddress,
-    serial: input.serial,
-    start: input.startDate,
-    end,
-    days: input.days,
-    repName,
-  });
+  // A purchase agreement lists what was actually bought, straight off the
+  // deal, so the signed document and the invoice can never disagree.
+  let lines: { name: string; qty: number; unitCents: number; billing: "one_time" | "monthly"; serial?: string | null }[] = [];
+  if (kind === "purchase") {
+    const { data: itemRows } = await supabase
+      .from("deal_items")
+      .select("qty, unit_price_cents, billing, serial_number, products(name)")
+      .eq("deal_id", input.dealId)
+      .order("created_at");
+    lines = (itemRows ?? []).map((r) => {
+      const p = r.products as unknown as { name?: string } | null;
+      return {
+        name: p?.name ?? "Item",
+        qty: r.qty as number,
+        unitCents: r.unit_price_cents as number,
+        billing: r.billing as "one_time" | "monthly",
+        serial: (r.serial_number as string | null) ?? null,
+      };
+    });
+    if (lines.length === 0) {
+      throw new Error("Add what they are getting to the deal before signing a purchase agreement");
+    }
+  }
+
+  const terms =
+    kind === "purchase"
+      ? buildPurchaseTerms({
+          businessName: input.businessName,
+          businessAddress: input.businessAddress,
+          lines,
+          repName,
+          signedOn: input.startDate,
+        })
+      : buildTerms({
+          businessName: input.businessName,
+          businessAddress: input.businessAddress,
+          serial: input.serial,
+          start: input.startDate,
+          end,
+          days: input.days,
+          repName,
+        });
 
   const t = token();
 
@@ -97,7 +134,9 @@ export async function signTrialAgreement(input: {
     trial_start: input.startDate,
     trial_days: input.days,
     trial_end: end,
-    terms_version: TERMS_VERSION,
+    kind,
+    items_snapshot: kind === "purchase" ? lines : null,
+    terms_version: kind === "purchase" ? PURCHASE_TERMS_VERSION : TERMS_VERSION,
     terms_snapshot: terms,
     signature_png: input.signaturePng,
     consent_ack: true,
@@ -106,6 +145,9 @@ export async function signTrialAgreement(input: {
   });
   if (error) throw new Error(error.message);
 
+  // Only a TRIAL signature starts a trial clock. A purchase signature must
+  // not move the deal into a trial stage or schedule check-in tasks.
+  if (kind === "trial") {
   // The signature is what starts the clock: trial fields, stage, and the
   // midpoint + T-2 tasks all come from the one existing code path.
   await startTrial({
@@ -114,6 +156,7 @@ export async function signTrialAgreement(input: {
     days: input.days,
     serial: input.serial,
   });
+  }
 
   const base = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
   const copyUrl = base ? `${base}/agreement/${t}` : `/agreement/${t}`;

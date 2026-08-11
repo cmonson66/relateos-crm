@@ -40,6 +40,7 @@ export async function updateSession(request: NextRequest) {
     // security-definer RPC so the table itself stays closed.
     path.startsWith('/agreement/') ||
     path.startsWith('/start/') ||
+    path.startsWith('/invoice/') ||
     path === '/locked';
 
   // Not signed in + private path -> /login

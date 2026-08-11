@@ -8,10 +8,14 @@ export const dynamic = "force-dynamic";
 
 export default async function AgreementPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ kind?: string }>;
 }) {
   const { id } = await params;
+  const { kind: kindParam } = await searchParams;
+  const kind = kindParam === "purchase" ? "purchase" : "trial";
   const supabase = await createClient();
   const {
     data: { user },
@@ -69,6 +73,7 @@ export default async function AgreementPage({
       startDate={deal.trial_start ?? phxToday()}
       days={deal.trial_days ?? 14}
       repName={profile?.full_name ?? "your rep"}
+      kind={kind}
     />
   );
 }

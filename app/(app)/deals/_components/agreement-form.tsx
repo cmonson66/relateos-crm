@@ -24,6 +24,7 @@ export function AgreementForm(props: {
   startDate: string;
   days: number;
   repName: string;
+  kind: "trial" | "purchase";
 }) {
   const router = useRouter();
   const [pending, startPending] = useTransition();
@@ -123,6 +124,7 @@ export function AgreementForm(props: {
           days,
           signaturePng: c.toDataURL("image/png"),
           consent,
+          kind: props.kind,
         });
         setDone(res.url);
         toast.success("Signed. Copy is on its way.");
@@ -160,7 +162,9 @@ export function AgreementForm(props: {
           <ChevronLeft className="h-5 w-5" />
         </Link>
         <div>
-          <div className="text-lg font-extrabold">Trial agreement</div>
+          <div className="text-lg font-extrabold">
+            {props.kind === "purchase" ? "Purchase agreement" : "Trial agreement"}
+          </div>
           <div className="text-xs text-muted-foreground">
             Hand the phone over when you get to the signature box
           </div>
@@ -183,6 +187,8 @@ export function AgreementForm(props: {
           </div>
         </div>
 
+        {/* A purchase has no trial clock, so the length picker is trial-only */}
+        {props.kind === "trial" && (
         <div>
           <Label>Length - ends {end}</Label>
           <div className="flex flex-wrap items-center gap-2">
@@ -211,6 +217,7 @@ export function AgreementForm(props: {
             />
           </div>
         </div>
+        )}
 
         <div className="rounded-lg border border-border/40 bg-muted/10 p-3">
           <div className="mb-2 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
