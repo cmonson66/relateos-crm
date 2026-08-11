@@ -16,6 +16,7 @@ import { formatRelative, formatDate, initials } from '@/lib/utils/format';
 import { formatDealValue } from '@/lib/db/deals';
 import { StageSelector } from '../_components/stage-selector';
 import { TrialPanel } from '../_components/trial-panel';
+import { WelcomePanel } from '../_components/welcome-panel';
 import { phxToday } from '@/lib/db/trials';
 
 export default async function DealDetailPage({
@@ -126,6 +127,15 @@ export default async function DealDetailPage({
           trial_outcome: deal.trial_outcome ?? null,
         }}
         today={phxToday()}
+      />
+
+      <WelcomePanel
+        dealId={deal.id}
+        existingUrl={
+          deal.welcome_token
+            ? `${(process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "")}/start/${deal.welcome_token}`
+            : null
+        }
       />
 
       <div className="grid lg:grid-cols-3 gap-6">

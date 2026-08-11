@@ -32,6 +32,7 @@ export type Deal = {
   trial_end: string | null;
   terminal_serial: string | null;
   trial_outcome: string | null;
+  welcome_token: string | null;
 };
 
 export type DealWithRefs = Deal & {

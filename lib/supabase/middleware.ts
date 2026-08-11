@@ -39,6 +39,7 @@ export async function updateSession(request: NextRequest) {
     // The token in the URL is the credential; the row is served through a
     // security-definer RPC so the table itself stays closed.
     path.startsWith('/agreement/') ||
+    path.startsWith('/start/') ||
     path === '/locked';
 
   // Not signed in + private path -> /login

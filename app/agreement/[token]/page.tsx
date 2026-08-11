@@ -19,9 +19,12 @@ type Agreement = {
   rep_name: string | null;
 };
 
-// Read-only, no login. This is the copy the merchant keeps, which is what
+// Read-only, no login. This is the merchant's retainable copy, which is what
 // makes the electronic signature consent meaningful. Served through a
 // security-definer RPC so the table itself stays closed.
+//
+// Palette matches the Pulse card exactly (navy #0c1a2c, honey #f2a71b,
+// cream #f8f4ea) so a merchant who saw the Pulse page recognizes this one.
 export default async function SignedAgreementPage({
   params,
 }: {
@@ -39,52 +42,127 @@ export default async function SignedAgreementPage({
     timeZone: "America/Phoenix",
   });
 
-  return (
-    <div className="min-h-screen bg-white text-slate-900">
-      <div className="mx-auto max-w-3xl px-6 py-10 print:px-0 print:py-0">
-        <pre className="whitespace-pre-wrap font-sans text-[13px] leading-relaxed">
-          {a.terms_snapshot}
-        </pre>
+  // Terms arrive as numbered plain text. Split on the numbered headings so
+  // each clause can be typeset rather than dumped into a <pre>.
+  const parts = a.terms_snapshot.split(/\n(?=\d+\.\s+[A-Z])/);
+  const preamble = parts[0] ?? "";
+  const clauses = parts.slice(1).map((block) => {
+    const nl = block.indexOf("\n");
+    const head = nl === -1 ? block : block.slice(0, nl);
+    const body = nl === -1 ? "" : block.slice(nl + 1).trim();
+    const m = head.match(/^(\d+)\.\s+(.*)$/);
+    return { n: m ? m[1] : "", title: m ? m[2] : head, body };
+  });
 
-        <div className="mt-10 border-t border-slate-300 pt-6">
-          <div className="text-[10px] uppercase tracking-[0.15em] text-slate-500">
-            Signed
+  return (
+    <div className="min-h-screen bg-[#f8f4ea] text-[#0c1a2c]">
+      <div className="bg-[#0c1a2c] print:bg-white">
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-4 px-6 py-7">
+          <div>
+            <div className="text-2xl font-extrabold leading-none text-white print:text-[#0c1a2c]">
+              Nectar<span className="text-[#f2a71b]">Pay</span>
+            </div>
+            <div className="mt-1 text-[11px] italic text-white/60 print:text-[#47566b]">
+              Sweeten Every Transaction.
+            </div>
           </div>
+          <div className="text-right">
+            <div className="text-[10px] uppercase tracking-[0.22em] text-[#f2a71b]">
+              Trial Terminal Agreement
+            </div>
+            <div className="text-[11px] text-white/60 print:text-[#47566b]">
+              Signed {signedOn} Phoenix time
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-3xl px-6 py-9 print:px-0 print:py-4">
+        <div className="mb-8 flex flex-wrap items-start gap-6 rounded-2xl border border-[#0c1a2c]/10 bg-white p-5 shadow-sm print:shadow-none">
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-[#47566b]">
+              This agreement covers
+            </div>
+            <div className="mt-1 text-2xl font-extrabold leading-tight">{a.business_name}</div>
+            {a.business_address && (
+              <div className="text-sm text-[#47566b]">{a.business_address}</div>
+            )}
+            <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <Fact k="Trial starts" v={a.trial_start} />
+              <Fact k="Trial ends" v={a.trial_end} />
+              <Fact k="Length" v={`${a.trial_days} days`} />
+              <Fact k="Terminal" v={a.terminal_serial || "recorded at delivery"} />
+            </dl>
+          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/NPterminal.png"
+            alt="The NectarPay terminal by the register, showing a scan-to-pay code"
+            width={252}
+            height={222}
+            className="w-28 shrink-0 rounded-xl border border-[#0c1a2c]/10"
+          />
+        </div>
+
+        <div className="mb-4 border-b-2 border-[#f2a71b] pb-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#47566b]">
+          The terms
+        </div>
+
+        {preamble && (
+          <p className="mb-6 whitespace-pre-wrap text-[13px] leading-relaxed text-[#47566b]">
+            {preamble.replace(/^TRIAL TERMINAL AGREEMENT\s*/i, "").trim()}
+          </p>
+        )}
+
+        <ol className="mb-10 space-y-4">
+          {clauses.map((c) => (
+            <li key={c.n} className="flex break-inside-avoid gap-3">
+              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#f2a71b] text-[11px] font-extrabold text-[#0c1a2c]">
+                {c.n}
+              </span>
+              <div className="min-w-0">
+                <div className="text-[12px] font-extrabold uppercase tracking-wide">{c.title}</div>
+                <p className="mt-0.5 whitespace-pre-wrap text-[13px] leading-relaxed text-[#47566b]">
+                  {c.body}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+
+        <div className="break-inside-avoid rounded-2xl border border-[#0c1a2c]/10 bg-white p-5">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-[#47566b]">Signed</div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={a.signature_png}
             alt={`Signature of ${a.signer_name}`}
             className="mt-2 h-24 w-auto"
           />
-          <div className="mt-2 text-sm">
-            <div className="font-semibold">{a.signer_name}</div>
-            {a.signer_title && <div className="text-slate-600">{a.signer_title}</div>}
-            <div className="text-slate-600">{a.business_name}</div>
-            {a.business_address && <div className="text-slate-600">{a.business_address}</div>}
+          <div className="mt-1 border-t border-[#0c1a2c]/15 pt-2 text-sm">
+            <div className="font-bold">{a.signer_name}</div>
+            {a.signer_title && <div className="text-[#47566b]">{a.signer_title}</div>}
+            <div className="text-[#47566b]">{a.business_name}</div>
           </div>
-
-          <dl className="mt-6 grid grid-cols-2 gap-4 text-[12px] sm:grid-cols-4">
-            <Item k="Signed" v={signedOn} />
-            <Item k="Trial" v={`${a.trial_start} to ${a.trial_end}`} />
-            <Item k="Terminal" v={a.terminal_serial || "recorded at delivery"} />
-            <Item k="Delivered by" v={a.rep_name || "-"} />
+          <dl className="mt-5 grid grid-cols-2 gap-4 text-[12px]">
+            <Fact k="Signed" v={signedOn} />
+            <Fact k="Delivered by" v={a.rep_name || "-"} />
           </dl>
-
-          <p className="mt-8 text-[11px] text-slate-500">
-            Agreement version {a.terms_version}. This page is the merchant&apos;s copy and stays
-            available at this address. Print it for your records.
-          </p>
         </div>
+
+        <p className="mt-8 text-[11px] leading-relaxed text-[#47566b]">
+          Agreement version {a.terms_version}. This page is the merchant&apos;s copy and stays
+          available at this address. Print it for your records.
+        </p>
       </div>
     </div>
   );
 }
 
-function Item({ k, v }: { k: string; v: string }) {
+function Fact({ k, v }: { k: string; v: string }) {
   return (
-    <div>
-      <dt className="text-[10px] uppercase tracking-[0.12em] text-slate-500">{k}</dt>
-      <dd className="mt-0.5 font-medium">{v}</dd>
+    <div className="min-w-0">
+      <dt className="text-[10px] uppercase tracking-[0.14em] text-[#47566b]">{k}</dt>
+      <dd className="mt-0.5 truncate text-[13px] font-bold">{v}</dd>
     </div>
   );
 }
