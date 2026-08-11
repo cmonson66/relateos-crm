@@ -260,6 +260,21 @@ export async function runCampaign(
         subject: rendered.subject,
         html: rendered.html,
         text: rendered.text,
+        // Gmail and Yahoo weigh an unsubscribe HEADER, not just a link in
+        // the body. Points at the same Pulse opt-out the copy already uses,
+        // so one mechanism drives DNC. No List-Unsubscribe-Post until a real
+        // one-click POST endpoint exists - claiming it without one is worse
+        // than not claiming it.
+        headers: {
+          'List-Unsubscribe': [
+            lead.pulse_token
+              ? `<${(settings.pulse_base_url ?? '').replace(/\/$/, '')}/s/${lead.pulse_token}?i=optout>`
+              : null,
+            `<mailto:${settings.reply_to || rep.fromEmail}?subject=unsubscribe>`,
+          ]
+            .filter(Boolean)
+            .join(', '),
+        },
       }),
     });
 
