@@ -27,7 +27,14 @@ const day = (iso: string) =>
 type Week = {
   startsOn: string;
   sales: number;
-  deals: { id: string; name: string; valueCents: number; at: string }[];
+  deals: { id: string; name: string; valueCents: number; at: string; repName?: string | null }[];
+};
+
+type TeamMember = {
+  id: string;
+  name: string;
+  baseWeeklyCents: number;
+  weeks: Week[];
 };
 
 export function EarningsView({
@@ -36,20 +43,37 @@ export function EarningsView({
   baseWeeklyCents,
   tiers,
   weeks,
+  team,
 }: {
   isLead: boolean;
   firstName: string;
   baseWeeklyCents: number;
   tiers: CompTier[];
   weeks: Week[];
+  team: TeamMember[];
 }) {
   const thisWeek = weeks[0];
   const bonus = weeklyBonusCents(thisWeek.sales, tiers);
   const outlook = nextSaleOutlook(thisWeek.sales, tiers);
   const ladder = ladderProgress(thisWeek.sales, tiers);
 
-  const sixWeekBonus = weeks.reduce((n, w) => n + weeklyBonusCents(w.sales, tiers), 0);
   const sixWeekSales = weeks.reduce((n, w) => n + w.sales, 0);
+
+  // Each rep runs their own ladder, so a team figure is the SUM OF PER-REP
+  // bonuses. Running the pooled sale count through one ladder would report
+  // money nobody earned.
+  const sixWeekBonus = isLead
+    ? team.reduce(
+        (n, r) => n + r.weeks.reduce((m, w) => m + weeklyBonusCents(w.sales, tiers), 0),
+        0,
+      )
+    : weeks.reduce((n, w) => n + weeklyBonusCents(w.sales, tiers), 0);
+
+  const teamBonusThisWeek = team.reduce(
+    (n, r) => n + weeklyBonusCents(r.weeks[0].sales, tiers),
+    0,
+  );
+  const teamBaseThisWeek = team.reduce((n, r) => n + r.baseWeeklyCents, 0);
 
   return (
     <div className="mx-auto max-w-4xl px-4 pb-16 pt-6">
@@ -60,7 +84,91 @@ export function EarningsView({
         {isLead ? "The whole team, week by week." : `Where you stand this week, ${firstName}.`}
       </p>
 
-      {/* this week */}
+      {isLead ? (
+        <>
+          {/* team roll-up: the sum of per-rep ladders, not a pooled one */}
+          <div className="card-lit relative mt-6 rounded-md border border-border/40 p-5">
+            <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-md bg-primary/50" />
+            <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+              The team, this week
+            </div>
+            <div className="mt-2 grid gap-4 sm:grid-cols-3">
+              <div>
+                <div className="font-display text-4xl tracking-wider">{thisWeek.sales}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  sale{thisWeek.sales === 1 ? "" : "s"} closed
+                </div>
+              </div>
+              <div>
+                <div className="font-display text-4xl tracking-wider text-primary">
+                  {usd(teamBonusThisWeek)}
+                </div>
+                <div className="text-[11px] text-muted-foreground">bonus owed</div>
+              </div>
+              <div>
+                <div className="font-display text-4xl tracking-wider">
+                  {usd(teamBaseThisWeek + teamBonusThisWeek)}
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  total payroll, base included
+                </div>
+              </div>
+            </div>
+            <p className="mt-3 text-[11.5px] text-muted-foreground">
+              Every rep runs their own ladder, so the bonus above is the sum of each rep&apos;s
+              brackets - not the team&apos;s sale count run through one ladder.
+            </p>
+          </div>
+
+          {/* per-rep breakdown */}
+          <h2 className="mb-2 mt-6 font-display text-lg tracking-wider">REP BY REP</h2>
+          {team.length === 0 ? (
+            <div className="rounded-md border border-border/40 p-6 text-center text-sm text-muted-foreground">
+              No reps with a comp record yet.
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {team.map((r) => {
+                const rb = weeklyBonusCents(r.weeks[0].sales, tiers);
+                const ro = nextSaleOutlook(r.weeks[0].sales, tiers);
+                return (
+                  <div key={r.id} className="rounded-md border border-border/40 px-3 py-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-bold">{r.name}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {r.weeks[0].sales} this week · next sale worth {usd(ro.nextSaleCents)}
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <div className="font-display text-lg tracking-wider text-primary">
+                          {usd(rb)}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          + {usd(r.baseWeeklyCents)} base
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex gap-1">
+                      {ladderProgress(r.weeks[0].sales, tiers).map((t) => (
+                        <div key={t.label} className="h-1.5 flex-1 overflow-hidden rounded bg-muted/30">
+                          <div
+                            className={cn(
+                              "h-full",
+                              t.bonusCents === 0 ? "bg-muted-foreground/40" : "bg-primary/70",
+                            )}
+                            style={{ width: `${(t.filled / t.width) * 100}%` }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      ) : (
       <div className="card-lit relative mt-6 rounded-md border border-border/40 p-5">
         <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-md bg-primary/50" />
         <div className="flex flex-wrap items-end justify-between gap-4">
@@ -140,9 +248,13 @@ export function EarningsView({
         </div>
       </div>
 
+      )}
+
       {/* recent weeks */}
       <div className="mt-4 flex items-center justify-between">
-        <h2 className="font-display text-lg tracking-wider">LAST SIX WEEKS</h2>
+        <h2 className="font-display text-lg tracking-wider">
+          {isLead ? "THE TEAM, LAST SIX WEEKS" : "LAST SIX WEEKS"}
+        </h2>
         <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
           <Coins className="h-3.5 w-3.5" />
           {sixWeekSales} sales · {usd(sixWeekBonus)} in bonus
@@ -151,7 +263,10 @@ export function EarningsView({
 
       <div className="mt-2 space-y-1.5">
         {weeks.map((w, i) => {
-          const wb = weeklyBonusCents(w.sales, tiers);
+          // Same rule: sum each rep's ladder rather than pooling the count.
+          const wb = isLead
+            ? team.reduce((n, r) => n + weeklyBonusCents(r.weeks[i].sales, tiers), 0)
+            : weeklyBonusCents(w.sales, tiers);
           return (
             <div key={w.startsOn} className="rounded-md border border-border/40 px-3 py-2.5">
               <div className="flex items-center gap-3">
@@ -178,6 +293,7 @@ export function EarningsView({
                       className="rounded-full border border-border/40 px-2.5 py-1 text-[11px] hover:bg-sidebar-accent/50"
                     >
                       {d.name} · {day(d.at)}
+                      {d.repName ? ` · ${d.repName}` : ""}
                     </Link>
                   ))}
                 </div>
