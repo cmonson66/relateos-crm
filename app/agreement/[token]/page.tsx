@@ -17,6 +17,7 @@ type Agreement = {
   signature_png: string;
   signed_at: string;
   rep_name: string | null;
+  kind?: string | null;
 };
 
 // Read-only, no login. This is the merchant's retainable copy, which is what
@@ -35,6 +36,8 @@ export default async function SignedAgreementPage({
   const { data } = await supabase.rpc("get_trial_agreement", { p_token: token });
   const a = data as Agreement | null;
   if (!a) notFound();
+
+  const isPurchase = a.kind === "purchase";
 
   const signedOn = new Date(a.signed_at).toLocaleString("en-US", {
     dateStyle: "long",
@@ -68,7 +71,7 @@ export default async function SignedAgreementPage({
           </div>
           <div className="text-right">
             <div className="text-[10px] uppercase tracking-[0.22em] text-[#f2a71b]">
-              Trial Terminal Agreement
+              {isPurchase ? "Purchase Agreement" : "Trial Terminal Agreement"}
             </div>
             <div className="text-[11px] text-white/60 print:text-[#47566b]">
               Signed {signedOn} Phoenix time
@@ -88,10 +91,19 @@ export default async function SignedAgreementPage({
               <div className="text-sm text-[#47566b]">{a.business_address}</div>
             )}
             <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <Fact k="Trial starts" v={a.trial_start} />
-              <Fact k="Trial ends" v={a.trial_end} />
-              <Fact k="Length" v={`${a.trial_days} days`} />
-              <Fact k="Terminal" v={a.terminal_serial || "recorded at delivery"} />
+              {isPurchase ? (
+                <>
+                  <Fact k="Purchased" v={a.trial_start} />
+                  <Fact k="Terminal" v={a.terminal_serial || "recorded at delivery"} />
+                </>
+              ) : (
+                <>
+                  <Fact k="Trial starts" v={a.trial_start} />
+                  <Fact k="Trial ends" v={a.trial_end} />
+                  <Fact k="Length" v={`${a.trial_days} days`} />
+                  <Fact k="Terminal" v={a.terminal_serial || "recorded at delivery"} />
+                </>
+              )}
             </dl>
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -110,7 +122,7 @@ export default async function SignedAgreementPage({
 
         {preamble && (
           <p className="mb-6 whitespace-pre-wrap text-[13px] leading-relaxed text-[#47566b]">
-            {preamble.replace(/^TRIAL TERMINAL AGREEMENT\s*/i, "").trim()}
+            {preamble.replace(/^(TRIAL TERMINAL|PURCHASE) AGREEMENT\s*/i, "").trim()}
           </p>
         )}
 

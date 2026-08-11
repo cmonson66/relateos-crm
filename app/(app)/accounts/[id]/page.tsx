@@ -57,7 +57,7 @@ export default async function AccountDetailPage({
   // link at hand, not buried somewhere in the timeline
   const { data: agreements } = await supabase
     .from('trial_agreements')
-    .select('id, token, signer_name, trial_start, trial_end')
+    .select('id, token, kind, signer_name, trial_start, trial_end, signed_at')
     .eq('account_id', id)
     .order('signed_at', { ascending: false });
 
@@ -186,13 +186,26 @@ export default async function AccountDetailPage({
           {agreements && agreements.length > 0 && (
             <div className="card-lit border border-border/40 rounded-md p-5 md:p-6 relative">
               <div className="h-[2px] bg-amber-500/60 rounded-t-md absolute inset-x-0 top-0" />
-              <h2 className="font-display text-lg tracking-wider mb-3">TRIAL AGREEMENTS · {agreements.length}</h2>
+              <h2 className="font-display text-lg tracking-wider mb-3">SIGNED AGREEMENTS · {agreements.length}</h2>
               <div className="space-y-1.5">
                 {agreements.map(a => (
                   <a key={a.id} href={`/agreement/${a.token}`} target="_blank" rel="noreferrer"
                     className="block py-2.5 px-2 rounded-md hover:bg-primary/5 transition-colors -mx-2 min-h-[44px]">
-                    <div className="text-sm font-medium truncate">Signed by {a.signer_name}</div>
-                    <div className="text-[10px] text-muted-foreground">{a.trial_start} to {a.trial_end} · view the signed copy</div>
+                    <div className="flex items-center gap-2">
+                      <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                        a.kind === 'purchase'
+                          ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-300'
+                          : 'border-amber-500/50 bg-amber-500/10 text-amber-300'
+                      }`}>
+                        {a.kind === 'purchase' ? 'Purchase' : 'Trial'}
+                      </span>
+                      <span className="text-sm font-medium truncate">Signed by {a.signer_name}</span>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">
+                      {a.kind === 'purchase'
+                        ? `${new Date(a.signed_at as string).toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: 'America/Phoenix' })} · view the signed copy`
+                        : `${a.trial_start} to ${a.trial_end} · view the signed copy`}
+                    </div>
                   </a>
                 ))}
               </div>
