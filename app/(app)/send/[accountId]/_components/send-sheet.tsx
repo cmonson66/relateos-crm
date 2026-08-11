@@ -11,6 +11,7 @@ import {
   Check,
   ExternalLink,
   AlertTriangle,
+  Send as SendIcon,
 } from "lucide-react";
 import {
   FIELD_TEMPLATES,
@@ -25,7 +26,12 @@ import {
   MAIL_APPS,
   type MailApp,
 } from "@/lib/mail-links";
-import { logFieldMessage, saveMailApp, type SendChannel } from "../../actions";
+import {
+  logFieldMessage,
+  saveMailApp,
+  sendFieldMessageNow,
+  type SendChannel,
+} from "../../actions";
 
 type Person = { id: string; label: string; email: string | null; phone: string | null };
 
@@ -66,6 +72,7 @@ export function SendSheet({
   const [followUp, setFollowUp] = useState(true);
   const [copied, setCopied] = useState(false);
   const [sentKey, setSentKey] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const template: FieldTemplate =
@@ -132,6 +139,31 @@ export function SendSheet({
         followUpDays: followUp ? 3 : null,
       });
       setSentKey(draftKey);
+    });
+  };
+
+  // Sending from the CRM guarantees the From line. The nectarpayaz.com
+  // addresses are forwarding aliases, not mailboxes, so a Gmail compose
+  // window physically cannot send as one of them.
+  const canSendDirect = channel === "email" && !!toEmail && !!tokens.repEmail;
+
+  const sendDirect = () => {
+    setSendError(null);
+    startTransition(async () => {
+      try {
+        await sendFieldMessageNow({
+          accountId: account.id,
+          contactId: recipient?.id ?? contact?.id ?? null,
+          to: toEmail!,
+          templateLabel: template.label,
+          subject,
+          body,
+          followUpDays: followUp ? 3 : null,
+        });
+        setSentKey(draftKey);
+      } catch (err) {
+        setSendError(err instanceof Error ? err.message : "That did not send");
+      }
     });
   };
 
@@ -323,14 +355,38 @@ export function SendSheet({
             </div>
           )}
 
+          {sendError && (
+            <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/[0.06] p-2.5 text-[12px] text-destructive">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>{sendError}</span>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center gap-2">
+            {canSendDirect && (
+              <button
+                type="button"
+                disabled={pending || sent}
+                onClick={sendDirect}
+                className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-extrabold text-slate-950 hover:bg-amber-400 disabled:opacity-50"
+              >
+                <SendIcon className="h-4 w-4" />
+                {sent ? "Sent" : `Send as ${tokens.repEmail}`}
+              </button>
+            )}
+
             {href && !blocked ? (
               <a
                 href={href}
                 target={channel === "email" && mailApp !== "device" ? "_blank" : undefined}
                 rel="noopener noreferrer"
                 onClick={() => log(channel)}
-                className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-extrabold text-slate-950 hover:bg-amber-400"
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold",
+                  canSendDirect
+                    ? "border border-border/40 hover:bg-sidebar-accent/50"
+                    : "bg-amber-500 font-extrabold text-slate-950 hover:bg-amber-400",
+                )}
               >
                 <ExternalLink className="h-4 w-4" />
                 {channel === "email"
