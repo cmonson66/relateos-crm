@@ -135,7 +135,10 @@ export async function endTrial(input: {
     .single();
   if (!deal) throw new Error("Deal not found");
 
-  const stageId = await stageByFlag(input.outcome === "converted" ? "is_won" : "is_lost");
+  // A converted trial is not live yet - it still needs a signed purchase
+  // agreement and a paid invoice. Only markInvoicePaid moves a deal to won,
+  // so the pipeline never counts money that has not arrived.
+  const stageId = input.outcome === "converted" ? null : await stageByFlag("is_lost");
 
   const { error } = await supabase
     .from("deals")
@@ -150,7 +153,7 @@ export async function endTrial(input: {
     type: "note",
     subject:
       input.outcome === "converted"
-        ? `Trial converted to paid: ${deal.name}`
+        ? `Trial converting: ${deal.name} - agreement and invoice next`
         : `Trial ended without a sale: ${deal.name}`,
     body: input.note?.trim() || null,
     account_id: deal.account_id,

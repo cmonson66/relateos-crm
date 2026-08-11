@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { ChevronLeft, Eraser, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { buildTerms } from "@/lib/trial-agreement";
+import { buildPurchaseTerms, type PurchaseLine } from "@/lib/purchase-agreement";
 import { addDays, TRIAL_LENGTH_OPTIONS } from "@/lib/db/trials";
 import { signTrialAgreement } from "../agreement-actions";
 
@@ -25,6 +26,8 @@ export function AgreementForm(props: {
   days: number;
   repName: string;
   kind: "trial" | "purchase";
+  /** Line items off the deal. Only used, and only required, for a purchase. */
+  lines: PurchaseLine[];
 }) {
   const router = useRouter();
   const [pending, startPending] = useTransition();
@@ -45,15 +48,26 @@ export function AgreementForm(props: {
   const drawing = useRef(false);
 
   const end = addDays(startDate, days);
-  const terms = buildTerms({
-    businessName,
-    businessAddress,
-    serial,
-    start: startDate,
-    end,
-    days,
-    repName: props.repName,
-  });
+  // Must mirror what the server will store, or the merchant reads one
+  // document and signs another.
+  const terms =
+    props.kind === "purchase"
+      ? buildPurchaseTerms({
+          businessName,
+          businessAddress,
+          lines: props.lines,
+          repName: props.repName,
+          signedOn: startDate,
+        })
+      : buildTerms({
+          businessName,
+          businessAddress,
+          serial,
+          start: startDate,
+          end,
+          days,
+          repName: props.repName,
+        });
 
   // Plain pointer events. A signature pad is forty lines, and a dependency
   // that only runs on one screen is not worth a lockfile change.
@@ -177,7 +191,7 @@ export function AgreementForm(props: {
           <Field label="Address" value={businessAddress} onChange={setBusinessAddress} placeholder="Street, city, state" />
           <Field label="Terminal serial" value={serial} onChange={setSerial} placeholder="Off the back of the unit" />
           <div>
-            <Label>Starts</Label>
+            <Label>{props.kind === "purchase" ? "Date" : "Starts"}</Label>
             <input
               type="date"
               value={startDate}

@@ -223,10 +223,15 @@ export function TrialPanel({
               <Button
                 size="sm"
                 disabled={pending}
-                onClick={() => run(() => endTrial({ dealId, outcome: "converted" }), "Marked live")}
+                onClick={() =>
+                  run(async () => {
+                    await endTrial({ dealId, outcome: "converted" });
+                    router.push(`/deals/${dealId}/agreement?kind=purchase`);
+                  }, "Now sign the purchase agreement")
+                }
                 className="font-display tracking-wider btn-glow"
               >
-                <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> They are paying - go live
+                <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> They are buying - start the paperwork
               </Button>
               <Button
                 size="sm"

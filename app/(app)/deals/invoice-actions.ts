@@ -225,10 +225,23 @@ export async function markInvoicePaid(input: { invoiceId: string; method: string
     .eq("id", input.invoiceId);
   if (error) throw new Error(error.message);
 
+  // Paid is the moment the deal is genuinely live. Found by FLAG, never by
+  // slug - the 036 reshape's slugs are not in this repo.
+  const { data: wonStage } = await supabase
+    .from("pipeline_stages")
+    .select("id")
+    .eq("is_won", true)
+    .order("position")
+    .limit(1)
+    .maybeSingle();
+  if (wonStage?.id && inv.deal_id) {
+    await supabase.from("deals").update({ stage_id: wonStage.id }).eq("id", inv.deal_id);
+  }
+
   await logActivity({
     type: "note",
-    subject: `Invoice ${inv.number} paid`,
-    body: `$${(inv.total_cents / 100).toFixed(2)} by ${input.method}. Receipt is live at the same link.`,
+    subject: `Invoice ${inv.number} paid - deal is live`,
+    body: `$${(inv.total_cents / 100).toFixed(2)} by ${input.method}. Receipt is live at the same link, and the deal moved to live.`,
     account_id: inv.account_id,
     contact_id: inv.contact_id,
     deal_id: inv.deal_id,

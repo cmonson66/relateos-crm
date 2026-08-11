@@ -47,6 +47,24 @@ export default async function AgreementPage({
     pickPerson(all, account?.name ?? "") ??
     null;
 
+  // A purchase agreement is built from what is actually on the deal.
+  const { data: itemRows } = await supabase
+    .from('deal_items')
+    .select('qty, unit_price_cents, billing, serial_number, products(name)')
+    .eq('deal_id', id)
+    .order('created_at');
+
+  const lines = (itemRows ?? []).map((r) => {
+    const p = r.products as unknown as { name?: string } | null;
+    return {
+      name: p?.name ?? 'Item',
+      qty: r.qty as number,
+      unitCents: r.unit_price_cents as number,
+      billing: r.billing as 'one_time' | 'monthly',
+      serial: (r.serial_number as string | null) ?? null,
+    };
+  });
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("full_name")
@@ -74,6 +92,7 @@ export default async function AgreementPage({
       days={deal.trial_days ?? 14}
       repName={profile?.full_name ?? "your rep"}
       kind={kind}
+      lines={lines}
     />
   );
 }
