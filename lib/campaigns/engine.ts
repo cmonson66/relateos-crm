@@ -238,6 +238,14 @@ export async function runCampaign(
   let sent = 0;
   let failed = 0;
 
+  // Cold campaign mail sends from its OWN subdomain so complaints never
+  // touch the reputation that agreements, reminders and rep 1:1 mail ride
+  // on. Keeps the rep's local part: eric@nectarpayaz.com sends as
+  // eric@go.nectarpayaz.com. Reply-To deliberately stays the ROOT alias -
+  // the subdomain has no MX, so replies to it would bounce.
+  const campaignFrom = (addr: string) =>
+    settings.from_domain ? `${addr.split('@')[0]}@${settings.from_domain}` : addr;
+
   for (const { lead, stage } of plan) {
     const to = lead.emails[0];
     const rep = repFor(lead.place_id);
@@ -254,7 +262,7 @@ export async function runCampaign(
       method: 'POST',
       headers: { Authorization: `Bearer ${settings.resend_api_key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: `${rep.first} at ${settings.from_label ?? 'NectarPay'} <${rep.fromEmail}>`,
+        from: `${rep.first} at ${settings.from_label ?? 'NectarPay'} <${campaignFrom(rep.fromEmail)}>`,
         to,
         reply_to: settings.reply_to || rep.fromEmail,
         subject: rendered.subject,
