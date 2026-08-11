@@ -14,7 +14,7 @@ export default async function TerminalsPage() {
 
   const supabase = await createClient();
 
-  const [{ data: rows }, { data: people }] = await Promise.all([
+  const [{ data: rows, error: rowsErr }, { data: people }] = await Promise.all([
     supabase
       .from("terminals")
       .select(
@@ -27,6 +27,24 @@ export default async function TerminalsPage() {
       .eq("is_active", true)
       .in("role", ["super_admin", "admin", "manager", "rep"]),
   ]);
+
+  // Production hides server-render errors behind a generic message, so a
+  // missing table or policy reads as "something broke". Say what it is.
+  if (rowsErr) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 pt-10">
+        <h1 className="font-display text-2xl tracking-wider">TERMINALS</h1>
+        <div className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm">
+          <div className="font-bold text-destructive">The terminals table is not reachable.</div>
+          <p className="mt-1.5 text-muted-foreground">
+            Most likely migration 051 has not run yet. Run it in the Supabase SQL editor, then
+            reload this page.
+          </p>
+          <p className="mt-2 font-mono text-[11px] text-muted-foreground/80">{rowsErr.message}</p>
+        </div>
+      </div>
+    );
+  }
 
   const terminals = rows ?? [];
 

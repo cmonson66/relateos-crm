@@ -80,7 +80,13 @@ export async function receiveTerminals(input: { serials: string; model?: string 
     .from("terminals")
     .upsert(rows, { onConflict: "org_id,serial", ignoreDuplicates: true })
     .select("id, serial");
-  if (error) throw new Error(error.message);
+  if (error) {
+    // A missing table reads as an opaque failure otherwise.
+    if (/relation .* does not exist|schema cache/i.test(error.message)) {
+      throw new Error("The terminals table does not exist yet - run migration 051 first");
+    }
+    throw new Error(error.message);
+  }
 
   for (const t of data ?? []) {
     await trail(supabase, t.id as string, org, userId, "received");
