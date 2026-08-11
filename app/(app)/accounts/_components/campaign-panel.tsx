@@ -1,4 +1,4 @@
-import { Mail, Zap, CheckCircle2, Clock } from 'lucide-react';
+import { Mail, Zap, CheckCircle2, Clock, ExternalLink } from 'lucide-react';
 
 // Where this shop stands in the outbound sequence, in plain language.
 const STAGE_LABEL: Record<number, string> = {
@@ -87,9 +87,16 @@ export function CampaignPanel({
       </div>
 
       {pulseUrl && (
-        <div className="mt-3 break-all rounded-md border border-amber-500/30 bg-amber-500/[0.05] px-2.5 py-1.5 font-mono text-[11px] text-amber-200">
-          {pulseUrl}
-        </div>
+        <a
+          href={pulseUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Open this shop's Pulse page in a new tab"
+          className="mt-3 flex items-center gap-2 break-all rounded-md border border-amber-500/30 bg-amber-500/[0.05] px-2.5 py-1.5 font-mono text-[11px] text-amber-200 transition-colors hover:border-amber-500/60 hover:bg-amber-500/10"
+        >
+          <span className="min-w-0 flex-1 underline decoration-amber-500/40 underline-offset-2">{pulseUrl}</span>
+          <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" />
+        </a>
       )}
     </div>
   );

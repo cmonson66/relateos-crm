@@ -356,6 +356,15 @@ function Row({ item, overdue }: { item: ActivityRow; overdue?: boolean }) {
         <FileText className="h-3.5 w-3.5" />
       </Link>
     )}
+    {acct && (
+      <Link
+        href={`/send/${acct.id}`}
+        title="Send a message"
+        className="shrink-0 rounded-md border border-border/40 p-1.5 text-muted-foreground hover:text-primary"
+      >
+        <Mail className="h-3.5 w-3.5" />
+      </Link>
+    )}
     </div>
   );
 }

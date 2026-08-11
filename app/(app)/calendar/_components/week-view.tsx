@@ -9,7 +9,7 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, X, CheckCircle2, Trash2, ExternalLink, Plus, Phone, FileText, Pencil } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, CheckCircle2, Trash2, ExternalLink, Plus, Phone, FileText, Mail, Pencil } from 'lucide-react';
 import { DaySlotPicker } from '@/components/day-slot-picker';
 import { rescheduleActivity, markActivityDone, cancelActivity } from '../actions';
 
@@ -211,6 +211,11 @@ export function CalendarView({
                   {e.accountId && (
                     <Link href={`/call/${e.accountId}/sheet`} className="rounded-md border border-current/30 p-1.5 opacity-80 hover:opacity-100" title="Walk-in sheet">
                       <FileText className="h-3.5 w-3.5" />
+                    </Link>
+                  )}
+                  {e.accountId && (
+                    <Link href={`/send/${e.accountId}`} className="rounded-md border border-current/30 p-1.5 opacity-80 hover:opacity-100" title="Send a message">
+                      <Mail className="h-3.5 w-3.5" />
                     </Link>
                   )}
                   <button onClick={() => setEditing(e)} className="rounded-md border border-current/30 px-2.5 py-1 text-[11px] font-bold opacity-80 hover:opacity-100">
