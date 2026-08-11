@@ -52,7 +52,9 @@ export async function advanceDealTo(accountId: string, stageSlug: string) {
         name: `${account?.name ?? 'Terminal'} - terminal`,
         account_id: accountId,
         stage_id: target.id,
-        value_cents: 72700, // year one, all in
+        // Left at zero on purpose: the value comes from the line items a
+        // rep adds under WHAT THEY ARE GETTING, never from a guess here.
+        value_cents: 0,
         org_id: profile.org_id,
         created_by: user.id,
         owner_id: user.id,

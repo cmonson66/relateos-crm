@@ -47,6 +47,8 @@ export default async function DashboardPage() {
     { data: openDeals },
     { data: wonDeals },
     { data: trialDeals },
+    { data: purchaseAgreements },
+    { data: allInvoices },
     { data: todayItems },
     { data: weekActivities },
     { data: myAlerts },
@@ -68,6 +70,12 @@ export default async function DashboardPage() {
       .select('id, trial_start, trial_days, trial_end, trial_outcome')
       .not('trial_start', 'is', null)
       .is('trial_outcome', null),
+    // Signed but not yet invoiced: money agreed to and never asked for.
+    supabase.from('trial_agreements')
+      .select('deal_id, business_name, signed_at')
+      .eq('kind', 'purchase')
+      .not('deal_id', 'is', null),
+    supabase.from('invoices').select('deal_id, status'),
     // ONE list for today: appointments, callbacks, installs AND tasks.
     // (The old dashboard ran two overlapping queries, so a task due today
     // appeared in both "My tasks" and "On your calendar today".)
@@ -110,6 +118,19 @@ export default async function DashboardPage() {
     const s = trialStatus(t, phxNow);
     return s && s.daysLeft <= 2;
   }).length;
+
+  // A signed purchase with no invoice at all is the gap worth surfacing;
+  // an invoice that is merely unpaid is already visible on the deal.
+  const invoicedDealIds = new Set(
+    (allInvoices ?? []).map(i => i.deal_id as string).filter(Boolean)
+  );
+  const awaitingInvoice = (purchaseAgreements ?? [])
+    .filter(a => !invoicedDealIds.has(a.deal_id as string))
+    .map(a => ({
+      dealId: a.deal_id as string,
+      shop: (a.business_name as string) ?? 'a shop',
+      signedAt: a.signed_at as string,
+    }));
 
   const acts = (weekActivities ?? []) as { type: string; subject: string | null; created_at: string }[];
   const demosThisWeek = acts.filter(a => inWeek(a.created_at) && a.type === 'meeting' && (a.subject ?? '').startsWith('Demo')).length;
@@ -205,12 +226,21 @@ export default async function DashboardPage() {
         </Card>
 
         <div className="space-y-5">
-          {((myAlerts?.length ?? 0) > 0 || (unassignedHot ?? 0) > 0) && (
+          {((myAlerts?.length ?? 0) > 0 || (unassignedHot ?? 0) > 0 || awaitingInvoice.length > 0) && (
             <div className="card-lit relative rounded-md border border-destructive/30 p-5">
               <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-md bg-destructive/60" />
               <h2 className="mb-3 flex items-center gap-2 font-display text-lg tracking-wider">
                 <AlertCircle className="h-4 w-4 text-destructive" /> NEEDS ATTENTION
               </h2>
+              {awaitingInvoice.map(a => (
+                <Link key={a.dealId} href={`/deals/${a.dealId}`} className="-mx-2 block rounded-md px-2 py-2 hover:bg-destructive/5">
+                  <div className="truncate text-sm font-medium">{a.shop} signed, no invoice yet</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    Create it in Paperwork and send it - the deal cannot go live until it is paid
+                  </div>
+                  <div className="mt-0.5 text-[10px] text-muted-foreground/70">signed {formatRelative(a.signedAt)}</div>
+                </Link>
+              ))}
               {(unassignedHot ?? 0) > 0 && (
                 <Link href="/accounts" className="-mx-2 block rounded-md px-2 py-2 hover:bg-destructive/5">
                   <div className="text-sm font-medium">{unassignedHot} HOT accounts unassigned</div>

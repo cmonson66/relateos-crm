@@ -249,6 +249,20 @@ ${repRow?.cell ?? ""}`;
     await sendEmail(from, recipients, subject, body);
   }
 
+  // Signing is not collecting. Without this the deal sits signed and
+  // uninvoiced, which is invisible until someone goes looking.
+  if (kind === "purchase" && !receiptUrl) {
+    await logActivity({
+      type: "task",
+      subject: `Invoice ${input.businessName} - agreement signed`,
+      body: "Open the deal, create the invoice from the line items, send it, then mark it paid when the money lands. The deal only goes live once it is paid.",
+      account_id: input.accountId,
+      contact_id: input.contactId,
+      deal_id: input.dealId,
+      scheduled_at: new Date().toISOString(),
+    });
+  }
+
   await logAudit({ entityType: "deal", entityId: input.dealId, action: "updated" });
   revalidatePath(`/deals/${input.dealId}`);
   revalidatePath(`/accounts/${input.accountId}`);

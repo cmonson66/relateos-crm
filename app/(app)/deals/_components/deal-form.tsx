@@ -48,9 +48,6 @@ export function DealForm({
   const [contactOptions, setContactOptions] = useState<ContactOption[]>(contacts);
   const [contactId, setContactId] = useState<string>(existing?.primary_contact_id || defaultContactId || '');
   const [stageId, setStageId] = useState<string>(existing?.stage_id || firstStage?.id || '');
-  const [valueDollars, setValueDollars] = useState<string>(
-    existing?.value_cents ? String(existing.value_cents / 100) : ''
-  );
   const [closeDate, setCloseDate] = useState<string>(existing?.expected_close_date || '');
   const [notes, setNotes] = useState<string>(existing?.notes || '');
 
@@ -72,13 +69,12 @@ export function DealForm({
     if (!accountId) return toast.error('Account is required');
     if (!stageId) return toast.error('Stage is required');
 
-    const cents = Math.round(parseFloat(valueDollars || '0') * 100);
     const payload: DealFormData = {
       name: name.trim(),
       account_id: accountId,
       primary_contact_id: contactId || null,
       stage_id: stageId,
-      value_cents: isNaN(cents) ? 0 : cents,
+      value_cents: existing?.value_cents ?? 0,
       expected_close_date: closeDate || null,
       notes: notes || null,
     };
@@ -162,9 +158,12 @@ export function DealForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="value" className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Value (USD)</Label>
-          <Input id="value" type="number" step="0.01" min="0" value={valueDollars}
-            onChange={e => setValueDollars(e.target.value)} placeholder="0" />
+          <Label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Value</Label>
+          <div className="rounded-md border border-border/40 bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+            {existing?.value_cents
+              ? `$${(existing.value_cents / 100).toLocaleString('en-US')} - from the line items`
+              : 'Set by what you add under WHAT THEY ARE GETTING'}
+          </div>
         </div>
 
         <div className="md:col-span-2 space-y-2">

@@ -162,7 +162,11 @@ export default async function DealDetailPage({
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 pt-5 border-t border-border/30">
-          <Stat label="Value" value={formatDealValue(deal.value_cents)} highlight />
+          <Stat
+            label={invoiceRows.some(i => i.status === 'paid') ? 'Collected' : 'Expected value'}
+            value={formatDealValue(deal.value_cents)}
+            highlight
+          />
           <Stat label="Stage" customValue={
             <StageSelector dealId={deal.id} currentStageId={deal.stage_id} stages={stages || []} />
           } />
