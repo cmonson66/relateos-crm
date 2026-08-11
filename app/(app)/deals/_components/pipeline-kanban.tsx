@@ -86,7 +86,13 @@ export function PipelineKanban({
 
     startTransition(async () => {
       try {
-        await updateDealStage(dealId, targetStageId);
+        const res = await updateDealStage(dealId, targetStageId);
+        if (res && res.ok === false) {
+          // Optimistic move already happened, so put the card back where it was.
+          setDeals(initialDeals);
+          toast.error(res.message);
+          return;
+        }
         toast.success(`Moved to ${targetStage.name}`);
       } catch (err) {
         setDeals(initialDeals);

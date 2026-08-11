@@ -26,7 +26,14 @@ export function StageSelector({
     if (!value || value === currentStageId) return;
     startTransition(async () => {
       try {
-        await updateDealStage(dealId, value);
+        const res = await updateDealStage(dealId, value);
+        if (res && res.ok === false) {
+          // Refused - the select is uncontrolled here, so refresh puts the
+          // label back to the real stage rather than leaving a lie on screen.
+          toast.error(res.message);
+          router.refresh();
+          return;
+        }
         toast.success('Stage updated');
         router.refresh();
       } catch (err) {

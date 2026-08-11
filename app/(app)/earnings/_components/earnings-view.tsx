@@ -137,7 +137,10 @@ export function EarningsView({
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-bold">{r.name}</div>
                         <div className="text-[11px] text-muted-foreground">
-                          {r.weeks[0].sales} this week · next sale worth {usd(ro.nextSaleCents)}
+                          {r.weeks[0].sales} this week ·{" "}
+                          {ro.nextSaleCents === 0
+                            ? "in the no-bonus bracket"
+                            : `next sale worth ${usd(ro.nextSaleCents)}`}
                         </div>
                       </div>
                       <div className="shrink-0 text-right">
@@ -227,8 +230,9 @@ export function EarningsView({
           <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <div>
             <span className="font-bold">
-              Your next sale this week is worth {usd(outlook.nextSaleCents)}
-              {outlook.nextSaleCents === 0 ? " in bonus" : ""}.
+              {outlook.nextSaleCents === 0 && outlook.salesToNextTier !== null
+                ? `Bonus starts at sale ${thisWeek.sales + outlook.salesToNextTier + 2 - 1}. Base covers you until then.`
+                : `Your next sale this week is worth ${usd(outlook.nextSaleCents)}.`}
             </span>
             {outlook.salesToNextTier !== null && outlook.nextTierCents !== null && (
               <>

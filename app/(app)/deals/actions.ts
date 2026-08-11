@@ -55,14 +55,43 @@ export async function createDeal(data: DealFormData) {
 
 export async function updateDealStage(dealId: string, stageId: string) {
   const supabase = await createClient();
+
+  // LIVE means the money arrived. Earnings, the bonus ladder and the
+  // terminals-live count all read the won stage, so a deal dragged there
+  // by hand would pay a bonus on a sale nobody collected. Marking the
+  // invoice paid is the only way in.
+  const { data: target } = await supabase
+    .from('pipeline_stages')
+    .select('is_won, name')
+    .eq('id', stageId)
+    .maybeSingle();
+
+  if (target?.is_won) {
+    const { data: paid } = await supabase
+      .from('invoices')
+      .select('id')
+      .eq('deal_id', dealId)
+      .eq('status', 'paid')
+      .limit(1);
+
+    if ((paid ?? []).length === 0) {
+      return {
+        ok: false as const,
+        message:
+          `A deal only reaches ${target.name ?? 'LIVE'} when its invoice is paid. Create the invoice in Paperwork, send it, then mark it paid.`,
+      };
+    }
+  }
+
   const { error } = await supabase
     .from('deals')
     .update({ stage_id: stageId })
     .eq('id', dealId);
-  if (error) throw new Error(error.message);
+  if (error) return { ok: false as const, message: error.message };
   // Audit + notification handled by DB triggers
   revalidatePath('/deals');
   revalidatePath(`/deals/${dealId}`);
+  return { ok: true as const };
 }
 
 export async function updateDeal(id: string, data: Partial<DealFormData>) {
