@@ -15,6 +15,7 @@ import { RecordTabs } from '@/components/app/record-tabs';
 import { formatRelative, initials } from '@/lib/utils/format';
 import { formatDealValue } from '@/lib/db/deals';
 import { ArrowLeft, MapPin, Globe, Users as UsersIcon, Tag } from 'lucide-react';
+import { ReferralPanel } from '../_components/referral-panel';
 
 export default async function AccountDetailPage({
   params,
@@ -55,6 +56,12 @@ export default async function AccountDetailPage({
   // is a security-definer bridge, so reps see it without lead-table access.
   // Signed trial agreements for this shop - a rep on the road needs the copy
   // link at hand, not buried somewhere in the timeline
+  const { data: testimonials } = await supabase
+    .from('testimonials')
+    .select('id, quote, attribution')
+    .eq('account_id', id)
+    .order('created_at', { ascending: false });
+
   const { data: agreements } = await supabase
     .from('trial_agreements')
     .select('id, token, kind, signer_name, trial_start, trial_end, signed_at')
@@ -183,6 +190,15 @@ export default async function AccountDetailPage({
         </div>
 
         <div className="space-y-6">
+          <ReferralPanel
+            accountId={id}
+            testimonials={(testimonials ?? []).map(t => ({
+              id: t.id as string,
+              quote: t.quote as string,
+              attribution: (t.attribution as string | null) ?? null,
+            }))}
+          />
+
           {agreements && agreements.length > 0 && (
             <div className="card-lit border border-border/40 rounded-md p-5 md:p-6 relative">
               <div className="h-[2px] bg-amber-500/60 rounded-t-md absolute inset-x-0 top-0" />

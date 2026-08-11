@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { logActivity } from "@/app/(app)/activities/actions";
 import { logAudit } from "@/lib/db/audit";
+import { schedulePostSaleCadence } from "@/lib/db/post-sale";
 
 function mintToken(): string {
   return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
@@ -210,10 +211,11 @@ export async function markInvoicePaid(input: { invoiceId: string; method: string
   const supabase = await createClient();
   const { data: inv } = await supabase
     .from("invoices")
-    .select("id, number, token, deal_id, account_id, contact_id, total_cents")
+    .select("id, number, token, status, deal_id, account_id, contact_id, total_cents")
     .eq("id", input.invoiceId)
     .single();
   if (!inv) throw new Error("Invoice not found");
+  if (inv.status === "paid") return { ok: true, alreadyPaid: true };
   const invToken = inv.token as string;
 
   const { error } = await supabase
@@ -282,8 +284,29 @@ export async function markInvoicePaid(input: { invoiceId: string; method: string
     deal_id: inv.deal_id,
   });
 
+  // The handbook rhythm, on the calendar rather than in someone's memory.
+  if (inv.deal_id && inv.account_id) {
+    const { data: acct } = await supabase
+      .from("accounts")
+      .select("name")
+      .eq("id", inv.account_id)
+      .maybeSingle();
+    try {
+      await schedulePostSaleCadence({
+        dealId: inv.deal_id as string,
+        accountId: inv.account_id as string,
+        contactId: (inv.contact_id as string | null) ?? null,
+        shopName: (acct?.name as string) ?? "this shop",
+      });
+    } catch (err) {
+      // Follow-ups are important but must never block recording payment
+      console.error("post-sale cadence:", err);
+    }
+  }
+
   await logAudit({ entityType: "deal", entityId: inv.deal_id, action: "updated" });
   revalidatePath(`/deals/${inv.deal_id}`);
+  revalidatePath("/calendar");
   revalidatePath("/dashboard");
   return { ok: true };
 }
