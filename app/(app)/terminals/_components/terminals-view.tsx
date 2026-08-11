@@ -53,10 +53,16 @@ export function TerminalsView({
 
   const shown = filter ? terminals.filter((t) => t.status === filter) : terminals;
 
-  const run = (fn: () => Promise<unknown>, ok: string) =>
+  // Actions RETURN their failure reason rather than throwing, because Next
+  // strips thrown messages from server actions in production builds.
+  const run = (fn: () => Promise<{ ok: boolean; message?: string } | void>, ok: string) =>
     start(async () => {
       try {
-        await fn();
+        const res = await fn();
+        if (res && res.ok === false) {
+          toast.error(res.message ?? "That did not work");
+          return;
+        }
         toast.success(ok);
         router.refresh();
       } catch (err) {

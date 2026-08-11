@@ -21,6 +21,27 @@ export const TERMINAL_STATUS_LABEL: Record<TerminalStatus, string> = {
   lost: "Lost",
 };
 
+
+export type ActionResult = { ok: true; message?: string } | { ok: false; message: string };
+
+/**
+ * Never let a thrown error cross the server-action boundary: Next replaces the
+ * message in production builds, so the user sees a generic paragraph instead of
+ * "that serial is already in another shop". Return the reason instead.
+ */
+async function guard(fn: () => Promise<ActionResult>): Promise<ActionResult> {
+  try {
+    return await fn();
+  } catch (err) {
+    const raw = err instanceof Error ? err.message : String(err);
+    if (/relation .* does not exist|schema cache/i.test(raw)) {
+      return { ok: false, message: "The terminals table does not exist yet - run migration 051" };
+    }
+    console.error("terminals action:", err);
+    return { ok: false, message: raw || "That did not work" };
+  }
+}
+
 async function orgId() {
   const supabase = await createClient();
   const {
@@ -56,72 +77,76 @@ async function trail(
 
 /** Serials arrive in batches from NectarPay. One per line. */
 export async function receiveTerminals(input: { serials: string; model?: string | null }) {
-  const { supabase, userId, org } = await orgId();
+  return guard(async () => {
+    const { supabase, userId, org } = await orgId();
 
-  const serials = Array.from(
-    new Set(
-      input.serials
-        .split(/[\s,]+/)
-        .map((x) => x.trim())
-        .filter(Boolean),
-    ),
-  );
-  if (serials.length === 0) throw new Error("Paste at least one serial");
-  if (serials.length > 200) throw new Error("That is more than 200 serials - split the batch");
+    const serials = Array.from(
+      new Set(
+        input.serials
+          .split(/[\s,]+/)
+          .map((x) => x.trim())
+          .filter(Boolean),
+      ),
+    );
+    if (serials.length === 0) throw new Error("Paste at least one serial");
+    if (serials.length > 200) throw new Error("That is more than 200 serials - split the batch");
 
-  const rows = serials.map((serial) => ({
-    org_id: org,
-    serial,
-    model: input.model?.trim() || "Nectar.Pay Terminal",
-    status: "in_stock" as const,
-  }));
+    const rows = serials.map((serial) => ({
+      org_id: org,
+      serial,
+      model: input.model?.trim() || "Nectar.Pay Terminal",
+      status: "in_stock" as const,
+    }));
 
-  const { data, error } = await supabase
-    .from("terminals")
-    .upsert(rows, { onConflict: "org_id,serial", ignoreDuplicates: true })
-    .select("id, serial");
-  if (error) {
-    // A missing table reads as an opaque failure otherwise.
-    if (/relation .* does not exist|schema cache/i.test(error.message)) {
-      throw new Error("The terminals table does not exist yet - run migration 051 first");
+    const { data, error } = await supabase
+      .from("terminals")
+      .upsert(rows, { onConflict: "org_id,serial", ignoreDuplicates: true })
+      .select("id, serial");
+    if (error) {
+      // A missing table reads as an opaque failure otherwise.
+      if (/relation .* does not exist|schema cache/i.test(error.message)) {
+        throw new Error("The terminals table does not exist yet - run migration 051 first");
+      }
+      throw new Error(error.message);
     }
-    throw new Error(error.message);
-  }
 
-  for (const t of data ?? []) {
-    await trail(supabase, t.id as string, org, userId, "received");
-  }
+    for (const t of data ?? []) {
+      await trail(supabase, t.id as string, org, userId, "received");
+    }
 
-  revalidatePath("/terminals");
-  return { ok: true, added: (data ?? []).length, submitted: serials.length };
+    revalidatePath("/terminals");
+    return { ok: true, added: (data ?? []).length, submitted: serials.length };
+  });
 }
 
 /** A rep carrying stock is the state nobody tracks and everybody forgets. */
 export async function assignTerminal(input: { terminalId: string; profileId: string | null }) {
-  const { supabase, userId, org } = await orgId();
+  return guard(async () => {
+    const { supabase, userId, org } = await orgId();
 
-  const { error } = await supabase
-    .from("terminals")
-    .update({
-      held_by_profile_id: input.profileId,
-      status: input.profileId ? "with_rep" : "in_stock",
-      account_id: null,
-      deal_id: null,
-      deployed_at: null,
-    })
-    .eq("id", input.terminalId);
-  if (error) throw new Error(error.message);
+    const { error } = await supabase
+      .from("terminals")
+      .update({
+        held_by_profile_id: input.profileId,
+        status: input.profileId ? "with_rep" : "in_stock",
+        account_id: null,
+        deal_id: null,
+        deployed_at: null,
+      })
+      .eq("id", input.terminalId);
+    if (error) throw new Error(error.message);
 
-  await trail(
-    supabase,
-    input.terminalId,
-    org,
-    userId,
-    input.profileId ? "assigned to rep" : "back to stock",
-  );
+    await trail(
+      supabase,
+      input.terminalId,
+      org,
+      userId,
+      input.profileId ? "assigned to rep" : "back to stock",
+    );
 
-  revalidatePath("/terminals");
-  return { ok: true };
+    revalidatePath("/terminals");
+    return { ok: true };
+  });
 }
 
 /** Placing a unit in a shop. Called by hand, or by the deal flow. */
@@ -131,60 +156,62 @@ export async function deployTerminal(input: {
   dealId?: string | null;
   note?: string | null;
 }) {
-  const { supabase, userId, org } = await orgId();
-  const serial = input.serial.trim();
-  if (!serial) throw new Error("Which serial?");
+  return guard(async () => {
+    const { supabase, userId, org } = await orgId();
+    const serial = input.serial.trim();
+    if (!serial) throw new Error("Which serial?");
 
-  const { data: existing } = await supabase
-    .from("terminals")
-    .select("id, status, account_id")
-    .eq("serial", serial)
-    .maybeSingle();
-
-  // A serial typed on a deal that inventory has never seen still needs to be
-  // tracked - better a row created late than a unit that exists nowhere.
-  let id = existing?.id as string | undefined;
-  if (!id) {
-    const { data: created, error } = await supabase
+    const { data: existing } = await supabase
       .from("terminals")
-      .insert({
-        org_id: org,
-        serial,
-        model: "Nectar.Pay Terminal",
-        status: "in_stock",
-      })
-      .select("id")
-      .single();
-    if (error) throw new Error(error.message);
-    id = created.id as string;
-    await trail(supabase, id, org, userId, "created from a deal", `Serial ${serial} was not in stock`);
-  } else if (existing?.status === "deployed" && existing.account_id !== input.accountId) {
-    throw new Error(`${serial} is already recorded as being in another shop`);
-  }
+      .select("id, status, account_id")
+      .eq("serial", serial)
+      .maybeSingle();
 
-  const { error: upErr } = await supabase
-    .from("terminals")
-    .update({
-      status: "deployed",
+    // A serial typed on a deal that inventory has never seen still needs to be
+    // tracked - better a row created late than a unit that exists nowhere.
+    let id = existing?.id as string | undefined;
+    if (!id) {
+      const { data: created, error } = await supabase
+        .from("terminals")
+        .insert({
+          org_id: org,
+          serial,
+          model: "Nectar.Pay Terminal",
+          status: "in_stock",
+        })
+        .select("id")
+        .single();
+      if (error) throw new Error(error.message);
+      id = created.id as string;
+      await trail(supabase, id, org, userId, "created from a deal", `Serial ${serial} was not in stock`);
+    } else if (existing?.status === "deployed" && existing.account_id !== input.accountId) {
+      throw new Error(`${serial} is already recorded as being in another shop`);
+    }
+
+    const { error: upErr } = await supabase
+      .from("terminals")
+      .update({
+        status: "deployed",
+        account_id: input.accountId,
+        deal_id: input.dealId ?? null,
+        deployed_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+    if (upErr) throw new Error(upErr.message);
+
+    await trail(supabase, id, org, userId, "deployed", input.note);
+
+    await logActivity({
+      type: "note",
+      subject: `Terminal ${serial} placed`,
       account_id: input.accountId,
       deal_id: input.dealId ?? null,
-      deployed_at: new Date().toISOString(),
-    })
-    .eq("id", id);
-  if (upErr) throw new Error(upErr.message);
+    });
 
-  await trail(supabase, id, org, userId, "deployed", input.note);
-
-  await logActivity({
-    type: "note",
-    subject: `Terminal ${serial} placed`,
-    account_id: input.accountId,
-    deal_id: input.dealId ?? null,
+    revalidatePath("/terminals");
+    revalidatePath(`/accounts/${input.accountId}`);
+    return { ok: true };
   });
-
-  revalidatePath("/terminals");
-  revalidatePath(`/accounts/${input.accountId}`);
-  return { ok: true };
 }
 
 /** Coming back off a trial, or coming back broken. */
@@ -193,38 +220,40 @@ export async function returnTerminal(input: {
   outcome: "returned" | "damaged" | "lost";
   note?: string | null;
 }) {
-  const { supabase, userId, org } = await orgId();
+  return guard(async () => {
+    const { supabase, userId, org } = await orgId();
 
-  const { data: t } = await supabase
-    .from("terminals")
-    .select("serial, account_id")
-    .eq("id", input.terminalId)
-    .maybeSingle();
+    const { data: t } = await supabase
+      .from("terminals")
+      .select("serial, account_id")
+      .eq("id", input.terminalId)
+      .maybeSingle();
 
-  const { error } = await supabase
-    .from("terminals")
-    .update({
-      status: input.outcome,
-      account_id: null,
-      deal_id: null,
-      deployed_at: null,
-      // A returned unit goes back into sellable stock. Damaged and lost do not.
-      ...(input.outcome === "returned" ? { status: "in_stock" as const } : {}),
-    })
-    .eq("id", input.terminalId);
-  if (error) throw new Error(error.message);
+    const { error } = await supabase
+      .from("terminals")
+      .update({
+        status: input.outcome,
+        account_id: null,
+        deal_id: null,
+        deployed_at: null,
+        // A returned unit goes back into sellable stock. Damaged and lost do not.
+        ...(input.outcome === "returned" ? { status: "in_stock" as const } : {}),
+      })
+      .eq("id", input.terminalId);
+    if (error) throw new Error(error.message);
 
-  await trail(supabase, input.terminalId, org, userId, input.outcome, input.note);
+    await trail(supabase, input.terminalId, org, userId, input.outcome, input.note);
 
-  if (t?.account_id) {
-    await logActivity({
-      type: "note",
-      subject: `Terminal ${t.serial} ${input.outcome === "returned" ? "came back" : input.outcome}`,
-      body: input.note?.trim() || null,
-      account_id: t.account_id as string,
-    });
-  }
+    if (t?.account_id) {
+      await logActivity({
+        type: "note",
+        subject: `Terminal ${t.serial} ${input.outcome === "returned" ? "came back" : input.outcome}`,
+        body: input.note?.trim() || null,
+        account_id: t.account_id as string,
+      });
+    }
 
-  revalidatePath("/terminals");
-  return { ok: true };
+    revalidatePath("/terminals");
+    return { ok: true };
+  });
 }
