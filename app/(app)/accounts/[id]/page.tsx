@@ -53,6 +53,14 @@ export default async function AccountDetailPage({
   ]);
   // Where this shop stands in the email sequence. get_call_intel (034/041)
   // is a security-definer bridge, so reps see it without lead-table access.
+  // Signed trial agreements for this shop - a rep on the road needs the copy
+  // link at hand, not buried somewhere in the timeline
+  const { data: agreements } = await supabase
+    .from('trial_agreements')
+    .select('id, token, signer_name, trial_start, trial_end')
+    .eq('account_id', id)
+    .order('signed_at', { ascending: false });
+
   const legacyId = (contacts ?? []).map(c => (c as { legacy_id?: string }).legacy_id).find(Boolean) ?? null;
   let campaign: {
     email_stage?: number; status?: string; band?: string; score?: number;
@@ -175,6 +183,22 @@ export default async function AccountDetailPage({
         </div>
 
         <div className="space-y-6">
+          {agreements && agreements.length > 0 && (
+            <div className="card-lit border border-border/40 rounded-md p-5 md:p-6 relative">
+              <div className="h-[2px] bg-amber-500/60 rounded-t-md absolute inset-x-0 top-0" />
+              <h2 className="font-display text-lg tracking-wider mb-3">TRIAL AGREEMENTS · {agreements.length}</h2>
+              <div className="space-y-1.5">
+                {agreements.map(a => (
+                  <a key={a.id} href={`/agreement/${a.token}`} target="_blank" rel="noreferrer"
+                    className="block py-2.5 px-2 rounded-md hover:bg-primary/5 transition-colors -mx-2 min-h-[44px]">
+                    <div className="text-sm font-medium truncate">Signed by {a.signer_name}</div>
+                    <div className="text-[10px] text-muted-foreground">{a.trial_start} to {a.trial_end} · view the signed copy</div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="card-lit border border-border/40 rounded-md p-5 md:p-6 relative">
             <div className="h-[2px] bg-card-foreground/10 rounded-t-md absolute inset-x-0 top-0" />
             <div className="flex items-center justify-between mb-3">

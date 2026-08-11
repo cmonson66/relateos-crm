@@ -165,7 +165,7 @@ export function DealForm({
 
         <div className="md:col-span-2 space-y-2">
           <Label htmlFor="close" className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Expected close date</Label>
-          <Input id="close" type="date" value={closeDate || ''}
+          <Input id="close" type="date" className="[color-scheme:dark]" value={closeDate || ''}
             onChange={e => setCloseDate(e.target.value)} />
         </div>
 

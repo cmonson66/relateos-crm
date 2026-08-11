@@ -115,6 +115,7 @@ I am not going to chase you on this. I will say the one thing worth remembering:
     label: "Only got the staff",
     when: "You never reached a decision maker, but you got a name or an email.",
     group: "after-a-visit",
+    wantsPulse: true,
     subject: "Note for the owner of {{shop}}",
     email: `Hi there,
 
@@ -124,12 +125,14 @@ I work with NectarPay. We make a small terminal that lets a business take crypto
 
 I am not asking for a decision by email. I am asking for two minutes with whoever handles payments, at a time that is not the middle of your rush.
 
-Who should I be talking to, and when is your quiet hour?
+{{#pulse}}Everything is laid out here, with the math on your own numbers: {{pulseUrl}}
+
+{{/pulse}}Who should I be talking to, and when is your quiet hour?
 
 {{rep}}
 {{repCell}}
 {{repEmail}}`,
-    text: `Hi, this is {{rep}} with NectarPay. I came into {{shop}} today and spoke with your team. Could you point me to whoever handles payments? I need about two minutes at a slow hour, not during a rush. Thanks.`,
+    text: `Hi, this is {{rep}} with NectarPay. I came into {{shop}} today and spoke with your team. Could you point me to whoever handles payments?{{#pulse}} Here is what it is about: {{pulseUrl}}{{/pulse}} I need about two minutes at a slow hour, not during a rush. Thanks.`,
   },
 
   /* ------------------------------------------------------------------ *
@@ -168,6 +171,7 @@ What it does not do: it does not replace your card system, and it is not somethi
     label: "They already have a processor",
     when: 'They said "I already have a payment system."',
     group: "they-asked",
+    wantsPulse: true,
     subject: "Keep what you have at {{shop}}",
     email: `{{#owner}}{{owner}},{{/owner}}{{^owner}}Hi there,{{/owner}}
 
@@ -190,6 +194,7 @@ There is also no chargeback risk on that lane. A crypto payment is final. If you
     label: "Offer a trial terminal",
     when: "They are interested but not ready to pay. Requires a signed trial agreement.",
     group: "they-asked",
+    wantsPulse: true,
     subject: "A trial terminal for {{shop}}",
     email: `{{#owner}}{{owner}},{{/owner}}{{^owner}}Hi there,{{/owner}}
 
@@ -201,17 +206,20 @@ There is one piece of paperwork. A trial terminal needs a signed trial agreement
 
 Setup takes an afternoon at most. I stay and run a live payment with you, and I walk your team through it so nobody is guessing on a busy day.
 
-What does your week look like?
+{{#pulse}}The numbers for {{shop}} are here if you want them in front of you first: {{pulseUrl}}
+
+{{/pulse}}What does your week look like?
 
 {{rep}}
 {{repCell}}`,
-    text: `{{#owner}}{{owner}}, {{/owner}}{{rep}} here. I can put a NectarPay terminal in {{shop}} on a free trial. No terminal cost, no monthly, nothing while it runs. There is a short trial agreement to sign and I bring it with me. Setup is an afternoon. What day works?`,
+    text: `{{#owner}}{{owner}}, {{/owner}}{{rep}} here. I can put a NectarPay terminal in {{shop}} on a free trial. No terminal cost, no monthly, nothing while it runs. There is a short trial agreement to sign and I bring it with me.{{#pulse}} Your numbers: {{pulseUrl}}{{/pulse}} What day works?`,
   },
   {
     id: "post-demo",
     label: "After a demo",
     when: "They watched a live payment settle and you have not closed yet.",
     group: "they-asked",
+    wantsPulse: true,
     subject: "That payment that settled in about ten seconds",
     email: `{{#owner}}{{owner}},{{/owner}}{{^owner}}Hi there,{{/owner}}
 
@@ -221,11 +229,13 @@ You saw the whole thing: amount in, customer scans, money in the wallet. No perc
 
 Where that leaves you: $499 for the terminal and $19 a month, flat. I can have you set up and taking your first real payment in an afternoon, and I will train whoever works the register so it is not just you who knows how.
 
-Is there one thing you would want to be sure of before saying yes? Tell me what it is and I will get you a straight answer, even if the answer is that we are not a fit.
+{{#pulse}}Your page is here if you want to run the numbers again on your own time: {{pulseUrl}}
+
+{{/pulse}}Is there one thing you would want to be sure of before saying yes? Tell me what it is and I will get you a straight answer, even if the answer is that we are not a fit.
 
 {{rep}}
 {{repCell}}`,
-    text: `{{#owner}}{{owner}}, {{/owner}}thanks for the time today and for letting me run that live. $499 and $19/mo flat, and I can have you taking real payments in an afternoon. Anything you would want to be sure of before you say yes? - {{rep}}`,
+    text: `{{#owner}}{{owner}}, {{/owner}}thanks for the time today and for letting me run that live. $499 and $19/mo flat, and I can have you taking real payments in an afternoon. Anything you would want to be sure of before you say yes?{{#pulse}} Your numbers: {{pulseUrl}}{{/pulse}} - {{rep}}`,
   },
 
   /* ------------------------------------------------------------------ *

@@ -35,6 +35,10 @@ export async function updateSession(request: NextRequest) {
   const isPublic =
     path.startsWith('/login') ||
     path.startsWith('/auth') ||
+    // Signed trial agreements: the merchant has no login and never will.
+    // The token in the URL is the credential; the row is served through a
+    // security-definer RPC so the table itself stays closed.
+    path.startsWith('/agreement/') ||
     path === '/locked';
 
   // Not signed in + private path -> /login
