@@ -112,14 +112,22 @@ export async function buildPlan(
     (repRows ?? []).filter((r) => r.is_default).map((r) => ({ first: r.first_name, fromEmail: r.from_email }))[0] ??
     DEFAULT_REP;
 
-  const { data: ownerRows } = await supabase
-    .from('contacts')
-    .select('legacy_id, owner_id')
-    .not('legacy_id', 'is', null)
-    .not('owner_id', 'is', null);
-  const ownerByPlace = new Map<string, string>(
-    (ownerRows ?? []).map((c) => [c.legacy_id as string, c.owner_id as string])
-  );
+  // Paged deliberately: an unranged select caps at 1,000 rows, and any owner
+  // past that silently falls through to the DEFAULT rep. That is how a whole
+  // batch ends up sending as one person.
+  const ownerByPlace = new Map<string, string>();
+  for (let from = 0; ; from += 1000) {
+    const { data: ownerRows } = await supabase
+      .from('contacts')
+      .select('legacy_id, owner_id')
+      .not('legacy_id', 'is', null)
+      .not('owner_id', 'is', null)
+      .order('legacy_id')
+      .range(from, from + 999);
+    const rows = ownerRows ?? [];
+    for (const c of rows) ownerByPlace.set(c.legacy_id as string, c.owner_id as string);
+    if (rows.length < 1000) break;
+  }
   const repFor = (placeId: string): Rep => {
     const ownerId = ownerByPlace.get(placeId);
     return (ownerId && repsById.get(ownerId)) || defaultRep;
@@ -212,15 +220,39 @@ export async function buildPlan(
 
   // One email per inbox per run
   const seen = new Set<string>();
-  const plan = jobs
+  const eligible = jobs
     .filter((j) => !engagedTokens.has(j.lead.pulse_token))
     .filter((j) => {
       const addr = j.lead.emails?.[0]?.toLowerCase();
       if (!addr || seen.has(addr)) return false;
       seen.add(addr);
       return true;
-    })
-    .slice(0, cap);
+    });
+
+  // Deal the day's cap round-robin across reps instead of taking the top N
+  // by score. Score ordering alone hands the whole batch to whoever owns the
+  // densest book, so the other reps get no doors worked that day. Order
+  // within each rep is preserved, so their follow-ups still go first.
+  const byOwner = new Map<string, { lead: LeadRow; stage: Stage }[]>();
+  for (const j of eligible) {
+    const key = ownerByPlace.get(j.lead.place_id) ?? '__unassigned';
+    const bucket = byOwner.get(key);
+    if (bucket) bucket.push(j);
+    else byOwner.set(key, [j]);
+  }
+
+  const queues = [...byOwner.values()];
+  const plan: { lead: LeadRow; stage: Stage }[] = [];
+  for (let round = 0; plan.length < cap; round++) {
+    let dealt = false;
+    for (const q of queues) {
+      if (round >= q.length) continue;
+      plan.push(q[round]);
+      dealt = true;
+      if (plan.length >= cap) break;
+    }
+    if (!dealt) break; // every queue exhausted
+  }
 
   return { plan, repFor, cap };
 }
