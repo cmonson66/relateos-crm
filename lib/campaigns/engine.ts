@@ -27,6 +27,8 @@ export type CampaignSettings = {
   pulse_base_url: string | null;
   campaign_start: string;
   ramp: { throughDay: number; dailyCap: number }[];
+  /** Send only to shops a rep actually owns, never to the unassigned reserve. */
+  assigned_only?: boolean | null;
   followup_gap_days: Record<string, number>;
   send_delay_ms: number;
   last_run_at: string | null;
@@ -127,15 +129,37 @@ export async function buildPlan(
   const { data: engaged } = await supabase.from('engagement_events').select('pulse_token').neq('event', 'view');
   const engagedTokens = new Set((engaged ?? []).map((e) => e.pulse_token));
 
-  // Scope to one rep's book when configured
+  // Scope the pool. Two independent narrowings:
+  //   send_owner_id  - one rep's book only
+  //   assigned_only  - any rep's book, but never the unassigned reserve
+  // Unranged PostgREST selects cap at 1,000 rows, and the assigned book is
+  // already larger than that, so this pages explicitly. Silently truncating
+  // here would look like 'the campaign skipped Joe's shops'.
   let scopeIds: string[] | null = null;
-  if (settings.send_owner_id) {
-    const { data: owned } = await supabase
-      .from('contacts')
-      .select('legacy_id')
-      .eq('owner_id', settings.send_owner_id)
-      .not('legacy_id', 'is', null);
-    scopeIds = (owned ?? []).map((c) => c.legacy_id as string);
+  if (settings.send_owner_id || settings.assigned_only) {
+    const ids: string[] = [];
+    const PAGE = 1000;
+    for (let from = 0; ; from += PAGE) {
+      const { data: page } = settings.send_owner_id
+        ? await supabase
+            .from('contacts')
+            .select('legacy_id')
+            .not('legacy_id', 'is', null)
+            .eq('owner_id', settings.send_owner_id)
+            .order('legacy_id')
+            .range(from, from + PAGE - 1)
+        : await supabase
+            .from('contacts')
+            .select('legacy_id')
+            .not('legacy_id', 'is', null)
+            .not('owner_id', 'is', null)
+            .order('legacy_id')
+            .range(from, from + PAGE - 1);
+      const rows = page ?? [];
+      for (const c of rows) ids.push(c.legacy_id as string);
+      if (rows.length < PAGE) break;
+    }
+    scopeIds = ids;
     if (scopeIds.length === 0) return { plan: [], repFor, cap };
   }
   const scopeSet = scopeIds ? new Set(scopeIds) : null;

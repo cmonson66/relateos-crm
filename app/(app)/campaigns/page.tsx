@@ -59,6 +59,7 @@ export default async function CampaignsPage() {
         send_delay_ms: s.send_delay_ms,
         last_run_at: s.last_run_at,
         send_owner_id: s.send_owner_id ?? null,
+        assigned_only: s.assigned_only ?? true,
       }}
       people={(people ?? []).map(p => ({ id: p.id, name: p.full_name || p.email || 'Rep' }))}
       cap={todaysCap(s)}

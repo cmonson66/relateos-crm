@@ -29,6 +29,7 @@ export async function saveCampaignSettings(input: {
   campaign_start?: string;
   send_delay_ms?: number;
   send_owner_id?: string | null;
+  assigned_only?: boolean;
 }) {
   const current = await adminSettings();
   const supabase = await createClient();

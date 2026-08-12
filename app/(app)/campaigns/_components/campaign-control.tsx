@@ -24,6 +24,7 @@ type Settings = {
   send_delay_ms: number;
   last_run_at: string | null;
   send_owner_id: string | null;
+  assigned_only: boolean;
 };
 
 type Run = {
@@ -54,6 +55,7 @@ export function CampaignControl({
     campaign_start: settings.campaign_start,
     send_delay_ms: settings.send_delay_ms,
     send_owner_id: settings.send_owner_id ?? '',
+    assigned_only: settings.assigned_only ?? true,
   });
   const [preview, setPreview] = useState<PreviewItem[] | null>(null);
   const [showSettings, setShowSettings] = useState(!settings.hasKey);
@@ -190,15 +192,24 @@ export function CampaignControl({
               <Input type="date" className="[color-scheme:dark]" value={form.campaign_start}
                 onChange={e => setForm({ ...form, campaign_start: e.target.value })} />
             </Field>
-            <Field label="Send only to this rep's accounts (launch scoping)">
+            <Field label="Who gets emailed">
               <select
-                value={form.send_owner_id}
-                onChange={e => setForm({ ...form, send_owner_id: e.target.value })}
+                value={form.assigned_only && !form.send_owner_id ? 'ASSIGNED' : form.send_owner_id}
+                onChange={e => {
+                  const v = e.target.value;
+                  if (v === 'ASSIGNED') setForm({ ...form, send_owner_id: '', assigned_only: true });
+                  else setForm({ ...form, send_owner_id: v, assigned_only: false });
+                }}
                 className="w-full rounded-md border border-border/60 bg-background px-2.5 py-2 text-sm"
               >
-                <option value="">Everyone (whole pool)</option>
+                <option value="ASSIGNED">Assigned accounts only, every rep</option>
                 {people.map(p => <option key={p.id} value={p.id}>{p.name} only</option>)}
+                <option value="">Everything, including unassigned</option>
               </select>
+              <p className="mt-1.5 text-[11.5px] text-muted-foreground">
+                Unassigned shops send under the default identity, so replies land with a rep who
+                cannot see the account. The daily cap is the same either way.
+              </p>
             </Field>
             <Field label="Delay between sends (ms)">
               <Input type="number" value={form.send_delay_ms}
