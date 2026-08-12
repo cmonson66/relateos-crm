@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { HelpCircle, X, AlertTriangle, LifeBuoy, Pencil } from "lucide-react";
 import { helpFor, type HelpTopic } from "@/lib/help-content";
@@ -29,6 +30,7 @@ export function HelpPanel({ canEdit = false }: { canEdit?: boolean }) {
 
   const [form, setForm] = useState({ title: "", what: "", steps: "", gotchas: "", stuck: "" });
   const [error, setError] = useState<string | null>(null);
+
 
   // Close on route change without a setState-in-effect on every render
   const [lastPath, setLastPath] = useState(pathname);
@@ -67,8 +69,8 @@ export function HelpPanel({ canEdit = false }: { canEdit?: boolean }) {
         <HelpCircle className="h-[18px] w-[18px]" />
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex justify-end">
+      {open && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[60] flex justify-end">
           <button
             type="button"
             aria-label="Close help"
@@ -230,7 +232,8 @@ export function HelpPanel({ canEdit = false }: { canEdit?: boolean }) {
             </div>
             )}
           </aside>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
