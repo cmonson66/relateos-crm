@@ -12,7 +12,7 @@ const DAYS: { day: string; title: string; items: string[] }[] = [
     day: "Day 1",
     title: "Learn the thing you are selling",
     items: [
-      "Read The script end to end, then say the 30-second version out loud until it stops sounding memorised.",
+      "Read The script end to end, then say the 30-second version out loud until it stops sounding memorized.",
       "Open a shop in your book and tap Start call. Work the stepper with nobody on the phone.",
       "Print one kit for a shop you plan to visit so you know what the packet feels like.",
       "Check your own email alias works: open Send on any shop and send yourself the owner-absent template.",
@@ -23,7 +23,7 @@ const DAYS: { day: string; title: string; items: string[] }[] = [
     title: "Walk in somewhere that does not matter",
     items: [
       "Pick three shops off the map that are not your best prospects. Buy something, ask one question, leave.",
-      "You are practising the opener, not selling. If the owner is out, leave a one-pager and log it.",
+      "You are practicing the opener, not selling. If the owner is out, leave a one-pager and log it.",
       "Log every stop in the app the same day. Doors worked only counts what you record.",
     ],
   },
@@ -38,7 +38,7 @@ const DAYS: { day: string; title: string; items: string[] }[] = [
   },
   {
     day: "Day 4",
-    title: "Practise the paperwork on a fake shop",
+    title: "Practice the paperwork on a fake shop",
     items: [
       "Create a test shop and put a deal on it. Add the terminal and the membership under What they are getting.",
       "Sign a trial agreement on your own phone. Watch the email arrive and open the copy link.",

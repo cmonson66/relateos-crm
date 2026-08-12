@@ -241,3 +241,41 @@ export async function returnTerminal(input: {
     return { ok: true };
   });
 }
+
+/**
+ * Remove a unit from inventory.
+ *
+ * A deployed unit is refused: it is sitting in someone's shop, and deleting
+ * the record is how a $499 asset quietly stops existing while the merchant
+ * still has it. Return it or mark it lost first, then delete.
+ *
+ * terminal_events cascade with the row, so this is a real delete rather than
+ * a hidden flag - inventory should reflect what you own, and a mis-typed
+ * serial is not history worth keeping.
+ */
+export async function deleteTerminals(input: { ids: string[] }) {
+  return guard(async () => {
+    const { supabase } = await orgId();
+    if (input.ids.length === 0) return { ok: false, message: "Nothing selected" };
+
+    const { data: rows } = await supabase
+      .from("terminals")
+      .select("id, serial, status")
+      .in("id", input.ids);
+
+    const deployed = (rows ?? []).filter((r) => r.status === "deployed");
+    if (deployed.length > 0) {
+      const names = deployed.map((r) => r.serial as string).join(", ");
+      return {
+        ok: false,
+        message: `${names} ${deployed.length === 1 ? "is" : "are"} still in a shop. Mark it came back, damaged or lost first.`,
+      };
+    }
+
+    const { error } = await supabase.from("terminals").delete().in("id", input.ids);
+    if (error) return { ok: false, message: error.message };
+
+    revalidatePath("/terminals");
+    return { ok: true, message: `Removed ${input.ids.length}` };
+  });
+}

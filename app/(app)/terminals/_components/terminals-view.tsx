@@ -5,9 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { PackagePlus, Radio, Undo2 } from "lucide-react";
+import { PackagePlus, Radio, Undo2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { receiveTerminals, assignTerminal, returnTerminal } from "../actions";
+import { receiveTerminals, assignTerminal, returnTerminal, deleteTerminals } from "../actions";
 
 type Row = {
   id: string;
@@ -44,6 +44,7 @@ export function TerminalsView({
   const [filter, setFilter] = useState<string | null>(null);
   const [serials, setSerials] = useState("");
   const [showReceive, setShowReceive] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
 
   const counts = useMemo(() => {
     const m = new Map<string, number>();
@@ -75,10 +76,10 @@ export function TerminalsView({
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl tracking-wider">
-            TERMI<span className="text-primary">NALS</span>
+            INVEN<span className="text-primary">TORY</span>
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Every unit, where it is, and how long it has been there.
+            Every piece of equipment, where it is, and how long it has been there.
           </p>
         </div>
         <Button
@@ -148,6 +149,36 @@ export function TerminalsView({
         })}
       </div>
 
+      {picked.size > 0 && (
+        <div className="sticky top-2 z-10 mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-destructive/40 bg-background/95 px-4 py-3 shadow-2xl backdrop-blur">
+          <span className="text-sm font-bold">
+            {picked.size} selected
+          </span>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => {
+              if (!confirm(`Remove ${picked.size} from inventory? This cannot be undone.`)) return;
+              run(async () => {
+                const res = await deleteTerminals({ ids: [...picked] });
+                if (res.ok) setPicked(new Set());
+                return res;
+              }, "Removed from inventory");
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/50 px-3 py-1.5 text-xs font-bold text-destructive hover:bg-destructive/10 disabled:opacity-50"
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Remove
+          </button>
+          <button
+            type="button"
+            onClick={() => setPicked(new Set())}
+            className="ml-auto text-xs text-muted-foreground hover:text-foreground"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {shown.length === 0 ? (
         <div className="rounded-md border border-border/40 p-8 text-center text-sm text-muted-foreground">
           {terminals.length === 0
@@ -163,6 +194,18 @@ export function TerminalsView({
                 key={t.id}
                 className="flex flex-wrap items-center gap-3 rounded-md border border-border/40 px-3 py-2.5"
               >
+                <input
+                  type="checkbox"
+                  checked={picked.has(t.id)}
+                  onChange={(e) => {
+                    const next = new Set(picked);
+                    if (e.target.checked) next.add(t.id);
+                    else next.delete(t.id);
+                    setPicked(next);
+                  }}
+                  className="h-4 w-4 shrink-0 accent-amber-500"
+                  aria-label={`Select ${t.serial}`}
+                />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-sm font-bold">{t.serial}</span>

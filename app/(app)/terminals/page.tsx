@@ -33,9 +33,9 @@ export default async function TerminalsPage() {
   if (rowsErr) {
     return (
       <div className="mx-auto max-w-3xl px-4 pt-10">
-        <h1 className="font-display text-2xl tracking-wider">TERMINALS</h1>
+        <h1 className="font-display text-2xl tracking-wider">INVENTORY</h1>
         <div className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm">
-          <div className="font-bold text-destructive">The terminals table is not reachable.</div>
+          <div className="font-bold text-destructive">Inventory is not reachable.</div>
           <p className="mt-1.5 text-muted-foreground">
             Most likely migration 051 has not run yet. Run it in the Supabase SQL editor, then
             reload this page.

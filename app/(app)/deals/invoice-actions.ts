@@ -27,7 +27,7 @@ async function sendMail(from: string, to: string[], subject: string, text: strin
 
 /**
  * An invoice is built from the deal's line items, then FROZEN. The prices on
- * it are a snapshot, exactly like the agreement terms - editing the catalogue
+ * it are a snapshot, exactly like the agreement terms - editing the catalog
  * next quarter must never change what someone was billed.
  *
  * A paid invoice is the receipt. Same document, same link, different header.

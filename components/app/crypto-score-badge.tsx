@@ -4,7 +4,7 @@
  * Compact crypto-density readout for list views.
  *
  * Uses the same violet-to-magenta ramp as the map heat layer so the two
- * surfaces read as one metric. The band colours (red/amber/slate) are
+ * surfaces read as one metric. The band colors (red/amber/slate) are
  * deliberately untouched -- density is a separate axis from merchant fit and
  * shouldn't look like a third band.
  */

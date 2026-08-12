@@ -29,7 +29,7 @@ const navItems: {
   { href: '/map',        label: 'Map',        icon: MapIcon,         roles: ['super_admin','admin','manager','rep'] },
   { href: '/calendar',   label: 'Calendar',   icon: CalendarDays,    roles: ['super_admin','admin','manager','rep'] },
   { href: '/campaigns',  label: 'Campaign',   icon: Megaphone,       roles: ['super_admin','admin'] },
-  { href: '/terminals',  label: 'Terminals',  icon: HardDrive,       roles: ['super_admin','admin','manager'] },
+  { href: '/terminals',  label: 'Inventory',  icon: HardDrive,       roles: ['super_admin','admin','manager'] },
   { href: '/earnings',   label: 'Earnings',   icon: Coins,           roles: ['super_admin','admin','manager','rep'] },
   { href: '/playbook',   label: 'Playbook',   icon: BookOpen,        roles: ['super_admin','admin','manager','rep'] },
   { href: '/activities', label: 'Activities', icon: Activity,        roles: ['super_admin','admin','manager','rep'] },

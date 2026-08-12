@@ -47,7 +47,7 @@ export function weeklyBonusCents(sales: number, tiers: CompTier[] = DEFAULT_TIER
 
 /**
  * What the next sale is worth, and how far the bracket after that is. This is
- * the number that actually changes behaviour on a Thursday afternoon.
+ * the number that actually changes behavior on a Thursday afternoon.
  */
 export function nextSaleOutlook(
   sales: number,

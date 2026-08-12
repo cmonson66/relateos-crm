@@ -105,8 +105,8 @@ export const HELP: HelpTopic[] = [
   },
   {
     path: "/terminals",
-    title: "Terminals",
-    what: "Every unit, where it is, and how long it has been there.",
+    title: "Inventory",
+    what: "Every piece of equipment, where it is, and how long it has been there.",
     steps: [
       "Paste the serials from a shipment into Receive stock.",
       "Assign a unit to whoever is carrying it.",
@@ -115,6 +115,7 @@ export const HELP: HelpTopic[] = [
     gotchas: [
       "Units go to a shop automatically when a serial is typed on a deal line item.",
       "Damaged and Lost do not return to stock, on purpose.",
+      "Tick the boxes to remove units you typed wrong. A unit sitting in a shop cannot be removed until you mark it came back, damaged or lost.",
     ],
     stuck: "A serial you never received still records itself when it is used on a deal.",
   },

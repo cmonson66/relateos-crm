@@ -225,7 +225,7 @@ export function EarningsView({
           ))}
         </div>
 
-        {/* the number that changes behaviour on a Thursday */}
+        {/* the number that changes behavior on a Thursday */}
         <div className="mt-4 flex items-start gap-2 rounded-md border border-primary/30 bg-primary/[0.06] p-3 text-[13px]">
           <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <div>

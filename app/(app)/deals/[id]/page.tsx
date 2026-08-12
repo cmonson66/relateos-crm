@@ -63,7 +63,7 @@ export default async function DealDetailPage({
 
   if (!deal) notFound();
 
-  // Line items and the catalogue. Fetched after the deal so a missing deal
+  // Line items and the catalog. Fetched after the deal so a missing deal
   // short-circuits before two more round trips.
   const [{ data: itemRows }, { data: productRows }] = await Promise.all([
     supabase
