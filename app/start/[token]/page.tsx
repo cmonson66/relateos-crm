@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { CryptoPopPreview } from "@/components/marketing/cryptopop-preview";
 
 export const dynamic = "force-dynamic";
 
@@ -96,6 +97,11 @@ export default async function WelcomePage({
           ]}
           have="Have handy: your business hours, a photo or two of the shop, and any offer you would want to lead with."
         />
+
+        {/* Step 2 promises a CryptoPop call. This is what that call is about. */}
+        <div className="mt-8 rounded-2xl bg-[#0c1a2c] p-5 sm:p-7">
+          <CryptoPopPreview shopName={w.business_name} />
+        </div>
 
         <div className="mt-8 rounded-2xl border border-[#f2a71b]/40 bg-[#f2a71b]/10 p-5">
           <div className="text-[10px] uppercase tracking-[0.2em] text-[#47566b]">
