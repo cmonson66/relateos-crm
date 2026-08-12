@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { usePathname } from "next/navigation";
-import { HelpCircle, X, AlertTriangle, LifeBuoy } from "lucide-react";
-import { helpFor } from "@/lib/help-content";
+import { HelpCircle, X, AlertTriangle, LifeBuoy, Pencil } from "lucide-react";
+import { helpFor, type HelpTopic } from "@/lib/help-content";
+import { loadHelp, saveHelp, resetHelp } from "@/app/(app)/help-actions";
 
 /**
  * Page help, one tap from anywhere.
@@ -14,10 +15,20 @@ import { helpFor } from "@/lib/help-content";
  * which is usually "what am I supposed to do on this screen" or "why will it
  * not let me do the thing".
  */
-export function HelpPanel() {
+export function HelpPanel({ canEdit = false }: { canEdit?: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const topic = helpFor(pathname);
+  const [editing, setEditing] = useState(false);
+  const [pending, start] = useTransition();
+
+  // The code copy renders instantly; a database override, if one exists,
+  // replaces it once the panel opens. A fresh deployment is never blank and
+  // an edited page is never stale.
+  const [override, setOverride] = useState<HelpTopic | null>(null);
+  const topic = override ?? helpFor(pathname);
+
+  const [form, setForm] = useState({ title: "", what: "", steps: "", gotchas: "", stuck: "" });
+  const [error, setError] = useState<string | null>(null);
 
   // Close on route change without a setState-in-effect on every render
   const [lastPath, setLastPath] = useState(pathname);
@@ -25,6 +36,13 @@ export function HelpPanel() {
     setLastPath(pathname);
     if (open) setOpen(false);
   }
+
+  useEffect(() => {
+    if (!open) return;
+    loadHelp(pathname)
+      .then((r) => { if (r.topic && r.edited) setOverride(r.topic); })
+      .catch(() => {});
+  }, [open, pathname]);
 
   useEffect(() => {
     if (!open) return;
@@ -66,16 +84,100 @@ export function HelpPanel() {
                 </div>
                 <h2 className="font-display text-xl tracking-wider">{topic.title}</h2>
               </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="rounded-md p-1.5 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
-                aria-label="Close"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                {canEdit && !editing && (
+                  <button
+                    type="button"
+                    title="Edit this page's help"
+                    onClick={() => {
+                      setForm({
+                        title: topic.title,
+                        what: topic.what,
+                        steps: (topic.steps ?? []).join("\n"),
+                        gotchas: (topic.gotchas ?? []).join("\n"),
+                        stuck: topic.stuck ?? "",
+                      });
+                      setEditing(true);
+                    }}
+                    className="rounded-md p-1.5 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="rounded-md p-1.5 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
+            {editing ? (
+              <div className="space-y-3 px-5 py-5">
+                <p className="text-[12.5px] text-muted-foreground">
+                  Whatever you write here replaces the built-in text for everyone in this
+                  workspace. One line per step.
+                </p>
+                <Field label="Title" value={form.title} onChange={(v) => setForm({ ...form, title: v })} />
+                <Field label="What this page is for" value={form.what} onChange={(v) => setForm({ ...form, what: v })} rows={3} />
+                <Field label="How to work it, one per line" value={form.steps} onChange={(v) => setForm({ ...form, steps: v })} rows={5} />
+                <Field label="Worth knowing, one per line" value={form.gotchas} onChange={(v) => setForm({ ...form, gotchas: v })} rows={5} />
+                <Field label="If you are stuck" value={form.stuck} onChange={(v) => setForm({ ...form, stuck: v })} rows={2} />
+
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() =>
+                      start(async () => {
+                        const res = await saveHelp({ path: topic.path, ...form });
+                        if (!res.ok) { setError(res.message); return; }
+                        setOverride({
+                          path: topic.path,
+                          title: form.title || topic.title,
+                          what: form.what,
+                          steps: form.steps.split("\n").map((l) => l.trim()).filter(Boolean),
+                          gotchas: form.gotchas.split("\n").map((l) => l.trim()).filter(Boolean),
+                          stuck: form.stuck || undefined,
+                        });
+                        setError(null);
+                        setEditing(false);
+                      })
+                    }
+                    className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50"
+                  >
+                    Save for everyone
+                  </button>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => { setEditing(false); setError(null); }}
+                    className="rounded-lg border border-border/40 px-4 py-2 text-sm font-bold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() =>
+                      start(async () => {
+                        const res = await resetHelp(topic.path);
+                        if (!res.ok) { setError(res.message); return; }
+                        setOverride(null);
+                        setEditing(false);
+                      })
+                    }
+                    className="ml-auto text-[12px] text-muted-foreground underline"
+                  >
+                    Put the original back
+                  </button>
+                </div>
+                {error && <p className="text-[12.5px] text-destructive">{error}</p>}
+              </div>
+            ) : (
             <div className="space-y-6 px-5 py-5">
               <p className="text-[14.5px] leading-relaxed">{topic.what}</p>
 
@@ -126,9 +228,42 @@ export function HelpPanel() {
                 Something here wrong or missing? Tell Chad and it gets fixed for everyone.
               </p>
             </div>
+            )}
           </aside>
         </div>
       )}
     </>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  rows = 1,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  rows?: number;
+}) {
+  return (
+    <div>
+      <div className="mb-1 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">{label}</div>
+      {rows > 1 ? (
+        <textarea
+          value={value}
+          rows={rows}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full rounded-md border border-border/40 bg-background px-2.5 py-2 text-[13px]"
+        />
+      ) : (
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full rounded-md border border-border/40 bg-background px-2.5 py-2 text-[13px]"
+        />
+      )}
+    </div>
   );
 }

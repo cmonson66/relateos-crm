@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef } from 'react';
 import Link from 'next/link';
-import { Printer, FileText, BookOpen, PackageCheck, ChevronLeft, Search, X, MapPin } from 'lucide-react';
+import { Printer, FileText, BookOpen, PackageCheck, ChevronLeft, Search, X, MapPin, Compass } from 'lucide-react';
 import { OnePager } from './one-pager';
 import { searchAccounts } from '@/app/(app)/appointments/actions';
 
@@ -43,6 +43,8 @@ const WALLS: { q: string; a: string }[] = [
   { q: '"What if I need real support?"', a: 'Standard is $19. White-glove is $99 a month and that means we pick up the phone. Most shops start standard and never move.' },
 ];
 
+import { FirstWeek } from './first-week';
+
 export function PlaybookView({
   visits = [],
   rep = { first: 'Rep', cell: '', email: '' },
@@ -51,7 +53,7 @@ export function PlaybookView({
   rep?: { first: string; cell: string; email: string };
 }) {
   // Land on a menu, not inside the script
-  const [tab, setTab] = useState<'home' | 'script' | 'onepager' | 'kit'>('home');
+  const [tab, setTab] = useState<'home' | 'week1' | 'script' | 'onepager' | 'kit'>('home');
   const [picked, setPicked] = useState<Set<string>>(new Set());
   // Shops added by search rather than from the calendar - for the rep who
   // just walked past a promising restaurant
@@ -114,6 +116,7 @@ export function PlaybookView({
           <h1 className="font-display text-3xl tracking-wider">
             {tab === 'home' ? <>THE <span className="text-primary">PLAYBOOK</span></>
               : tab === 'onepager' ? <>THE <span className="text-primary">ONE-PAGER</span></>
+              : tab === 'week1' ? <>YOUR FIRST <span className="text-primary">WEEK</span></>
               : tab === 'kit' ? <>PRINT A <span className="text-primary">KIT</span></>
               : <>THE <span className="text-primary">WALK-IN</span></>}
           </h1>
@@ -129,8 +132,9 @@ export function PlaybookView({
       </div>
 
       {tab === 'home' && (
-        <div className="grid gap-3 sm:grid-cols-3 print:hidden">
+        <div className="grid gap-3 sm:grid-cols-2 print:hidden">
           {([
+            ['week1', 'Your first week', 'New here? Start with this. What to do each day and what good looks like.', Compass],
             ['script', 'The script', 'Opener, hooks, the math, closes, and the six walls. Learn it once.', BookOpen],
             ['onepager', 'The one-pager', 'Your leave-behind, with your name and cell on it.', FileText],
             ['kit', 'Print a kit', 'A packet per shop: their sheet plus a one-pager to leave.', PackageCheck],
@@ -256,6 +260,8 @@ export function PlaybookView({
           </div>
         </div>
       )}
+
+      {tab === 'week1' && <FirstWeek />}
 
       {tab === 'script' && (
       <>

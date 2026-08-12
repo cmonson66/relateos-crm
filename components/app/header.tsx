@@ -55,7 +55,7 @@ export function Header({
       </div>
 
       <div className="flex items-center gap-2 md:gap-3">
-        <HelpPanel />
+        <HelpPanel canEdit={['super_admin', 'admin'].includes(profile.role)} />
         <NotificationBell />
 
         {/* Identity (non-interactive) */}

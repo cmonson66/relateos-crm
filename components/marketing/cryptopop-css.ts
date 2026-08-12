@@ -5,7 +5,7 @@ export const CRYPTOPOP_CSS = `
 }
 .cp *{box-sizing:border-box}
 /* ---------------- phone ---------------- */
-  .cp .phone{width:min(352px,100%);max-width:100%;margin:0 auto;background:#000;border-radius:40px;padding:10px;
+  .cp .phone{width:352px;max-width:100%;margin:0 auto;background:#000;border-radius:40px;padding:10px;
     box-shadow:0 40px 80px -30px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.07)}
   .cp .screen{background:var(--land);border-radius:31px;overflow:hidden;position:relative;
     height:min(686px, 128vw);min-height:560px;
@@ -86,14 +86,24 @@ export const CRYPTOPOP_CSS = `
   .cp .nav .ico{font-size:16px;display:block;margin-bottom:1px}
 
   
-.cp{margin-top:40px;max-width:100%;overflow:hidden;color:var(--cream);font-family:Inter,system-ui,sans-serif}
+.cp{margin-top:40px;max-width:100%;overflow:hidden;color:var(--cream);
+  font-family:Inter,system-ui,sans-serif;container-type:inline-size;container-name:cp}
 .cp-head{display:grid;grid-template-columns:1fr;gap:32px;align-items:center}
 /* Grid items are min-width:auto by default, which lets the phone's internals
    push the whole track wider than a phone screen and clip everything. */
 .cp-head>*{min-width:0}
-@media(min-width:900px){.cp-head{grid-template-columns:1fr 1fr;gap:48px}}
+/* Measured on the CONTAINER, not the window: this section sits in a 672px
+   card on /start and full width on /cryptopop, and only the wider one has
+   room for two columns beside a 352px phone. */
+@container cp (min-width: 780px){
+  .cp-head{grid-template-columns:1fr auto;gap:44px}
+}
+/* Fallback for anything without container query support: stay stacked. */
+@supports not (container-type: inline-size){
+  @media(min-width:1100px){.cp-head{grid-template-columns:1fr auto;gap:44px}}
+}
 .cp-eyebrow{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--honey);margin-bottom:10px;font-weight:700}
-.cp-h2{overflow-wrap:anywhere;font-size:clamp(22px,5.2vw,34px);font-weight:800;line-height:1.1;letter-spacing:-.02em;margin:0 0 12px;color:var(--cream)}
+.cp-h2{overflow-wrap:anywhere;text-wrap:balance;font-size:clamp(22px,4.2vw,32px);font-weight:800;line-height:1.1;letter-spacing:-.02em;margin:0 0 12px;color:var(--cream)}
 .cp-lede{font-size:15.5px;color:rgba(248,244,234,.78);margin:0 0 18px;max-width:46ch}
 .cp-points{list-style:none;padding:0;margin:0;display:grid;gap:10px}
 .cp-points li{position:relative;padding-left:26px;font-size:14.5px;color:rgba(248,244,234,.85)}
