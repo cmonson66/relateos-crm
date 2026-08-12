@@ -1,4 +1,10 @@
-import { Mail, Zap, CheckCircle2, Clock, ExternalLink } from 'lucide-react';
+'use client';
+
+import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { Mail, Zap, CheckCircle2, Clock, ExternalLink, Send, Ban } from 'lucide-react';
+import { setCampaignEligibility } from '../campaign-actions';
 
 // Where this shop stands in the outbound sequence, in plain language.
 const STAGE_LABEL: Record<number, string> = {
@@ -17,13 +23,21 @@ const GAP: Record<number, number> = { 1: 4, 2: 5, 3: 6, 4: 7, 5: 8 };
 export function CampaignPanel({
   intel,
   pulseUrl,
+  accountId,
+  canEdit,
 }: {
   intel: {
     email_stage?: number; status?: string; band?: string; score?: number;
     monthly_volume?: number | null; emails?: number;
   };
   pulseUrl: string | null;
+  accountId: string;
+  canEdit: boolean;
 }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [busy, setBusy] = useState(false);
+
   const stage = intel.email_stage ?? 0;
   const status = intel.status ?? 'NEW';
   const emailable = (intel.emails ?? 0) > 0;
@@ -85,6 +99,54 @@ export function CampaignPanel({
           </div>
         )}
       </div>
+
+      {canEdit && (
+        <div className="mt-3 border-t border-border/30 pt-3">
+          {status === 'FIELD' ? (
+            <>
+              <p className="mb-2 text-[12px] text-muted-foreground">
+                Added by hand or imported, so the sender skips it. If this is a cold lead you
+                want emailed, put it in the campaign.
+              </p>
+              <button
+                type="button"
+                disabled={pending || busy}
+                onClick={() => {
+                  setBusy(true);
+                  start(async () => {
+                    const res = await setCampaignEligibility({ accountId, include: true });
+                    setBusy(false);
+                    if (!res.ok) { toast.error(res.message); return; }
+                    toast.success('In the campaign - the next run picks it up');
+                    router.refresh();
+                  });
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-2 text-xs font-extrabold text-slate-950 hover:bg-amber-400 disabled:opacity-50"
+              >
+                <Send className="h-3.5 w-3.5" /> Add to the campaign
+              </button>
+            </>
+          ) : stage === 0 ? (
+            <button
+              type="button"
+              disabled={pending || busy}
+              onClick={() => {
+                setBusy(true);
+                start(async () => {
+                  const res = await setCampaignEligibility({ accountId, include: false });
+                  setBusy(false);
+                  if (!res.ok) { toast.error(res.message); return; }
+                  toast.success('Taken out of the campaign');
+                  router.refresh();
+                });
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border/40 px-3 py-2 text-xs font-bold text-muted-foreground hover:text-foreground disabled:opacity-50"
+            >
+              <Ban className="h-3.5 w-3.5" /> Take out of the campaign
+            </button>
+          ) : null}
+        </div>
+      )}
 
       {pulseUrl && (
         <a

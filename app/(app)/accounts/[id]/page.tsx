@@ -161,7 +161,14 @@ export default async function AccountDetailPage({
         )}
       </div>
 
-      {campaign && <CampaignPanel intel={campaign} pulseUrl={pulseUrl} />}
+      {campaign && (
+        <CampaignPanel
+          intel={campaign}
+          pulseUrl={pulseUrl}
+          accountId={id}
+          canEdit={['super_admin', 'admin', 'manager', 'rep'].includes(currentProfile.role)}
+        />
+      )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
