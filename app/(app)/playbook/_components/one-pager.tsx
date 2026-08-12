@@ -118,6 +118,30 @@ export function OnePager({ rep }: { rep: { first: string; cell: string; email: s
         </div>
       </div>
 
+      {/* CryptoPop band. After the proven reasons, before the ask, and worded so
+          a rep never says "you will be listed". */}
+      <div className="mb-4 rounded border border-amber-300 bg-amber-50 p-3">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-amber-700">
+            Coming next
+          </span>
+          <b className="text-[13px]">CryptoPop</b>
+          <span className="text-[11px] text-neutral-600">
+            the map that sends crypto customers to your door
+          </span>
+        </div>
+        <p className="mt-1 text-[11px] leading-snug text-neutral-700">
+          NectarPay is building a directory showing people who pay in crypto which businesses near
+          them accept it, and what each one is running that week. When it launches, merchants
+          taking crypto get listed and post their own specials. A card reader takes money - this is
+          the part that brings someone in.
+        </p>
+        <p className="mt-1 text-[10px] text-neutral-500">
+          In development, no launch date yet. The terminal pays for itself on fees either way.
+        </p>
+      </div>
+
+
       <div className="rounded bg-neutral-900 p-3 text-white">
         <div className="text-sm font-bold">Want to see it live? Ten minutes at your shop.</div>
         <div className="mt-1 text-xs text-amber-400">
