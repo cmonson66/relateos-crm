@@ -94,7 +94,7 @@ export function ActivitiesList({
       <div className="card-lit border border-border/40 rounded-md overflow-hidden">
         {filtered.length === 0 ? (
           <div className="px-5 py-12 text-center text-sm text-muted-foreground">
-            No activities match these filters.
+            Nothing here yet. Calls, emails, texts and notes land here automatically as you work.
           </div>
         ) : filtered.map(a => {
           const Icon = ICONS[a.type];

@@ -53,7 +53,7 @@ export default async function DealsPage() {
         <EmptyState
           icon={Briefcase}
           title="No deals yet"
-          description="Create your first deal to start tracking your pipeline."
+          description="A deal is one shop going somewhere. Most get created for you when you book a demo in Call Mode, so you rarely start here. Add what they are getting, sign the agreement, then invoice - a deal reaches LIVE when the invoice is paid."
           action={
             <Link href="/deals/new">
               <Button className="font-display tracking-wider">+ Add Deal</Button>

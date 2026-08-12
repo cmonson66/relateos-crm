@@ -413,7 +413,7 @@ export function AccountsTable({
         ))}
         {filtered.length === 0 && (
           <div className="px-5 py-12 text-center text-sm text-muted-foreground">
-            No accounts match these filters.
+            No accounts match these filters. Re-tap a chip to clear it.
           </div>
         )}
       </div>
@@ -484,7 +484,7 @@ export function AccountsTable({
         ))}
         {filtered.length === 0 && (
           <div className="card-lit border border-border/40 rounded-md px-5 py-12 text-center text-sm text-muted-foreground">
-            No accounts match these filters.
+            No accounts match these filters. Re-tap a chip to clear it.
           </div>
         )}
       </div>

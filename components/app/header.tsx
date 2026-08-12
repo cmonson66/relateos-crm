@@ -6,6 +6,7 @@ import { LogOut, Lock, Search, Menu } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/lib/auth/get-user';
 import { NotificationBell } from '@/components/app/notification-bell';
+import { HelpPanel } from '@/components/app/help-panel';
 
 export function Header({
   profile,
@@ -54,6 +55,7 @@ export function Header({
       </div>
 
       <div className="flex items-center gap-2 md:gap-3">
+        <HelpPanel />
         <NotificationBell />
 
         {/* Identity (non-interactive) */}
