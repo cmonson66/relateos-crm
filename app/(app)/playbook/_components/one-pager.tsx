@@ -138,39 +138,75 @@ export function OnePager({ rep }: { rep: { first: string; cell: string; email: s
             money - this is the part that brings someone in.
           </p>
 
-          {/* The map, small enough to survive a black-and-white print */}
-          <div className="relative w-40 shrink-0 overflow-hidden rounded border border-neutral-300 print:w-40">
-            <svg viewBox="0 0 160 104" className="block w-full" aria-hidden="true">
-              <rect width="160" height="104" fill="#eef0f2" />
+          {/* Drawn as a phone, entirely in SVG: a floating map reads as a
+              diagram, the same map inside a handset reads as an app the
+              merchant's customers will open. SVG rather than HTML so the pins
+              and the frame survive a black-and-white print. */}
+          <div className="w-[124px] shrink-0 print:w-[124px]">
+            <svg viewBox="0 0 124 208" className="block w-full" aria-hidden="true">
+              {/* handset */}
+              <rect x="1" y="1" width="122" height="206" rx="18" fill="#0b0b0d" />
+              <rect x="6" y="6" width="112" height="196" rx="14" fill="#eef0f2" />
+
+              {/* app chrome */}
+              <rect x="6" y="6" width="112" height="30" rx="14" fill="#ffffff" />
+              <rect x="6" y="24" width="112" height="12" fill="#ffffff" />
+              <text x="13" y="18" fontSize="5.5" fontWeight="700" fill="#111827">5:11</text>
+              <text x="97" y="18" fontSize="5.5" fill="#6b7280">Near you</text>
+              <text x="13" y="31" fontSize="9" fontWeight="800" fill="#111827">Crypto</text>
+              <text x="43" y="31" fontSize="9" fontWeight="800" fill="#b8760a">Pop</text>
+
+              {/* category tabs */}
+              <rect x="6" y="36" width="112" height="13" fill="#ffffff" />
+              <text x="13" y="45" fontSize="5.5" fontWeight="700" fill="#b8760a">All</text>
+              <rect x="12" y="46.5" width="9" height="1.6" fill="#f2a71b" />
+              <text x="27" y="45" fontSize="5.5" fill="#6b7280">Coffee</text>
+              <text x="50" y="45" fontSize="5.5" fill="#6b7280">Food</text>
+              <text x="70" y="45" fontSize="5.5" fill="#6b7280">Retail</text>
+              <text x="92" y="45" fontSize="5.5" fill="#6b7280">More</text>
+              <line x1="6" y1="49" x2="118" y2="49" stroke="#eceff2" strokeWidth="1" />
+
+              {/* map */}
+              <rect x="6" y="49" width="112" height="112" fill="#eef0f2" />
               <g fill="#e6e2d8">
-                <rect x="6" y="6" width="42" height="24" />
-                <rect x="100" y="8" width="54" height="22" />
-                <rect x="8" y="74" width="40" height="26" />
-                <rect x="104" y="72" width="50" height="28" />
+                <rect x="10" y="53" width="34" height="20" />
+                <rect x="78" y="55" width="36" height="18" />
+                <rect x="10" y="132" width="32" height="24" />
+                <rect x="80" y="130" width="34" height="26" />
               </g>
-              <g stroke="#d0d4d8" strokeWidth="7">
-                <path d="M-4 38 H164" /><path d="M-4 68 H164" />
-                <path d="M56 -4 V108" /><path d="M96 -4 V108" />
+              <g fill="#cfe4cd">
+                <rect x="50" y="134" width="24" height="22" rx="2" />
+                <rect x="50" y="52" width="22" height="16" rx="2" />
               </g>
-              <g stroke="#ffffff" strokeWidth="4.5">
-                <path d="M-4 38 H164" /><path d="M-4 68 H164" />
-                <path d="M56 -4 V108" /><path d="M96 -4 V108" />
+              <g stroke="#d0d4d8" strokeWidth="6">
+                <path d="M4 80 H120" /><path d="M4 122 H120" />
+                <path d="M46 47 V163" /><path d="M78 47 V163" />
               </g>
-              {/* offer pins, drawn in SVG so they print cleanly */}
-              <g>
-                <rect x="8" y="26" width="40" height="13" rx="6.5" fill="#fff" stroke="#c9cdd2" strokeWidth=".7" />
-                <circle cx="15" cy="32.5" r="4" fill="#3b7dc4" />
-                <text x="22" y="35.5" fontSize="7" fontWeight="700" fill="#111827">8% back</text>
+              <g stroke="#ffffff" strokeWidth="4">
+                <path d="M4 80 H120" /><path d="M4 122 H120" />
+                <path d="M46 47 V163" /><path d="M78 47 V163" />
+              </g>
 
-                <rect x="98" y="20" width="46" height="13" rx="6.5" fill="#fff" stroke="#c9cdd2" strokeWidth=".7" />
-                <circle cx="105" cy="26.5" r="4" fill="#2f7d4f" />
-                <text x="112" y="29.5" fontSize="7" fontWeight="700" fill="#111827">10% back</text>
+              {/* offer pins */}
+              <rect x="10" y="62" width="38" height="12" rx="6" fill="#fff" stroke="#c9cdd2" strokeWidth=".7" />
+              <circle cx="16.5" cy="68" r="3.6" fill="#3b7dc4" />
+              <text x="23" y="70.5" fontSize="6.2" fontWeight="700" fill="#111827">8% back</text>
 
-                <rect x="44" y="56" width="62" height="15" rx="7.5" fill="#0c1a2c" />
-                <circle cx="52" cy="63.5" r="4.5" fill="#f2a71b" />
-                <text x="60" y="66.5" fontSize="7" fontWeight="700" fill="#ffffff">Your shop</text>
-                <circle cx="58" cy="80" r="4" fill="#2563eb" stroke="#fff" strokeWidth="1.5" />
-              </g>
+              <rect x="74" y="88" width="42" height="12" rx="6" fill="#fff" stroke="#c9cdd2" strokeWidth=".7" />
+              <circle cx="80.5" cy="94" r="3.6" fill="#2f7d4f" />
+              <text x="87" y="96.5" fontSize="6.2" fontWeight="700" fill="#111827">10% back</text>
+
+              <rect x="26" y="108" width="52" height="14" rx="7" fill="#0c1a2c" />
+              <circle cx="34" cy="115" r="4.2" fill="#f2a71b" />
+              <text x="41" y="117.5" fontSize="6.4" fontWeight="700" fill="#ffffff">Your shop</text>
+              <circle cx="52" cy="130" r="3.6" fill="#2563eb" stroke="#fff" strokeWidth="1.4" />
+
+              {/* the merchant's own listing */}
+              <rect x="11" y="166" width="102" height="30" rx="6" fill="#ffffff" stroke="#e3e6e9" strokeWidth=".8" />
+              <rect x="16" y="171" width="20" height="20" rx="4" fill="#0c1a2c" />
+              <text x="22" y="185" fontSize="9" fontWeight="800" fill="#f2a71b">Y</text>
+              <text x="41" y="179" fontSize="6.6" fontWeight="700" fill="#111827">Your shop</text>
+              <text x="41" y="187" fontSize="6" fontWeight="700" fill="#1f8a5b">Your special goes here</text>
             </svg>
           </div>
         </div>
