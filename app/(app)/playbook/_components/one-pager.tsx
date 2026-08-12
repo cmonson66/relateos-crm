@@ -130,12 +130,50 @@ export function OnePager({ rep }: { rep: { first: string; cell: string; email: s
             the map that sends crypto customers to your door
           </span>
         </div>
-        <p className="mt-1 text-[11px] leading-snug text-neutral-700">
-          NectarPay is building a directory showing people who pay in crypto which businesses near
-          them accept it, and what each one is running that week. When it launches, merchants
-          taking crypto get listed and post their own specials. A card reader takes money - this is
-          the part that brings someone in.
-        </p>
+        <div className="mt-1.5 flex flex-wrap items-start gap-3 sm:flex-nowrap">
+          <p className="min-w-0 flex-1 text-[11px] leading-snug text-neutral-700">
+            NectarPay is building a directory showing people who pay in crypto which businesses
+            near them accept it, and what each one is running that week. When it launches,
+            merchants taking crypto get listed and post their own specials. A card reader takes
+            money - this is the part that brings someone in.
+          </p>
+
+          {/* The map, small enough to survive a black-and-white print */}
+          <div className="relative w-40 shrink-0 overflow-hidden rounded border border-neutral-300 print:w-40">
+            <svg viewBox="0 0 160 104" className="block w-full" aria-hidden="true">
+              <rect width="160" height="104" fill="#eef0f2" />
+              <g fill="#e6e2d8">
+                <rect x="6" y="6" width="42" height="24" />
+                <rect x="100" y="8" width="54" height="22" />
+                <rect x="8" y="74" width="40" height="26" />
+                <rect x="104" y="72" width="50" height="28" />
+              </g>
+              <g stroke="#d0d4d8" strokeWidth="7">
+                <path d="M-4 38 H164" /><path d="M-4 68 H164" />
+                <path d="M56 -4 V108" /><path d="M96 -4 V108" />
+              </g>
+              <g stroke="#ffffff" strokeWidth="4.5">
+                <path d="M-4 38 H164" /><path d="M-4 68 H164" />
+                <path d="M56 -4 V108" /><path d="M96 -4 V108" />
+              </g>
+              {/* offer pins, drawn in SVG so they print cleanly */}
+              <g>
+                <rect x="8" y="26" width="40" height="13" rx="6.5" fill="#fff" stroke="#c9cdd2" strokeWidth=".7" />
+                <circle cx="15" cy="32.5" r="4" fill="#3b7dc4" />
+                <text x="22" y="35.5" fontSize="7" fontWeight="700" fill="#111827">8% back</text>
+
+                <rect x="98" y="20" width="46" height="13" rx="6.5" fill="#fff" stroke="#c9cdd2" strokeWidth=".7" />
+                <circle cx="105" cy="26.5" r="4" fill="#2f7d4f" />
+                <text x="112" y="29.5" fontSize="7" fontWeight="700" fill="#111827">10% back</text>
+
+                <rect x="44" y="56" width="62" height="15" rx="7.5" fill="#0c1a2c" />
+                <circle cx="52" cy="63.5" r="4.5" fill="#f2a71b" />
+                <text x="60" y="66.5" fontSize="7" fontWeight="700" fill="#ffffff">Your shop</text>
+                <circle cx="58" cy="80" r="4" fill="#2563eb" stroke="#fff" strokeWidth="1.5" />
+              </g>
+            </svg>
+          </div>
+        </div>
         <p className="mt-1 text-[10px] text-neutral-500">
           In development, no launch date yet. The terminal pays for itself on fees either way.
         </p>
