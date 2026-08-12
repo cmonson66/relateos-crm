@@ -77,10 +77,17 @@ export async function executeImport(
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('org_id')
+    .select('org_id, role')
     .eq('id', user.id)
     .single();
   if (!profile) throw new Error('No profile');
+
+  // A rep owns what they upload, full stop. Handing rows to another rep is
+  // a lead-management decision, so it stays with admins and managers.
+  const canAssignOthers = ['super_admin', 'admin', 'manager'].includes(profile.role);
+  const opts: ImportOptions = canAssignOthers
+    ? options
+    : { ...options, defaultOwnerId: user.id };
 
   const { data: importRecord, error: importErr } = await supabase
     .from('imports')
@@ -105,7 +112,7 @@ export async function executeImport(
     if (first) ownerByKey.set(first, p.id);
     if (p.full_name) ownerByKey.set(p.full_name.toLowerCase(), p.id);
   }
-  const fileOwner = options.defaultOwnerId || user.id;
+  const fileOwner = opts.defaultOwnerId || user.id;
   const ownerFor = (row: ImportRow): string => {
     const key = row.rep?.trim().toLowerCase();
     return (key && ownerByKey.get(key)) || fileOwner;
@@ -129,7 +136,7 @@ export async function executeImport(
     if (!accountsByName.has(orgName)) {
       const v = (row.vertical || '').toLowerCase().trim();
       accountsByName.set(orgName, {
-        vertical: verticalMap[v] || options.verticalOverrides?.[v] || DEFAULT_VERTICAL,
+        vertical: verticalMap[v] || opts.verticalOverrides?.[v] || DEFAULT_VERTICAL,
         city: null, state: null, website: null, notes: null,
         rows: [], ownerId: ownerFor(row),
       });

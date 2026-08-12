@@ -76,3 +76,58 @@ export async function setCampaignEligibility(input: {
   revalidatePath(`/accounts/${input.accountId}`);
   return { ok: true as const };
 }
+
+/**
+ * Bulk version, used by the import wizard after its sync step and by the
+ * accounts table. Eligibility depends on legacy_id, which only exists once a
+ * shop has been linked to the lead pool - so this cannot run at import time.
+ */
+export async function bulkSetCampaignEligibility(input: {
+  accountIds: string[];
+  include: boolean;
+}) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, message: "Unauthorized", changed: 0 };
+
+  let changed = 0;
+  let noLead = 0;
+  let noEmail = 0;
+
+  const CHUNK = 200;
+  for (let i = 0; i < input.accountIds.length; i += CHUNK) {
+    const ids = input.accountIds.slice(i, i + CHUNK);
+    const { data: rows } = await supabase
+      .from("contacts")
+      .select("account_id, legacy_id, email")
+      .in("account_id", ids);
+
+    // One shop can have several contacts; take the first with what we need.
+    const best = new Map<string, { legacy: string; email: string | null }>();
+    for (const c of rows ?? []) {
+      const acct = c.account_id as string;
+      const legacy = c.legacy_id as string | null;
+      if (!legacy) continue;
+      const email = (c.email as string | null)?.trim() || null;
+      const cur = best.get(acct);
+      if (!cur || (!cur.email && email)) best.set(acct, { legacy, email });
+    }
+
+    for (const id of ids) {
+      const hit = best.get(id);
+      if (!hit) { noLead++; continue; }
+      if (input.include && !hit.email) { noEmail++; continue; }
+      const { data: res } = await supabase.rpc("set_campaign_eligibility", {
+        p_legacy_id: hit.legacy,
+        p_include: input.include,
+        p_email: hit.email,
+      });
+      if ((res as { ok?: boolean } | null)?.ok) changed++;
+    }
+  }
+
+  revalidatePath("/accounts");
+  return { ok: true as const, changed, noLead, noEmail };
+}

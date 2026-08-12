@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useTransition } from 'react';
 import Link from 'next/link';
 import { Check, ChevronRight } from 'lucide-react';
 import { bulkAssignAccounts, bulkDeleteAccounts } from '../actions';
+import { bulkSetCampaignEligibility } from '../campaign-actions';
 import { FilterChips, type FilterChip } from '@/components/app/filter-chips';
 import { VerticalBadge } from '@/components/app/vertical-badge';
 import { Input } from '@/components/ui/input';
@@ -41,6 +42,7 @@ export function AccountsTable({
   const [repChoice, setRepChoice] = useState('');
   const [assignMsg, setAssignMsg] = useState<string | null>(null);
   const [isAssigning, startAssign] = useTransition();
+  const [isCampaigning, startCampaign] = useTransition();
 
   const hasCrypto = accounts.some(a => a.crypto_score !== null && a.crypto_score !== undefined);
 
@@ -170,6 +172,26 @@ export function AccountsTable({
       } finally {
         setDeleting(false);
       }
+    });
+  };
+
+  const applyCampaign = (include: boolean) => {
+    if (selectedCount === 0) return;
+    const ids = allMatching ? filtered.map(a => a.id) : [...selected];
+    setAssignMsg(null);
+    startCampaign(async () => {
+      const res = await bulkSetCampaignEligibility({ accountIds: ids, include });
+      if (!res.ok) { setAssignMsg(res.message); return; }
+      // Say what did NOT happen too - a silent partial is worse than a number.
+      const skipped: string[] = [];
+      if (res.noLead) skipped.push(`${res.noLead} not linked to the lead pool`);
+      if (res.noEmail) skipped.push(`${res.noEmail} with no email`);
+      setAssignMsg(
+        `${include ? 'Added' : 'Removed'} ${res.changed.toLocaleString()} shops` +
+          (skipped.length ? ` · skipped ${skipped.join(', ')}` : '')
+      );
+      setSelected(new Set());
+      setAllMatching(false);
     });
   };
 
@@ -514,6 +536,24 @@ export function AccountsTable({
                     </option>
                   ))}
                 </select>
+                <button
+                  type="button"
+                  disabled={isCampaigning}
+                  title="Make these shops eligible for campaign email"
+                  onClick={() => applyCampaign(true)}
+                  className="text-[11px] uppercase tracking-[0.15em] px-3 py-2 rounded-md border border-amber-500/50 text-amber-300 hover:bg-amber-500/10 shrink-0 disabled:opacity-50"
+                >
+                  {isCampaigning ? 'Working…' : '+ Campaign'}
+                </button>
+                <button
+                  type="button"
+                  disabled={isCampaigning}
+                  title="Stop campaign email to these shops"
+                  onClick={() => applyCampaign(false)}
+                  className="text-[11px] uppercase tracking-[0.15em] px-3 py-2 rounded-md border border-border/60 text-muted-foreground hover:text-foreground shrink-0 disabled:opacity-50"
+                >
+                  - Campaign
+                </button>
                 <button
                   type="button"
                   disabled={!repChoice || isAssigning}

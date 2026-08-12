@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { VERTICALS } from '@/lib/verticals';
 import { executeImport, preflightImport, type ImportRow, type ImportResult, type Preflight } from '../actions';
 import { bulkEnrichAccounts } from '@/app/(app)/accounts/enrich';
+import { bulkSetCampaignEligibility } from '@/app/(app)/accounts/campaign-actions';
 
 type Step = 'upload' | 'map' | 'preview' | 'done';
 
@@ -89,7 +90,7 @@ function downloadTemplate() {
   URL.revokeObjectURL(a.href);
 }
 
-export function ImportWizard() {
+export function ImportWizard({ isLead }: { isLead: boolean }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>('upload');
   const [filename, setFilename] = useState('');
@@ -100,6 +101,10 @@ export function ImportWizard() {
   const [result, setResult] = useState<ImportResult | null>(null);
   const [pre, setPre] = useState<Preflight | null>(null);
   const [ownerId, setOwnerId] = useState<string>('');
+  // Off by default: an imported list is field work until someone says
+  // otherwise, and cold-emailing a shop a rep is walking into is worse
+  // than missing a send.
+  const [addToCampaign, setAddToCampaign] = useState(false);
   const [vMap, setVMap] = useState<Record<string, string>>({});
 
   function handleFile(file: File) {
@@ -213,6 +218,9 @@ export function ImportWizard() {
           pre={pre}
           ownerId={ownerId}
           setOwnerId={setOwnerId}
+          isLead={isLead}
+          addToCampaign={addToCampaign}
+          setAddToCampaign={setAddToCampaign}
           vMap={vMap}
           setVMap={setVMap}
           onBack={() => setStep('map')}
@@ -222,7 +230,7 @@ export function ImportWizard() {
       )}
 
       {step === 'done' && result && (
-        <DoneStep result={result} onContinue={() => router.push('/accounts')} />
+        <DoneStep result={result} addToCampaign={addToCampaign} onContinue={() => router.push('/accounts')} />
       )}
     </div>
   );
@@ -414,11 +422,15 @@ function MapStep({
 
 function PreviewStep({
   rows, pre, ownerId, setOwnerId, vMap, setVMap, onBack, onImport, pending,
+  isLead, addToCampaign, setAddToCampaign,
 }: {
   rows: ImportRow[];
   pre: Preflight | null;
   ownerId: string;
   setOwnerId: (v: string) => void;
+  isLead: boolean;
+  addToCampaign: boolean;
+  setAddToCampaign: (v: boolean) => void;
   vMap: Record<string, string>;
   setVMap: (v: Record<string, string>) => void;
   onBack: () => void;
@@ -438,6 +450,7 @@ function PreviewStep({
       </div>
 
       {/* ---- who owns these ---- */}
+      {isLead ? (
       <div className="mb-5 rounded-md border border-border/40 p-4">
         <div className="mb-1 flex items-center gap-2 text-sm font-bold">
           <UserCheck className="h-4 w-4 text-primary" /> Assign this file to
@@ -456,6 +469,32 @@ function PreviewStep({
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
         </select>
+      </div>
+      ) : (
+        <div className="mb-5 rounded-md border border-border/40 p-4 text-xs text-muted-foreground">
+          Everything in this file will be yours. Nobody else sees these shops unless an admin
+          reassigns them.
+        </div>
+      )}
+
+      {/* ---- campaign eligibility ---- */}
+      <div className="mb-5 rounded-md border border-border/40 p-4">
+        <label className="flex items-start gap-2.5 text-sm">
+          <input
+            type="checkbox"
+            checked={addToCampaign}
+            onChange={e => setAddToCampaign(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-amber-500"
+          />
+          <span>
+            <b>Put these in the email campaign</b>
+            <span className="mt-1 block text-xs text-muted-foreground">
+              Leave this off for shops you are already walking into - imported rows are
+              treated as field work and skipped by the sender. Turn it on for a cold list you
+              want emailed. Rows with no email address are skipped either way.
+            </span>
+          </span>
+        </label>
       </div>
 
       {/* ---- duplicates ---- */}
@@ -564,10 +603,11 @@ function PreviewKpi({ label, value, accent }: { label: string; value: string; ac
   );
 }
 
-function DoneStep({ result, onContinue }: { result: ImportResult; onContinue: () => void }) {
+function DoneStep({ result, onContinue, addToCampaign }: { result: ImportResult; onContinue: () => void; addToCampaign: boolean }) {
   const [syncState, setSyncState] = useState<'idle' | 'running' | 'done'>('idle');
   const [progress, setProgress] = useState(0);
   const [tally, setTally] = useState({ linked: 0, noMatch: 0, duplicate: 0, skipped: 0 });
+  const [campaigned, setCampaigned] = useState(0);
 
   const runSync = async () => {
     setSyncState('running');
@@ -585,6 +625,14 @@ function DoneStep({ result, onContinue }: { result: ImportResult; onContinue: ()
       setProgress(Math.min(ids.length, i + CHUNK));
       setTally({ ...sum });
     }
+
+    // Only now do these shops have a legacy_id, which is what campaign
+    // eligibility hangs off - so this cannot happen during the import itself.
+    if (addToCampaign && ids.length > 0) {
+      const res = await bulkSetCampaignEligibility({ accountIds: ids, include: true });
+      if (res.ok) setCampaigned(res.changed);
+    }
+
     setSyncState('done');
   };
 
@@ -614,6 +662,23 @@ function DoneStep({ result, onContinue }: { result: ImportResult; onContinue: ()
               🔗 SYNC {result.createdAccountIds.length} ACCOUNTS
             </Button>
           )}
+
+      {syncState === 'done' && addToCampaign && (
+        <div className="mb-5 rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-xs">
+          {campaigned > 0 ? (
+            <>
+              <b className="text-amber-300">{campaigned}</b> of these shops are now in the email
+              campaign. The rest had no email address or no match in the lead pool, so they stay
+              as field work.
+            </>
+          ) : (
+            <>
+              None of these could join the campaign - they need an email address and a match in
+              the lead pool. They are still yours to walk into.
+            </>
+          )}
+        </div>
+      )}
           {syncState !== 'idle' && (
             <div className="text-xs">
               <div className="mb-1.5 h-1.5 overflow-hidden rounded-full bg-background/60">

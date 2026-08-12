@@ -33,7 +33,7 @@ const navItems: {
   { href: '/earnings',   label: 'Earnings',   icon: Coins,           roles: ['super_admin','admin','manager','rep'] },
   { href: '/playbook',   label: 'Playbook',   icon: BookOpen,        roles: ['super_admin','admin','manager','rep'] },
   { href: '/activities', label: 'Activities', icon: Activity,        roles: ['super_admin','admin','manager','rep'] },
-  { href: '/import',     label: 'Import',     icon: Upload,          roles: ['super_admin','admin'] },
+  { href: '/import',     label: 'Import',     icon: Upload,          roles: ['super_admin','admin','manager','rep'] },
   { href: '/admin',      label: 'Admin',      icon: Settings,        roles: ['super_admin','admin'] },
   { href: '/branding',   label: 'Branding',   icon: Palette,         roles: ['super_admin','admin'] },
   { href: '/console',    label: 'Console',    icon: ShieldCheck,     roles: ['super_admin'] },
