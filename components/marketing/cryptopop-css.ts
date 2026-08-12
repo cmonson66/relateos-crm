@@ -5,9 +5,10 @@ export const CRYPTOPOP_CSS = `
 }
 .cp *{box-sizing:border-box}
 /* ---------------- phone ---------------- */
-  .phone{width:min(352px,100%);margin:0 auto;background:#000;border-radius:40px;padding:10px;
+  .cp .phone{width:min(352px,100%);max-width:100%;margin:0 auto;background:#000;border-radius:40px;padding:10px;
     box-shadow:0 40px 80px -30px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.07)}
-  .cp .screen{background:var(--land);border-radius:31px;overflow:hidden;position:relative;height:686px;
+  .cp .screen{background:var(--land);border-radius:31px;overflow:hidden;position:relative;
+    height:min(686px, 128vw);min-height:560px;
     font-family:Inter,system-ui,sans-serif;color:#1f2937}
 
   .cp .statusbar{display:flex;justify-content:space-between;align-items:center;padding:10px 20px 4px;
@@ -37,7 +38,7 @@ export const CRYPTOPOP_CSS = `
     color:#374151;white-space:nowrap;box-shadow:0 1px 4px rgba(16,24,40,.16)}
 
   /* offer pins, the callout shape a maps app uses */
-  .pin{position:absolute;transform:translate(-50%,-100%);z-index:3}
+  .cp .pin{position:absolute;transform:translate(-50%,-100%);z-index:3}
   .cp .pill{position:relative;display:flex;align-items:center;gap:6px;background:#fff;border-radius:999px;
     padding:4px 11px 4px 4px;box-shadow:0 2px 7px rgba(16,24,40,.26);white-space:nowrap}
   .cp .pill .ic{width:22px;height:22px;border-radius:999px;display:grid;place-items:center;font-size:11px;color:#fff}
@@ -50,7 +51,7 @@ export const CRYPTOPOP_CSS = `
   .cp .ic.cafe{background:#3b7dc4}
 
   /* the merchant's own shop, shown selected */
-  .pin.mine{z-index:5}
+  .cp .pin.mine{z-index:5}
   .cp .pin.mine .pill{background:var(--navy);padding-right:13px}
   .cp .pin.mine .val{color:#fff}
   .cp .pin.mine .ic{background:var(--honey);color:var(--navy);font-weight:800}
@@ -85,11 +86,14 @@ export const CRYPTOPOP_CSS = `
   .cp .nav .ico{font-size:16px;display:block;margin-bottom:1px}
 
   
-.cp{margin-top:40px;color:var(--cream);font-family:Inter,system-ui,sans-serif}
+.cp{margin-top:40px;max-width:100%;overflow:hidden;color:var(--cream);font-family:Inter,system-ui,sans-serif}
 .cp-head{display:grid;grid-template-columns:1fr;gap:32px;align-items:center}
+/* Grid items are min-width:auto by default, which lets the phone's internals
+   push the whole track wider than a phone screen and clip everything. */
+.cp-head>*{min-width:0}
 @media(min-width:900px){.cp-head{grid-template-columns:1fr 1fr;gap:48px}}
 .cp-eyebrow{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--honey);margin-bottom:10px;font-weight:700}
-.cp-h2{font-size:clamp(24px,3.4vw,34px);font-weight:800;line-height:1.1;letter-spacing:-.02em;margin:0 0 12px;color:var(--cream)}
+.cp-h2{overflow-wrap:anywhere;font-size:clamp(22px,5.2vw,34px);font-weight:800;line-height:1.1;letter-spacing:-.02em;margin:0 0 12px;color:var(--cream)}
 .cp-lede{font-size:15.5px;color:rgba(248,244,234,.78);margin:0 0 18px;max-width:46ch}
 .cp-points{list-style:none;padding:0;margin:0;display:grid;gap:10px}
 .cp-points li{position:relative;padding-left:26px;font-size:14.5px;color:rgba(248,244,234,.85)}
