@@ -16,6 +16,34 @@ export type Fix = { lat: number; lng: number; accuracy: number };
  * gets denied on reflex, and a denial is sticky per origin, so asking at the
  * wrong moment costs the feature permanently.
  */
+
+const CONSENT_KEY = 'np:geoOk';
+
+/**
+ * Has this rep already allowed location here?
+ *
+ * Used to decide whether the map may locate itself on load. A cold prompt on
+ * page load gets denied on reflex and the denial is sticky per origin, so the
+ * first request always comes from a deliberate tap; after that it is
+ * remembered and the map can open where the rep is standing.
+ */
+export function hasLocationConsent(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(CONSENT_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function rememberConsent() {
+  try {
+    window.localStorage.setItem(CONSENT_KEY, '1');
+  } catch {
+    // private mode - the rep taps Near me each visit, which still works
+  }
+}
+
 export function useMyLocation() {
   const [fix, setFix] = useState<Fix | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +72,7 @@ export function useMyLocation() {
           lng: pos.coords.longitude,
           accuracy: pos.coords.accuracy,
         });
+        rememberConsent();
         setError(null);
       },
       (err) => {
@@ -66,18 +95,46 @@ export function useMyLocation() {
 }
 
 /** Recentres when a fix first arrives, and whenever the rep taps the control. */
-export function FollowMe({ fix, signal }: { fix: Fix | null; signal: number }) {
+export function FollowMe({
+  fix,
+  signal,
+  radiusMiles,
+}: {
+  fix: Fix | null;
+  signal: number;
+  radiusMiles?: number | null;
+}) {
   const map = useMap();
-  const centredFor = useRef<number>(-1);
+  const lastKey = useRef<string>('');
 
   useEffect(() => {
     if (!fix) return;
-    // Recentre on the first fix, then only when asked. Following every GPS
-    // update would yank the map out from under a rep reading a popup.
-    if (centredFor.current === signal) return;
-    centredFor.current = signal;
-    map.setView([fix.lat, fix.lng], Math.max(map.getZoom(), 15), { animate: true });
-  }, [fix, signal, map]);
+
+    // Re-frame when the rep asks (signal) or changes the radius, never on
+    // every GPS tick - following each update would yank the map out from
+    // under someone reading a popup.
+    const key = `${signal}:${radiusMiles ?? 'none'}`;
+    if (lastKey.current === key) return;
+    lastKey.current = key;
+
+    if (!radiusMiles) {
+      map.setView([fix.lat, fix.lng], Math.max(map.getZoom(), 15), { animate: true });
+      return;
+    }
+
+    // Fit the circle the chips describe, so 1 mile and 10 miles actually look
+    // different. A degree of latitude is ~69 miles; longitude shrinks with
+    // latitude, which matters at Phoenix's 33 degrees.
+    const dLat = radiusMiles / 69;
+    const dLng = radiusMiles / (69 * Math.cos((fix.lat * Math.PI) / 180));
+    map.fitBounds(
+      [
+        [fix.lat - dLat, fix.lng - dLng],
+        [fix.lat + dLat, fix.lng + dLng],
+      ],
+      { padding: [24, 24], animate: true },
+    );
+  }, [fix, signal, radiusMiles, map]);
 
   return null;
 }

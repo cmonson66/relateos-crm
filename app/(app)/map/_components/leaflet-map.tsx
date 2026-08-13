@@ -101,6 +101,7 @@ export default function LeafletMap({
   cryptoStats,
   myFix = null,
   followSignal = 0,
+  radiusMiles = null,
 }: {
   accounts: MapAccount[];
   focusId?: string | null;
@@ -111,6 +112,7 @@ export default function LeafletMap({
   cryptoStats?: Map<string, CryptoStats>;
   myFix?: Fix | null;
   followSignal?: number;
+  radiusMiles?: number | null;
 }) {
   const shownSignals = showHeat
     ? signals.filter(s => heatFilter === 'all' || s.signal_type === heatFilter)
@@ -137,7 +139,7 @@ export default function LeafletMap({
         <CryptoHeat signals={shownSignals} visible={showHeat} />
 
         <FitBounds accounts={accounts} fitSignal={fitSignal} hasFocus={!!focusAccount || !!myFix} />
-        <FollowMe fix={myFix} signal={followSignal} />
+        <FollowMe fix={myFix} signal={followSignal} radiusMiles={radiusMiles} />
         <MyLocationMarker fix={myFix} />
         <FocusView account={focusAccount} markerRefs={markerRefs} />
 

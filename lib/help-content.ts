@@ -190,7 +190,7 @@ export const HELP: HelpTopic[] = [
     title: "Map",
     what: "Your territory as a picture, with crypto density underneath.",
     steps: [
-      "Near me puts a blue dot where you are standing and keeps it updated while you drive.",
+      "Near me puts a blue dot where you are standing and keeps it updated while you drive. Once you allow it the first time, the map opens on your 3 mile view from then on.",
       "With the dot showing, tap 1, 3 or 10 miles to cut the map down to what is actually reachable.",
       "Tap the same distance again to go back to your whole book.",
     ],

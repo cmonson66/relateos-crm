@@ -1,12 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { FilterChips, type FilterChip } from '@/components/app/filter-chips';
 import { VERTICALS, verticalLabel } from '@/lib/verticals';
 import { cn } from '@/lib/utils';
 import { computeCryptoStats, ATM_COLOR, type CryptoSignal } from '@/lib/crypto/density';
-import { useMyLocation, milesBetween } from './my-location';
+import { useMyLocation, milesBetween, hasLocationConsent } from './my-location';
 
 export type MapAccount = {
   id: string;
@@ -51,8 +51,19 @@ export function MapView({
   const [fitSignal, setFitSignal] = useState(0);
   const [followSignal, setFollowSignal] = useState(0);
   // Miles from where the rep is standing. null = the whole book.
-  const [radius, setRadius] = useState<number | null>(null);
+  // Opens on a 3 mile view. The chips can widen or clear it.
+  const [radius, setRadius] = useState<number | null>(3);
   const { fix, error: locError, watching, start, stop } = useMyLocation();
+
+  // Locate on arrival ONLY if this rep has allowed it here before. The
+  // first request always comes from a deliberate tap, because a cold
+  // prompt on page load gets denied on reflex and the denial sticks.
+  const autoTried = useRef(false);
+  useEffect(() => {
+    if (autoTried.current) return;
+    autoTried.current = true;
+    if (hasLocationConsent()) start();
+  }, [start]);
   const [nativeOnly, setNativeOnly] = useState(false);
   const [showHeat, setShowHeat] = useState(false);
   const [heatFilter, setHeatFilter] = useState<HeatFilter>('all');
@@ -220,7 +231,10 @@ export function MapView({
                 <button
                   key={m}
                   type="button"
-                  onClick={() => setRadius(radius === m ? null : m)}
+                  onClick={() => {
+                    setRadius(radius === m ? null : m);
+                    setFollowSignal(n => n + 1);
+                  }}
                   className={cn(
                     CONTROL,
                     radius === m
@@ -267,6 +281,7 @@ export function MapView({
         accounts={nearby}
         myFix={fix}
         followSignal={followSignal}
+        radiusMiles={fix ? radius : null}
         focusId={focusId}
         fitSignal={fitSignal}
         signals={signals}
