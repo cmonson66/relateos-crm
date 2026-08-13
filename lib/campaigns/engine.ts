@@ -11,12 +11,15 @@
 // Each org brings its OWN Resend key, so sending reputation stays theirs.
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { DEFAULT_TZ, todayIn, daysBetween, type TimeZone } from '@/lib/db/tz';
 import {
   renderEmail, maxStageFor, CLUSTER_MAP, DEFAULT_REP,
   type Cluster, type Rep, type Stage, type TemplateLead,
 } from './templates';
 
 export type CampaignSettings = {
+  /** Primary key since 060. One campaign per region, not per org. */
+  region_id: string;
   org_id: string;
   status: 'paused' | 'running';
   resend_api_key: string | null;
@@ -36,6 +39,16 @@ export type CampaignSettings = {
   // Keeps the sequence and the CRM in sync - a rep should never get a
   // reply about a shop that isn't in their book.
   send_owner_id: string | null;
+};
+
+/** The region a campaign belongs to, as joined by the cron. */
+export type CampaignRegion = {
+  id: string;
+  code: string;
+  name: string;
+  timezone: TimeZone;
+  send_hour: number;
+  is_active: boolean;
 };
 
 type LeadRow = TemplateLead & {
@@ -77,17 +90,21 @@ export function serviceClient(): SupabaseClient {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-export function todaysCap(s: CampaignSettings): number {
-  const start = new Date(s.campaign_start + 'T00:00:00');
-  const day = Math.floor((Date.now() - start.getTime()) / 86400000) + 1;
+// Campaign day counts in the REGION's calendar, not the server's. The old
+// version subtracted timestamps and divided by 86,400,000, which drifts by a
+// day near midnight and cannot survive a region on a different clock: the same
+// instant is day 4 in Phoenix and day 5 in DFW. Comparing plain dates removes
+// the arithmetic entirely.
+export function campaignDay(s: CampaignSettings, tz: TimeZone = DEFAULT_TZ): number {
+  if (!s.campaign_start) return 1;
+  return Math.max(1, daysBetween(s.campaign_start, todayIn(tz)) + 1);
+}
+
+export function todaysCap(s: CampaignSettings, tz: TimeZone = DEFAULT_TZ): number {
+  const day = campaignDay(s, tz);
   const ramp = s.ramp ?? [];
   for (const r of ramp) if (day <= r.throughDay) return r.dailyCap;
   return ramp.length ? ramp[ramp.length - 1].dailyCap : 30;
-}
-
-export function campaignDay(s: CampaignSettings): number {
-  const start = new Date(s.campaign_start + 'T00:00:00');
-  return Math.max(1, Math.floor((Date.now() - start.getTime()) / 86400000) + 1);
 }
 
 const SELECT =
@@ -96,9 +113,14 @@ const SELECT =
 /** Builds today's send plan without sending anything. */
 export async function buildPlan(
   supabase: SupabaseClient,
-  settings: CampaignSettings
+  settings: CampaignSettings,
+  tz: TimeZone = DEFAULT_TZ
 ): Promise<{ plan: { lead: LeadRow; stage: Stage }[]; repFor: (placeId: string) => Rep; cap: number }> {
-  const cap = todaysCap(settings);
+  // Every pool read below is fenced to this campaign's region. Without the
+  // fence a Phoenix run would happily email Fort Worth shops the moment DFW
+  // leads land in nectarpay_leads, because the table is one shared pool.
+  const region = settings.region_id;
+  const cap = todaysCap(settings, tz);
 
   // Rep routing: CRM owner assignment decides who the email comes from
   const { data: repRows } = await supabase
@@ -120,6 +142,7 @@ export async function buildPlan(
     const { data: ownerRows } = await supabase
       .from('contacts')
       .select('legacy_id, owner_id')
+      .eq('region_id', region)
       .not('legacy_id', 'is', null)
       .not('owner_id', 'is', null)
       .order('legacy_id')
@@ -134,8 +157,22 @@ export async function buildPlan(
   };
 
   // Any hard Pulse engagement ends the sequence - the lead is a rep's now
-  const { data: engaged } = await supabase.from('engagement_events').select('pulse_token').neq('event', 'view');
-  const engagedTokens = new Set((engaged ?? []).map((e) => e.pulse_token));
+  // Paged. This was an unranged select, which PostgREST silently caps at
+  // 1,000 rows - the fifth place in this app that trap has appeared. Under the
+  // cap it looks perfect; over it, the oldest engaged leads fall out of the
+  // suppression set and get cold-emailed again after raising their hand.
+  const engagedTokens = new Set<string>();
+  for (let from = 0; ; from += 1000) {
+    const { data: engaged } = await supabase
+      .from('engagement_events')
+      .select('pulse_token')
+      .neq('event', 'view')
+      .order('pulse_token')
+      .range(from, from + 999);
+    const rows = engaged ?? [];
+    for (const e of rows) engagedTokens.add(e.pulse_token as string);
+    if (rows.length < 1000) break;
+  }
 
   // Scope the pool. Two independent narrowings:
   //   send_owner_id  - one rep's book only
@@ -152,6 +189,7 @@ export async function buildPlan(
         ? await supabase
             .from('contacts')
             .select('legacy_id')
+            .eq('region_id', region)
             .not('legacy_id', 'is', null)
             .eq('owner_id', settings.send_owner_id)
             .order('legacy_id')
@@ -159,6 +197,7 @@ export async function buildPlan(
         : await supabase
             .from('contacts')
             .select('legacy_id')
+            .eq('region_id', region)
             .not('legacy_id', 'is', null)
             .not('owner_id', 'is', null)
             .order('legacy_id')
@@ -185,6 +224,7 @@ export async function buildPlan(
     const { data } = await supabase
       .from('nectarpay_leads')
       .select(SELECT)
+      .eq('region_id', region)
       .eq('status', 'EMAILED')
       .eq('email_stage', stage - 1)
       .lte('last_emailed_at', cutoff(gap))
@@ -201,11 +241,13 @@ export async function buildPlan(
   // Fresh e1s: named leads by score, then unnamed by score
   const [{ data: e1Named }, { data: e1Unnamed }] = await Promise.all([
     supabase.from('nectarpay_leads').select(SELECT)
+      .eq('region_id', region)
       .eq('status', 'NEW').eq('email_stage', 0).neq('emails', '{}')
       .eq('compliance_hold', false) // held verticals never send (042)
       .not('owner_first_name', 'is', null)
       .order('score', { ascending: false }).limit(scopeSet ? 4000 : cap * 2),
     supabase.from('nectarpay_leads').select(SELECT)
+      .eq('region_id', region)
       .eq('status', 'NEW').eq('email_stage', 0).neq('emails', '{}')
       .eq('compliance_hold', false)
       .is('owner_first_name', null)
@@ -281,7 +323,8 @@ export function planPreview(
 /** Sends today's batch and records the run. */
 export async function runCampaign(
   settings: CampaignSettings,
-  trigger: 'cron' | 'manual'
+  trigger: 'cron' | 'manual',
+  tz: TimeZone = DEFAULT_TZ
 ): Promise<RunResult> {
   const supabase = serviceClient();
 
@@ -289,7 +332,7 @@ export async function runCampaign(
   if (!settings.physical_address) return { planned: 0, sent: 0, failed: 0, mix: {}, note: 'No physical address (required by CAN-SPAM)' };
   if (!settings.pulse_base_url) return { planned: 0, sent: 0, failed: 0, mix: {}, note: 'No Pulse base URL configured' };
 
-  const { plan, repFor } = await buildPlan(supabase, settings);
+  const { plan, repFor } = await buildPlan(supabase, settings, tz);
   const mix = planMix(plan);
   let sent = 0;
   let failed = 0;
@@ -364,16 +407,20 @@ export async function runCampaign(
 
   await supabase.from('campaign_runs').insert({
     org_id: settings.org_id,
+    region_id: settings.region_id,
     trigger,
     planned: plan.length,
     sent,
     failed,
     mix,
   });
+  // Keyed on region since 060. Keying on org_id here would stamp every
+  // region's campaign as having run because one of them did, and the cron's
+  // already-ran-today guard reads this exact column.
   await supabase
     .from('campaign_settings')
     .update({ last_run_at: new Date().toISOString() })
-    .eq('org_id', settings.org_id);
+    .eq('region_id', settings.region_id);
 
   return { planned: plan.length, sent, failed, mix };
 }

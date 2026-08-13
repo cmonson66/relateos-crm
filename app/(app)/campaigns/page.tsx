@@ -4,6 +4,7 @@ import { getUser } from '@/lib/auth/get-user';
 import { notFound } from 'next/navigation';
 import { CampaignControl } from './_components/campaign-control';
 import { todaysCap, campaignDay, type CampaignSettings } from '@/lib/campaigns/engine';
+import { resolveRegion, zoneOf } from '@/lib/campaigns/region';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,9 +13,19 @@ export default async function CampaignsPage() {
   if (!['super_admin', 'admin'].includes(profile.role)) notFound();
 
   const supabase = await createClient();
+
+  // One campaign per region since 060. Corporate has no region of their own,
+  // so resolveRegion falls back to the oldest - Phoenix.
+  const { region } = await resolveRegion(supabase, profile.org_id, profile.region_id ?? null);
+  const tz = zoneOf(region);
+
   const [{ data: settings }, { data: runs }, { data: people }] = await Promise.all([
-    supabase.from('campaign_settings').select('*').eq('org_id', profile.org_id).maybeSingle(),
-    supabase.from('campaign_runs').select('*').order('ran_at', { ascending: false }).limit(10),
+    region
+      ? supabase.from('campaign_settings').select('*').eq('region_id', region.id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase.from('campaign_runs').select('*')
+      .eq('region_id', region?.id ?? '00000000-0000-0000-0000-000000000000')
+      .order('ran_at', { ascending: false }).limit(10),
     supabase.from('profiles').select('id, full_name, email').eq('is_active', true)
       .in('role', ['super_admin', 'admin', 'manager', 'rep']).order('full_name'),
   ]);
@@ -38,7 +49,7 @@ export default async function CampaignsPage() {
 
         <h1 className="font-display text-3xl tracking-wider">CAMPAIGN</h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          No campaign settings row yet — apply migration 038, then reload.
+          No campaign settings for this region yet - apply migrations 058 through 060, then reload.
         </p>
       </div>
     );
@@ -62,8 +73,8 @@ export default async function CampaignsPage() {
         assigned_only: s.assigned_only ?? true,
       }}
       people={(people ?? []).map(p => ({ id: p.id, name: p.full_name || p.email || 'Rep' }))}
-      cap={todaysCap(s)}
-      day={campaignDay(s)}
+      cap={todaysCap(s, tz)}
+      day={campaignDay(s, tz)}
       queued={queued}
       emailable={emailable}
       stageCounts={stageCounts}

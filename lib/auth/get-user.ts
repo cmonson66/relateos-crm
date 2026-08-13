@@ -10,6 +10,8 @@ export type Profile = {
   full_name: string | null;
   role: UserRole;
   manager_id: string | null;
+  /** NULL for corporate (super_admin/admin) - they are not region-limited. */
+  region_id: string | null;
   is_active: boolean;
   avatar_url: string | null;
 };
