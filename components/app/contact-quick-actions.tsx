@@ -28,7 +28,9 @@ export function ContactQuickActions({
   return (
     <div className={cn('flex items-center gap-2', className)}>
       {/* Goes to the send sheet, not the OS mail client - that is where the
-          templates and the send-as-your-own-address button live. */}
+          templates and the send-as-your-own-address button live. The label is
+          the word Email rather than the address itself on purpose: iOS turns
+          a visible address into its own mailto link and that beats ours. */}
       <QuickAction
         href={email ? (sendHref ?? `mailto:${email}`) : null}
         icon={Mail}

@@ -22,6 +22,7 @@ const bebas = Bebas_Neue({
 export const metadata: Metadata = {
   title: 'RelateOS CRM',
   description: 'Sales CRM by RelateOS',
+  formatDetection: { email: false, address: false, telephone: false },
 };
 
 export default function RootLayout({

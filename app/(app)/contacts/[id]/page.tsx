@@ -152,7 +152,8 @@ export default async function ContactDetailPage({
                 title="Write to them with a template"
                 className="font-display text-sm md:text-base tracking-wider truncate text-primary hover:text-primary/80 hover:underline block"
               >
-                {contact.email}
+                <span>{contact.email.split('@')[0]}</span>
+                <span>@{contact.email.split('@').slice(1).join('@')}</span>
               </a>
             } icon={Mail} />
           ) : (
