@@ -19,6 +19,7 @@
 export type FieldChannel = "email" | "text";
 
 export type FieldTemplateGroup =
+  | "first-touch"
   | "after-a-visit"
   | "they-asked"
   | "keeping-it-alive"
@@ -43,6 +44,11 @@ export const FIELD_TEMPLATE_GROUPS: {
   blurb: string;
 }[] = [
   {
+    id: "first-touch",
+    label: "Reaching out cold",
+    blurb: "Nobody has talked to them yet. Your own opener, not the campaign's.",
+  },
+  {
     id: "after-a-visit",
     label: "After a visit",
     blurb: "The door did not end in a sale. These are the ones that matter most.",
@@ -65,6 +71,84 @@ export const FIELD_TEMPLATE_GROUPS: {
 ];
 
 export const FIELD_TEMPLATES: FieldTemplate[] = [
+  /* ------------------------------------------------------------------ *
+   * FIRST TOUCH - rep led, before or instead of the campaign
+   * ------------------------------------------------------------------ */
+  {
+    id: "cold-intro",
+    label: "Cold introduction",
+    when: "Nobody has contacted them yet and you want to start it yourself.",
+    group: "first-touch",
+    wantsPulse: true,
+    subject: "Quick question about card fees at {{shop}}",
+    email: `{{#owner}}{{owner}},{{/owner}}{{^owner}}Hi there,{{/owner}}
+
+I work with NectarPay here in {{#city}}{{city}}{{/city}}{{^city}}the Valley{{/city}}, and I am reaching out to a handful of shops directly rather than blasting anyone.
+
+Short version: we make a terminal that sits by the register and lets you take crypto payments with no percentage fee. The money lands in a wallet you own, in seconds, and it cannot be charged back. Whatever you use for cards now keeps working exactly as it does. This is a lane beside it, not a replacement.
+
+Most owners I talk to are paying two to four percent on every card sale. If that sounds like you, the math is worth two minutes.
+
+{{#pulse}}I put the numbers for {{shop}} on one page: {{pulseUrl}}
+
+{{/pulse}}Would a slow hour this week work to show you one live payment settle? Takes about two minutes and I will not oversell you.
+
+{{rep}}
+{{repCell}}`,
+    text: `{{#owner}}{{owner}}, {{/owner}}this is {{rep}} with NectarPay. We make a terminal that takes crypto with no percentage fee, money straight to a wallet you own, no chargebacks. Cards keep working the same.{{#pulse}} Your numbers: {{pulseUrl}}{{/pulse}} Worth two minutes at a slow hour this week?`,
+  },
+  {
+    id: "cold-meeting-ask",
+    label: "Ask for a sit-down",
+    when: "You want a real meeting on the calendar, not a drive-by.",
+    group: "first-touch",
+    wantsPulse: true,
+    subject: "Fifteen minutes at {{shop}}?",
+    email: `{{#owner}}{{owner}},{{/owner}}{{^owner}}Hi there,{{/owner}}
+
+I am {{rep}} with NectarPay. I am setting up a few short meetings with owners around {{#city}}{{city}}{{/city}}{{^city}}the Valley{{/city}} this week and would like fifteen minutes with you.
+
+What I would cover, and nothing else:
+
+What you are paying now on card processing, in your own numbers.
+What comes out of a crypto sale instead, which is nothing.
+A live payment on the terminal so you can see it settle rather than take my word for it.
+
+If it is not a fit after fifteen minutes, I will say so myself and leave you alone.
+
+{{#pulse}}Background if you want it first: {{pulseUrl}}
+
+{{/pulse}}What day is quietest for you?
+
+{{rep}}
+{{repCell}}
+{{repEmail}}`,
+    text: `{{#owner}}{{owner}}, {{/owner}}{{rep}} with NectarPay. Setting up a few 15 minute meetings with owners around {{#city}}{{city}}{{/city}}{{^city}}the area{{/city}} this week. I show you your card fees, what a crypto sale costs instead, and one live payment. What day is quietest for you?`,
+  },
+  {
+    id: "cold-neighbor",
+    label: "Someone nearby already took it",
+    when: "You have a shop live or trialling close by. The strongest cold opener you have.",
+    group: "first-touch",
+    wantsPulse: true,
+    subject: "A shop near you started taking crypto",
+    email: `{{#owner}}{{owner}},{{/owner}}{{^owner}}Hi there,{{/owner}}
+
+A business a few blocks from {{shop}} put in a NectarPay terminal, and I am working my way around the same area.
+
+It takes crypto payments with no percentage fee, and the money lands in a wallet the owner controls within seconds. No chargebacks on those sales, ever. Their card processing did not change at all.
+
+I am not going to pretend crypto is most of anyone's business yet. The reason owners do it is that the sales which do move over cost them nothing, and they stop being the shop that has to say no when somebody asks.
+
+{{#pulse}}Here is the same math run on {{shop}}: {{pulseUrl}}
+
+{{/pulse}}Worth two minutes when you are slow?
+
+{{rep}}
+{{repCell}}`,
+    text: `{{#owner}}{{owner}}, {{/owner}}{{rep}} with NectarPay. A shop a few blocks from {{shop}} just started taking crypto with no percentage fee, money straight to their own wallet. I am working the same area this week.{{#pulse}} Your numbers: {{pulseUrl}}{{/pulse}} Two minutes when you are slow?`,
+  },
+
   /* ------------------------------------------------------------------ *
    * AFTER A VISIT
    * ------------------------------------------------------------------ */
@@ -365,6 +449,8 @@ function fill(source: string, tokens: FieldTokens): string {
   let out = source;
   out = section(out, "pulse", pulse.length > 0);
   out = section(out, "owner", owner !== null);
+  // A shop with no city on file should read "the Valley", not "in ."
+  out = section(out, "city", (tokens.city ?? "").trim().length > 0);
 
   const values: Record<string, string> = {
     shop: (tokens.shop ?? "your shop").trim(),

@@ -62,8 +62,11 @@ export function MapView({
   useEffect(() => {
     if (autoTried.current) return;
     autoTried.current = true;
+    // A ?focus= arrival owns the view - the rep clicked Map from a specific
+    // shop and wants to see that shop, not wherever they are standing.
+    if (focusId) return;
     if (hasLocationConsent()) start();
-  }, [start]);
+  }, [start, focusId]);
   const [nativeOnly, setNativeOnly] = useState(false);
   const [showHeat, setShowHeat] = useState(false);
   const [heatFilter, setHeatFilter] = useState<HeatFilter>('all');
@@ -81,8 +84,12 @@ export function MapView({
   // decide which shops are worth the next hour.
   const nearby = useMemo(() => {
     if (!fix || !radius) return filtered;
-    return filtered.filter(a => milesBetween(fix, { lat: a.lat, lng: a.lng }) <= radius);
-  }, [filtered, fix, radius]);
+    return filtered.filter(
+      a =>
+        // never filter out the shop the rep came here to look at
+        a.id === focusId || milesBetween(fix, { lat: a.lat, lng: a.lng }) <= radius,
+    );
+  }, [filtered, fix, radius, focusId]);
 
   // Computed over the full account set, not the filtered one, so the
   // percentile means the same thing no matter which chips are active.

@@ -7,6 +7,7 @@ import { Phone, Zap, CalendarCheck, MessageSquareText, Link2, PhoneMissed, XCirc
 import { logCallOutcome, type CallOutcome } from '../../actions';
 import { DaySlotPicker } from '@/components/day-slot-picker';
 import type { CallScript } from '@/lib/call-scripts';
+import type { PulseRead } from '@/lib/db/pulse-read';
 
 const STEPS = ['OPENER', 'HOOK', 'DISCOVERY', 'THE MATH', 'CLOSE'] as const;
 
@@ -19,14 +20,17 @@ type Props = {
   intel: { score: number | null; emailStage: number; monthlyVolume: number | null; status: string | null; emailable: boolean; pulseUrl?: string | null };
   recent: { type: string; subject: string; at: string }[];
   script: CallScript;
+  pulseRead: PulseRead | null;
 };
 
 const money = (n: number) => '$' + Math.round(n).toLocaleString();
 const words = (v: number) => (v >= 1000 && v % 1000 === 0 ? v / 1000 + ' grand' : money(v));
 
-export function CallMode({ account, contact, intel, recent, script }: Props) {
+export function CallMode({ account, contact, intel, recent, script, pulseRead }: Props) {
   const [step, setStep] = useState(0);
-  const [vol, setVol] = useState(intel.monthlyVolume ?? 10000);
+  // Their own slider number beats the stored one - it is what they told us
+  // most recently, and on their own page.
+  const [vol, setVol] = useState(pulseRead?.volume ?? intel.monthlyVolume ?? 10000);
   const [volTouched, setVolTouched] = useState(false);
   const [notes, setNotes] = useState('');
   const [logged, setLogged] = useState<CallOutcome | null>(null);
@@ -113,6 +117,35 @@ export function CallMode({ account, contact, intel, recent, script }: Props) {
       <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_340px]">
         {/* ---------------- left: script ---------------- */}
         <div>
+          {/* Above the stepper on purpose: this changes how the call OPENS,
+              so it has to be read before the rep starts talking rather than
+              found in a side rail afterwards. */}
+          {pulseRead && (
+            <div
+              className={cn(
+                'mb-4 rounded-md border p-4',
+                pulseRead.optedOut
+                  ? 'border-destructive/50 bg-destructive/10'
+                  : pulseRead.requested
+                    ? 'border-emerald-500/50 bg-emerald-500/10'
+                    : 'border-primary/40 bg-primary/[0.06]'
+              )}
+            >
+              <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <span className="font-display text-[11px] tracking-[0.18em] text-muted-foreground">
+                  THEY OPENED THEIR PAGE
+                </span>
+                <span className="text-[11px] text-muted-foreground">{pulseRead.summary}</span>
+              </div>
+              <p className="text-[14.5px] leading-relaxed">{pulseRead.opener}</p>
+              {pulseRead.volume != null && !pulseRead.optedOut && (
+                <p className="mt-1.5 text-[12px] text-muted-foreground">
+                  The math slider is already set to their number.
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="mb-4 flex flex-wrap items-center gap-2">
             {STEPS.map((s, i) => (
               <button

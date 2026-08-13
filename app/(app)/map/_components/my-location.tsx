@@ -56,6 +56,10 @@ export function useMyLocation() {
       watchId.current = null;
     }
     setWatching(false);
+    // Drop the fix too. Leaving it set kept the blue dot and the radius
+    // chips on screen, so Stop looked like it did nothing.
+    setFix(null);
+    setError(null);
   }, []);
 
   const start = useCallback(() => {

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import { buildScript } from '@/lib/call-scripts';
 import { CallMode } from './_components/call-mode';
+import { readPulse, type PulseEvent } from '@/lib/db/pulse-read';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,11 +63,20 @@ export default async function CallPage({
 
   // Lead-side intel through the security-definer bridge (034)
   let intel: Intel = {};
+  let pulseRead: ReturnType<typeof readPulse> = null;
   if (contact?.legacy_id) {
     const { data } = await supabase.rpc('get_call_intel', {
       p_legacy_id: contact.legacy_id,
     });
     intel = (data ?? {}) as Intel;
+
+    // What they did on their Pulse page. Read through a security-definer
+    // RPC like every other lead-side read - engagement_events is closed to
+    // app users the same way nectarpay_leads is.
+    const { data: ev } = await supabase.rpc('get_pulse_events', {
+      p_legacy_id: contact.legacy_id,
+    });
+    pulseRead = readPulse((ev ?? []) as PulseEvent[]);
   }
 
   const ownerName =
@@ -96,6 +106,7 @@ export default async function CallPage({
 
   return (
     <CallMode
+      pulseRead={pulseRead}
       account={{
         id: account.id,
         name: account.name,
