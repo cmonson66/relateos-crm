@@ -60,7 +60,28 @@ update public.campaign_runs cr
    and r.code = 'PHX'
    and cr.region_id is null;
 
-create index if not exists campaign_runs_region_idx on public.campaign_runs(region_id, created_at desc);
+-- The time column on campaign_runs is ran_at, not created_at. Rather than
+-- trust that a second time, this asks the catalog and builds the index around
+-- whatever is actually there.
+do $$
+declare ts_col text;
+begin
+  select column_name into ts_col
+    from information_schema.columns
+   where table_schema = 'public'
+     and table_name = 'campaign_runs'
+     and column_name in ('ran_at', 'created_at')
+   order by case column_name when 'ran_at' then 1 else 2 end
+   limit 1;
+
+  if ts_col is null then
+    execute 'create index if not exists campaign_runs_region_idx on public.campaign_runs(region_id)';
+  else
+    execute format(
+      'create index if not exists campaign_runs_region_idx on public.campaign_runs(region_id, %I desc)',
+      ts_col);
+  end if;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- 3. A new region gets its own campaign, paused

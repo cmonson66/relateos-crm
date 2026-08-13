@@ -5,10 +5,16 @@ import { notFound } from 'next/navigation';
 import { CampaignControl } from './_components/campaign-control';
 import { todaysCap, campaignDay, type CampaignSettings } from '@/lib/campaigns/engine';
 import { resolveRegion, zoneOf } from '@/lib/campaigns/region';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
-export default async function CampaignsPage() {
+export default async function CampaignsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ region?: string }>;
+}) {
+  const { region: regionParam } = await searchParams;
   const { profile } = await getUser();
   if (!['super_admin', 'admin'].includes(profile.role)) notFound();
 
@@ -16,7 +22,9 @@ export default async function CampaignsPage() {
 
   // One campaign per region since 060. Corporate has no region of their own,
   // so resolveRegion falls back to the oldest - Phoenix.
-  const { region } = await resolveRegion(supabase, profile.org_id, profile.region_id ?? null);
+  const { region, regions } = await resolveRegion(
+    supabase, profile.org_id, profile.region_id ?? null, regionParam ?? null
+  );
   const tz = zoneOf(region);
 
   const [{ data: settings }, { data: runs }, { data: people }] = await Promise.all([
@@ -56,8 +64,30 @@ export default async function CampaignsPage() {
   }
 
   const s = settings as CampaignSettings;
+  const tabs = regions.length > 1 ? (
+    <div className="flex flex-wrap gap-2 px-4 pt-4 md:px-8">
+      {regions.map((r) => (
+        <Link
+          key={r.id}
+          href={`/campaigns?region=${r.id}`}
+          className={
+            r.id === region?.id
+              ? 'rounded-md border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium tracking-wide text-primary'
+              : 'rounded-md border border-border/40 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground'
+          }
+        >
+          {r.code}
+          {!r.is_active && <span className="ml-1.5 opacity-60">off</span>}
+        </Link>
+      ))}
+    </div>
+  ) : null;
+
   return (
+    <>
+    {tabs}
     <CampaignControl
+      regionId={region?.id ?? ''}
       settings={{
         status: s.status,
         hasKey: !!s.resend_api_key,
@@ -85,5 +115,6 @@ export default async function CampaignsPage() {
         mix: (r.mix ?? {}) as Record<string, number>,
       }))}
     />
+    </>
   );
 }

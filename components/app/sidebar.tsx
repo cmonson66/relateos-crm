@@ -10,8 +10,7 @@ import {
   Megaphone,
   HardDrive,
   Coins,
-  BookOpen,
-} from 'lucide-react';
+  BookOpen, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Profile, UserRole } from '@/lib/auth/get-user';
 import type { ResolvedBrand } from '@/lib/brand/brand';
@@ -34,6 +33,7 @@ const navItems: {
   { href: '/playbook',   label: 'Playbook',   icon: BookOpen,        roles: ['super_admin','admin','manager','rep'] },
   { href: '/activities', label: 'Activities', icon: Activity,        roles: ['super_admin','admin','manager','rep'] },
   { href: '/import',     label: 'Import',     icon: Upload,          roles: ['super_admin','admin','manager','rep'] },
+  { href: '/regions',    label: 'Regions',    icon: Globe,           roles: ['super_admin','admin'] },
   { href: '/admin',      label: 'Admin',      icon: Settings,        roles: ['super_admin','admin'] },
   { href: '/branding',   label: 'Branding',   icon: Palette,         roles: ['super_admin','admin'] },
   { href: '/console',    label: 'Console',    icon: ShieldCheck,     roles: ['super_admin'] },

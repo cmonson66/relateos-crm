@@ -14,7 +14,7 @@ export default async function AdminPage() {
   const supabase = await createClient();
   const { data: profilesRaw } = await supabase
     .from('profiles')
-    .select('id, email, full_name, role, manager_id, is_active, created_at, last_activity_at:updated_at')
+    .select('id, email, full_name, role, manager_id, region_id, is_active, created_at, last_activity_at:updated_at')
     .order('full_name', { nullsFirst: false });
 
   const profiles = (profilesRaw || []).filter(p =>
@@ -24,6 +24,13 @@ export default async function AdminPage() {
   const managerCandidates = profiles.filter(p =>
     p.role === 'manager' || p.role === 'admin' || p.role === 'super_admin'
   );
+
+  const { data: regions } = await supabase
+    .from('regions')
+    .select('id, name, code')
+    .eq('org_id', profile.org_id)
+    .eq('is_active', true)
+    .order('created_at');
 
   const inviterName = profile.full_name || profile.email.split('@')[0];
 
@@ -42,7 +49,7 @@ export default async function AdminPage() {
           />
         }
       />
-      <UserAdminTable profiles={profiles} currentUserId={profile.id} currentRole={profile.role} />
+      <UserAdminTable profiles={profiles} regions={regions ?? []} currentUserId={profile.id} currentRole={profile.role} />
     </div>
   );
 }

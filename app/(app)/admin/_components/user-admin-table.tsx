@@ -18,6 +18,7 @@ type Profile = {
   full_name: string | null;
   role: 'super_admin' | 'admin' | 'manager' | 'rep';
   manager_id: string | null;
+  region_id: string | null;
   is_active: boolean;
   created_at: string;
 };
@@ -31,10 +32,12 @@ const ROLE_LABELS: Record<string, string> = {
 
 export function UserAdminTable({
   profiles,
+  regions,
   currentUserId,
   currentRole,
 }: {
   profiles: Profile[];
+  regions: { id: string; name: string; code: string }[];
   currentUserId: string;
   currentRole: string;
 }) {
@@ -95,10 +98,11 @@ export function UserAdminTable({
 
       {/* DESKTOP TABLE */}
       <div className="hidden md:block card-lit border border-border/40 rounded-md overflow-hidden">
-        <div className="grid grid-cols-[2fr_1fr_1.2fr_0.8fr_0.8fr_60px] items-center gap-4 px-5 py-3 text-[10px] uppercase tracking-[0.15em] text-muted-foreground border-b border-border/40 bg-background/30">
+        <div className="grid grid-cols-[2fr_1fr_1.2fr_1fr_0.8fr_0.8fr_60px] items-center gap-4 px-5 py-3 text-[10px] uppercase tracking-[0.15em] text-muted-foreground border-b border-border/40 bg-background/30">
           <div>User</div>
           <div>Role</div>
           <div>Manager</div>
+          <div>Region</div>
           <div>Status</div>
           <div className="text-right">Joined</div>
           <div></div>
@@ -109,7 +113,7 @@ export function UserAdminTable({
           const managerName = profiles.find(m => m.id === p.manager_id)?.full_name;
           const deletable = canDelete(p);
           return (
-            <div key={p.id} className="grid grid-cols-[2fr_1fr_1.2fr_0.8fr_0.8fr_60px] items-center gap-4 px-5 py-4 border-b border-border/20 last:border-0">
+            <div key={p.id} className="grid grid-cols-[2fr_1fr_1.2fr_1fr_0.8fr_0.8fr_60px] items-center gap-4 px-5 py-4 border-b border-border/20 last:border-0">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-9 h-9 rounded-full bg-primary/15 text-primary text-xs font-medium flex items-center justify-center shrink-0">
                   {initials(p.full_name, p.email)}
@@ -149,6 +153,24 @@ export function UserAdminTable({
                   <SelectItem value="none">— None —</SelectItem>
                   {managerCandidates.filter(m => m.id !== p.id).map(m => (
                     <SelectItem key={m.id} value={m.id}>{m.full_name || m.email}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={p.region_id || 'none'}
+                disabled={isPending}
+                onValueChange={(v: string | null) => patch(p.id, { region_id: !v || v === 'none' ? null : v })}
+              >
+                <SelectTrigger className="h-9">
+                  <span className={p.region_id ? '' : 'text-muted-foreground'}>
+                    {regions.find(r => r.id === p.region_id)?.code || 'All regions'}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">All regions (corporate)</SelectItem>
+                  {regions.map(r => (
+                    <SelectItem key={r.id} value={r.id}>{r.code} - {r.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -256,6 +278,26 @@ export function UserAdminTable({
                       <SelectItem value="none">— None —</SelectItem>
                       {managerCandidates.filter(m => m.id !== p.id).map(m => (
                         <SelectItem key={m.id} value={m.id}>{m.full_name || m.email}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-2">
+                  <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-1">Region</div>
+                  <Select
+                    value={p.region_id || 'none'}
+                    disabled={isPending}
+                    onValueChange={(v: string | null) => patch(p.id, { region_id: !v || v === 'none' ? null : v })}
+                  >
+                    <SelectTrigger className="h-9">
+                      <span className={p.region_id ? '' : 'text-muted-foreground'}>
+                        {regions.find(r => r.id === p.region_id)?.name || 'All regions'}
+                      </span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">All regions (corporate)</SelectItem>
+                      {regions.map(r => (
+                        <SelectItem key={r.id} value={r.id}>{r.code} - {r.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

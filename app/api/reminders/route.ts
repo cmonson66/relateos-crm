@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { dayBoundsUtc, formatTimeIn, hourIn, todayIn, type TimeZone } from '@/lib/db/tz';
 
-// Daily 7 AM Phoenix (14:00 UTC — Phoenix skips DST): each rep gets their
-// day's agenda; each merchant with a booked visit today gets a reminder
-// sent from their rep's identity. Mirrors the system-rules cron pattern.
+// Morning agendas and merchant visit reminders, now HOURLY (vercel.json).
+//
+// This used to run once at 14:00 UTC with the Phoenix offset hardcoded, which
+// silently becomes 9 AM for a rep in Dallas - two hours after they have left
+// for their first door. Now the cron wakes every hour and each region acts
+// when its own clock reads its own agenda_hour, with regions.last_agenda_at
+// (061) making sure that happens once per local day even if the cron replays.
+
+export const maxDuration = 120;
 
 function createServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -13,17 +20,6 @@ function createServiceClient() {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
-
-const PHX_OFFSET_MS = 7 * 3600000; // UTC-7, no DST
-
-function phoenixDayBoundsUtc(): { start: string; end: string } {
-  const phxNow = new Date(Date.now() - PHX_OFFSET_MS);
-  const start = Date.UTC(phxNow.getUTCFullYear(), phxNow.getUTCMonth(), phxNow.getUTCDate(), 7, 0, 0);
-  return { start: new Date(start).toISOString(), end: new Date(start + 86400000).toISOString() };
-}
-
-const fmtTime = (iso: string) =>
-  new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Phoenix' });
 
 async function sendEmail(from: string, to: string, subject: string, text: string) {
   const key = process.env.RESEND_API_KEY;
@@ -37,37 +33,63 @@ async function sendEmail(from: string, to: string, subject: string, text: string
   return res.ok;
 }
 
-export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+type RegionRow = {
+  id: string;
+  org_id: string;
+  code: string;
+  timezone: TimeZone;
+  agenda_hour: number;
+  is_active: boolean;
+  last_agenda_at: string | null;
+};
 
-  const supabase = createServiceClient();
-  const { start, end } = phoenixDayBoundsUtc();
+type ActivityRow = {
+  id: string;
+  type: string;
+  subject: string | null;
+  scheduled_at: string;
+  owner_id: string;
+  account_id: string | null;
+  contact_id: string | null;
+  account: { name: string; city: string | null } | { name: string; city: string | null }[] | null;
+};
+
+async function runRegion(
+  supabase: ReturnType<typeof createServiceClient>,
+  region: RegionRow,
+  ownerIds: string[],
+): Promise<{ items: number; agenda: number; merchant: number }> {
+  const tz = region.timezone;
+  const { startIso, endIso } = dayBoundsUtc(todayIn(tz), tz);
+  const fmtTime = (iso: string) => formatTimeIn(iso, tz);
+
+  if (ownerIds.length === 0) return { items: 0, agenda: 0, merchant: 0 };
 
   const { data: rows, error } = await supabase
     .from('activities')
     .select('id, type, subject, scheduled_at, owner_id, account_id, contact_id, account:accounts(name, city)')
-    .gte('scheduled_at', start)
-    .lt('scheduled_at', end)
+    .in('owner_id', ownerIds)
+    .gte('scheduled_at', startIso)
+    .lt('scheduled_at', endIso)
     .is('completed_at', null)
     .order('scheduled_at', { ascending: true });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) throw new Error(error.message);
 
-  const items = (rows ?? []).map((r) => {
+  const items = ((rows ?? []) as ActivityRow[]).map((r) => {
     const acct = Array.isArray(r.account) ? r.account[0] : r.account;
     return { ...r, accountName: acct?.name ?? '', city: acct?.city ?? '' };
   });
-  if (items.length === 0) return NextResponse.json({ ok: true, agenda: 0, merchant: 0 });
+  if (items.length === 0) return { items: 0, agenda: 0, merchant: 0 };
 
-  // Identities
-  const { data: profiles } = await supabase.from('profiles').select('id, email, full_name');
+  const { data: profiles } = await supabase
+    .from('profiles').select('id, email, full_name').in('id', ownerIds);
   const profById = new Map((profiles ?? []).map((p) => [p.id, p]));
-  const { data: reps } = await supabase.from('reps').select('profile_id, first_name, from_email, cell, is_default');
+  const { data: reps } = await supabase
+    .from('reps').select('profile_id, first_name, from_email, cell, is_default');
   const repByProfile = new Map((reps ?? []).map((r) => [r.profile_id, r]));
-  const defaultRep = (reps ?? []).find((r) => r.is_default) ?? { first_name: 'Eric', from_email: 'eric@nectarpayaz.com', cell: '' };
+  const defaultRep =
+    (reps ?? []).find((r) => r.is_default) ??
+    { first_name: 'Eric', from_email: 'eric@nectarpayaz.com', cell: '' };
 
   let agendaSent = 0;
   let merchantSent = 0;
@@ -122,5 +144,77 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, items: items.length, agenda: agendaSent, merchant: merchantSent });
+  return { items: items.length, agenda: agendaSent, merchant: merchantSent };
+}
+
+export async function GET(req: NextRequest) {
+  const authHeader = req.headers.get('authorization');
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const force = req.nextUrl.searchParams.get('force');
+  const supabase = createServiceClient();
+
+  const { data: regionRows, error: regionErr } = await supabase
+    .from('regions')
+    .select('id, org_id, code, timezone, agenda_hour, is_active, last_agenda_at')
+    .order('created_at');
+  if (regionErr) return NextResponse.json({ error: regionErr.message }, { status: 500 });
+  const regions = (regionRows ?? []) as RegionRow[];
+
+  // Who belongs to which region. Corporate profiles have region_id NULL by
+  // design, and they still book their own calls, so they ride along with their
+  // org's OLDEST region rather than never receiving an agenda at all.
+  const { data: people } = await supabase
+    .from('profiles').select('id, org_id, region_id').eq('is_active', true);
+  const firstRegionOfOrg = new Map<string, string>();
+  for (const r of regions) if (!firstRegionOfOrg.has(r.org_id)) firstRegionOfOrg.set(r.org_id, r.id);
+
+  const ownersByRegion = new Map<string, string[]>();
+  for (const p of people ?? []) {
+    const target = p.region_id ?? firstRegionOfOrg.get(p.org_id);
+    if (!target) continue;
+    ownersByRegion.set(target, [...(ownersByRegion.get(target) ?? []), p.id]);
+  }
+
+  const results: Record<string, unknown>[] = [];
+
+  for (const region of regions) {
+    const tag = region.code;
+    if (!region.is_active) {
+      results.push({ region: tag, skipped: 'region inactive' });
+      continue;
+    }
+
+    const localHour = hourIn(region.timezone);
+    const localDay = todayIn(region.timezone);
+    const forced = force != null && force.toUpperCase() === tag.toUpperCase();
+
+    if (!forced && localHour !== region.agenda_hour) {
+      results.push({ region: tag, skipped: `local hour ${localHour}, agenda at ${region.agenda_hour}` });
+      continue;
+    }
+    if (region.last_agenda_at && todayIn(region.timezone, new Date(region.last_agenda_at)) === localDay) {
+      results.push({ region: tag, skipped: `already sent on ${localDay}` });
+      continue;
+    }
+
+    try {
+      const r = await runRegion(supabase, region, ownersByRegion.get(region.id) ?? []);
+      // Stamped even on a zero-activity morning: the region HAS had its run,
+      // and without the stamp every later hour would re-query all day.
+      await supabase
+        .from('regions')
+        .update({ last_agenda_at: new Date().toISOString() })
+        .eq('id', region.id);
+      results.push({ region: tag, localDay, ...r });
+    } catch (e) {
+      results.push({ region: tag, error: e instanceof Error ? e.message : 'failed' });
+    }
+  }
+
+  const ran = results.filter((r) => 'agenda' in r).length;
+  return NextResponse.json({ ok: true, regions: results.length, ran, results });
 }

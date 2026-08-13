@@ -42,8 +42,8 @@ export async function saveCampaignSettings(input: {
   send_delay_ms?: number;
   send_owner_id?: string | null;
   assigned_only?: boolean;
-}) {
-  const { settings: current } = await adminSettings();
+}, regionId?: string) {
+  const { settings: current } = await adminSettings(regionId);
   const supabase = await createClient();
   const patch: Record<string, unknown> = { ...input, updated_at: new Date().toISOString() };
   // Empty string from the dropdown means "no scoping"

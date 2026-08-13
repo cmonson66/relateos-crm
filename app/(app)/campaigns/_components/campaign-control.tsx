@@ -35,9 +35,12 @@ type Run = {
 type PreviewItem = { placeId: string; stage: number; to: string; name: string; vertical: string; band: string; repFirst: string };
 
 export function CampaignControl({
-  settings, cap, day, queued, emailable, runs, people, stageCounts, engagedCount,
+  settings, cap, day, queued, emailable, runs, people, stageCounts, engagedCount, regionId,
 }: {
   settings: Settings; cap: number; day: number; queued: number; emailable: number; runs: Run[];
+  /** Which region's campaign this is. Every action is keyed on it, so viewing
+   *  DFW and hitting Save cannot write Phoenix's row. */
+  regionId: string;
   people: { id: string; name: string }[];
   stageCounts: number[];
   engagedCount: number;
@@ -73,7 +76,7 @@ export function CampaignControl({
     }
     startTransition(async () => {
       try {
-        await setCampaignStatus(next);
+        await setCampaignStatus(next, regionId);
         setStatus(next);
         toast.success(next === 'running' ? 'Campaign running — daily send at 6:00 AM Phoenix.' : 'Campaign paused.');
         router.refresh();
@@ -83,7 +86,7 @@ export function CampaignControl({
 
   const doPreview = () => startTransition(async () => {
     try {
-      const r = await previewToday();
+      const r = await previewToday(regionId);
       setPreview(r.items);
       toast.success(`${r.items.length} shown · cap ${r.cap}/day · campaign day ${r.day}`);
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Preview failed'); }
@@ -93,7 +96,7 @@ export function CampaignControl({
     if (!confirm(`Send today's batch now? Up to ${cap} emails go out immediately.`)) return;
     startTransition(async () => {
       try {
-        const r = await sendNow();
+        const r = await sendNow(regionId);
         if (r.note) toast.error(r.note);
         else toast.success(`Sent ${r.sent} of ${r.planned}${r.failed ? ` · ${r.failed} failed` : ''}`);
         router.refresh();
@@ -103,7 +106,7 @@ export function CampaignControl({
 
   const save = () => startTransition(async () => {
     try {
-      await saveCampaignSettings(form);
+      await saveCampaignSettings(form, regionId);
       toast.success('Settings saved.');
       router.refresh();
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Save failed'); }

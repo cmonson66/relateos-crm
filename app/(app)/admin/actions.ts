@@ -7,6 +7,8 @@ import { revalidatePath } from 'next/cache';
 export type UserUpdate = {
   role?: 'super_admin' | 'admin' | 'manager' | 'rep';
   manager_id?: string | null;
+  /** NULL keeps someone corporate: no region limit, sees every region. */
+  region_id?: string | null;
   is_active?: boolean;
   full_name?: string;
 };
