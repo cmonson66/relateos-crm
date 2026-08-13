@@ -78,7 +78,7 @@ const SHARED_OBJECTIONS: Objection[] = [
   },
   {
     q: `"What's it cost?"`,
-    a: `"$499 once for the terminal, then $19 a month for the membership, paid annually. Never a percentage of your sales - that's the whole point. Year one all-in is about $727, which is less than what cards take from most shops every two months."`,
+    a: `"$499 once for the terminal, then $19 a month for the membership, paid annually. Never a percentage of your sales - that's the whole point. Year one all-in is about $727, which is less than what cards take from most shops every two months. And you don't have to decide on that today - I can put one in on a trial first and it costs you nothing while it runs."`,
   },
   {
     q: `"Crypto crashes / it's fake money."`,
@@ -93,8 +93,8 @@ const SHARED_OBJECTIONS: Objection[] = [
     a: `"One-year warranty. If it quits on its own, we replace it, full stop. If it gets thrown across the shop, that one's on you - fair is fair. Thermal paper is the only thing you'd ever buy, and that's a few dollars anywhere."`,
   },
   {
-    q: `"Isn't there a free version?"`,
-    a: `"There is, and I'll be straight with you: it's software-only. It won't drive the terminal. If you want the hardware by the register, that's the $19 membership. If you just want to take crypto on your phone, the free tier is real."`,
+    q: `"Is there a way to try it first?"`,
+    a: `"Yes, and I'd rather you did. I can put a terminal in for a trial and it costs you nothing while it runs - no $499, no monthly, nothing. You take real payments on it. If it earns its place you keep it, and if it doesn't I come get it and we shake hands. That's the whole risk."`,
   },
   {
     q: `"What if something goes wrong and I need somebody?"`,
@@ -102,7 +102,7 @@ const SHARED_OBJECTIONS: Objection[] = [
   },
   {
     q: `"I need to think about it."`,
-    a: `"Totally fair. Let me text you the one-pager so you're thinking about the real numbers - and I'm in the area later this week either way. If it's a no then, it's a no, no hard feelings."`,
+    a: `"Totally fair. Here's what I'd rather do than have you think about it cold: let me put one in on a trial. Costs you nothing while it runs, you take real payments on it, and if it doesn't earn its place I pick it up. That way you're deciding on what actually happened instead of on my say-so."`,
   },
 ];
 
@@ -121,7 +121,12 @@ const SHARED_CLOSES = (ctx: CallCtx): ClosePath[] => [
     script: `"I'll text you a page I set up for ${ctx.shop} specifically - slide your own numbers, takes thirty seconds."`,
   },
   {
-    title: '④ The clean no',
+    title: '④ The trial',
+    script: `"Here's what I'd rather do. Let me put one in for a trial - costs you nothing while it runs, no $499, no monthly. Take real payments on it. If it earns its place you keep it, if it doesn't I come get it. Fair?"`,
+    note: 'Trial length is your call. A signed agreement goes in before the terminal does.',
+  },
+  {
+    title: '⑤ The clean no',
     script: `"No hard feelings - if the fees ever start stinging, you've got my number."`,
     note: 'If they say never contact: mark DNC. We never call again.',
   },
@@ -226,11 +231,11 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
         objections: [
           {
             q: `"My QR setup works fine."`,
-            a: `"And it's free, which I respect. The gap is everything around the payment - amount entry, staff being able to run it, receipts, refunds. That's what keeps the crypto lane from actually getting used. Run both for a month and watch which one your staff reaches for."`,
+            a: `"And it's free, which I respect. The gap is everything around the payment - amount entry, staff being able to run it, receipts, refunds. That's what keeps the crypto lane from actually getting used. Let me put a terminal in on a trial, run both side by side for a couple of weeks, and watch which one your staff reaches for."`,
           },
           {
             q: `"I'm on BitPay already."`,
-            a: `"Then you know the drill - they take their cut and the bank deposit shows up in a day or two. Ours is zero fee and settles to your wallet in seconds. Same customers, same coins, none of the skim."`,
+            a: `"Then you know the drill - they take their cut and the bank deposit shows up in a day or two. Ours is zero fee and settles to your wallet in seconds. Same customers, same coins, none of the skim. Put one in on a trial and run them side by side - the difference shows up on the first sale."`,
           },
           ...SHARED_OBJECTIONS.slice(2),
         ],

@@ -27,6 +27,7 @@ const CLOSES: { t: string; d: string }[] = [
   { t: 'Book a time', d: 'Put it on the calendar in front of them, then log it before you drive off.' },
   { t: 'Text the one-pager', d: 'Get their cell. Send it while standing there so they see it arrive.' },
   { t: 'Their own page', d: 'Text them their link - they slide their own numbers in thirty seconds.' },
+  { t: 'The trial', d: '"Let me put one in for a trial - nothing while it runs. Take real payments on it. Keep it or I come get it." A signed agreement goes in first.' },
   { t: 'The clean no', d: '"No hard feelings - if fees ever start stinging, you have my number." Mark DNC if they ask.' },
 ];
 
@@ -34,12 +35,12 @@ const WALLS: { q: string; a: string }[] = [
   { q: '"My customers pay with cards."', a: 'Nothing changes about your card setup. Same reader, same flow. This adds a lane nobody can freeze.' },
   { q: '"I don\'t understand crypto."', a: 'You don\'t need to. Staff types the amount, customer scans, ten seconds, money is in your wallet.' },
   { q: '"Is this legal? Is it taxed?"', a: 'Completely legal - a payment method like cash or card. Recorded on the terminal, revenue like any other.' },
-  { q: '"What does it cost?"', a: '$499 once for the terminal, then $19 a month for the membership, billed annually. Never a percentage. Year one about $727.' },
+  { q: '"What does it cost?"', a: '$499 once for the terminal, then $19 a month for the membership, billed annually. Never a percentage. Year one about $727. And they do not have to decide today - a trial costs them nothing while it runs.' },
   { q: '"Crypto crashes."', a: 'Settles to a stablecoin if you want - a dollar in is a dollar out. You are not betting on anything.' },
-  { q: '"I need to think about it."', a: 'Fair. Let me text you the one-pager so you are thinking about real numbers - and I am back through here [day].' },
+  { q: '"I need to think about it."', a: 'Better than thinking about it cold: put one in on a trial. Free while it runs, real payments on it, you pick it up if it does not earn its place. They decide on what happened, not on your say-so.' },
   { q: '"It sounds complicated."', a: 'It is simpler than your card terminal. And if you do not even want hardware, the Nectar.Pay app runs on your phone - you just give up the receipt printer and the rugged handheld.' },
   { q: '"What if it breaks?"', a: 'One-year warranty. Fails on its own, we replace it, full stop. Drop it off the roof and you buy another - fair is fair.' },
-  { q: '"Is there a cheaper plan?"', a: 'There is a free software-only tier, but it does not run the terminal. If you want the hardware, it is the $19 membership.' },
+  { q: '"Can I try it first?"', a: 'Yes. Put a terminal in on a trial - free while it runs, no $499, no monthly. They take real payments on it. Keep it or hand it back, their call.' },
   { q: '"What if I need real support?"', a: 'Standard is $19. White-glove is $99 a month and that means we pick up the phone. Most shops start standard and never move.' },
 ];
 

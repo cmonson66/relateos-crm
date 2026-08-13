@@ -38,9 +38,12 @@ export const PRICE_LINE =
 export const PRICE_SHORT = "$499 terminal · $19/mo membership · zero processing fee";
 
 /**
- * The two facts a rep will get asked about and should not improvise:
- * there is a higher support tier, and there is a free tier that cannot
- * drive the terminal.
+ * Facts a rep will get asked about and should not improvise.
+ *
+ * FREE_TIER_LINE is deliberately NOT in the objection lists or the
+ * one-pager any more: volunteering a free software tier argues an owner out
+ * of the hardware the whole pitch is about, and a trial answers the same
+ * worry. Keep it here so a rep who is ASKED can answer straight.
  */
 export const WHITE_GLOVE_LINE =
   "Want us picking up the phone? White-glove support is $99 a month.";
