@@ -100,6 +100,7 @@ export default async function ContactDetailPage({
                 email={contact.email}
                 phone={contact.phone}
                 linkedinUrl={contact.linkedin_url}
+                sendHref={contact.account_id ? `/send/${contact.account_id}?contact=${id}` : null}
                 className="mt-4"
               />
             </div>
@@ -108,11 +109,6 @@ export default async function ContactDetailPage({
             {contact.account_id && (
               <Link href={`/call/${contact.account_id}`}>
                 <Button size="sm" className="font-display tracking-wider btn-glow">📞 Start call</Button>
-              </Link>
-            )}
-            {contact.account_id && (
-              <Link href={`/send/${contact.account_id}?contact=${id}`}>
-                <Button variant="outline" size="sm" className="font-display tracking-wider" title="Send a message from a template">✉ Send</Button>
               </Link>
             )}
             {contact.account_id && (

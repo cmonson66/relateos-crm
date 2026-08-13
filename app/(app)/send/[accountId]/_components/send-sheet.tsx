@@ -50,6 +50,8 @@ const CHANNELS: { id: SendChannel; label: string; icon: typeof Mail }[] = [
   { id: "copy", label: "Copy", icon: Copy },
 ];
 
+const BLANK_ID = "__blank__";
+
 export function SendSheet({
   account,
   contact,
@@ -75,6 +77,8 @@ export function SendSheet({
   const [sendError, setSendError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const blank = templateId === BLANK_ID;
+
   const template: FieldTemplate =
     FIELD_TEMPLATES.find((t) => t.id === templateId) ?? FIELD_TEMPLATES[0];
 
@@ -82,15 +86,18 @@ export function SendSheet({
 
   // Text has no subject line, so copy and text share the text-length body
   const rendered = useMemo(
-    () => renderFieldTemplate(template, channel === "email" ? "email" : "text", tokens),
-    [template, channel, tokens],
+    () =>
+      blank
+        ? { subject: "", body: "" }
+        : renderFieldTemplate(template, channel === "email" ? "email" : "text", tokens),
+    [blank, template, channel, tokens],
   );
 
   // The draft is keyed by template and channel rather than reset in an effect.
   // Picking a different template shows that template's words; edits stick as
   // long as the rep stays on the one they are editing. No setState in an
   // effect, which this repo's lint purity rule flags.
-  const draftKey = `${template.id}:${channel === "email" ? "email" : "text"}`;
+  const draftKey = `${blank ? BLANK_ID : template.id}:${channel === "email" ? "email" : "text"}`;
   const onDraft = draft?.key === draftKey;
   const subject = onDraft ? draft.subject : rendered.subject;
   const body = onDraft ? draft.body : rendered.body;
@@ -208,6 +215,22 @@ export function SendSheet({
       <div className="grid gap-5 py-5 lg:grid-cols-[300px_1fr]">
         {/* ---------------- template picker ---------------- */}
         <div className="space-y-4">
+          <button
+            type="button"
+            onClick={() => setTemplateId(BLANK_ID)}
+            className={cn(
+              "mb-4 w-full rounded-lg border px-3 py-2.5 text-left text-[13px] transition-colors",
+              blank
+                ? "border-amber-500/60 bg-amber-500/10 text-amber-200"
+                : "border-border/40 hover:bg-sidebar-accent/40",
+            )}
+          >
+            <div className="font-bold">Write my own</div>
+            <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+              Blank {channel === "email" ? "email" : "message"}, still sent and logged from here.
+            </div>
+          </button>
+
           {FIELD_TEMPLATE_GROUPS.map((group) => {
             const items = FIELD_TEMPLATES.filter((t) => t.group === group.id);
             if (items.length === 0) return null;

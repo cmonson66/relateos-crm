@@ -15,17 +15,22 @@ export function ContactQuickActions({
   email,
   phone,
   linkedinUrl,
+  sendHref,
   className,
 }: {
   email: string | null;
   phone: string | null;
   linkedinUrl: string | null;
+  /** Where the send sheet lives for this contact. Falls back to mailto. */
+  sendHref?: string | null;
   className?: string;
 }) {
   return (
     <div className={cn('flex items-center gap-2', className)}>
+      {/* Goes to the send sheet, not the OS mail client - that is where the
+          templates and the send-as-your-own-address button live. */}
       <QuickAction
-        href={email ? `mailto:${email}` : null}
+        href={email ? (sendHref ?? `mailto:${email}`) : null}
         icon={Mail}
         label="Email"
         disabledLabel="No email"
