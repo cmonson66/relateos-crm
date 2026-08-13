@@ -1,8 +1,15 @@
 // Trial math, in one place so the kanban card, the deal panel, and the
 // dashboard KPI can never disagree about what day a trial is on.
 //
-// All dates are plain YYYY-MM-DD. Phoenix has no DST, so "today" is just
-// UTC minus seven hours - the same anchor the calendar and dashboard use.
+// All dates are plain YYYY-MM-DD. The zone-aware arithmetic now lives in
+// lib/db/tz.ts so a region outside Arizona gets its own "today" and its own
+// 9 AM. The phx* helpers below are thin Phoenix-bound wrappers kept so every
+// existing caller still compiles; new code should pass the region's zone to
+// todayIn() / morningIso() directly.
+
+import { DEFAULT_TZ, morningIso, todayIn, addDays, daysBetween } from "@/lib/db/tz";
+
+export { addDays, daysBetween };
 
 export const TRIAL_STAGE_SLUG = "trial-running";
 
@@ -28,24 +35,9 @@ export type TrialStatus = {
   finished: boolean;
 };
 
-const PHX_MS = 7 * 3600000;
-const DAY_MS = 86400000;
-
+/** @deprecated Phoenix-bound. Use todayIn(region.timezone) from lib/db/tz. */
 export function phxToday(): string {
-  return new Date(Date.now() - PHX_MS).toISOString().slice(0, 10);
-}
-
-function toUtcMidnight(ymd: string): number {
-  const [y, m, d] = ymd.split("-").map(Number);
-  return Date.UTC(y, (m ?? 1) - 1, d ?? 1);
-}
-
-export function addDays(ymd: string, days: number): string {
-  return new Date(toUtcMidnight(ymd) + days * DAY_MS).toISOString().slice(0, 10);
-}
-
-function daysBetween(from: string, to: string): number {
-  return Math.round((toUtcMidnight(to) - toUtcMidnight(from)) / DAY_MS);
+  return todayIn(DEFAULT_TZ);
 }
 
 /**
@@ -83,7 +75,10 @@ export function conversionDate(start: string, days: number): string {
   return addDays(start, Math.max(1, days - 2));
 }
 
-/** 9 AM Phoenix on a given date, as an ISO timestamp for a scheduled activity. */
+/**
+ * 9 AM Phoenix on a given date, as an ISO timestamp for a scheduled activity.
+ * @deprecated Use morningIso(ymd, region.timezone) from lib/db/tz.
+ */
 export function phxMorningIso(ymd: string): string {
-  return new Date(toUtcMidnight(ymd) + 16 * 3600000).toISOString();
+  return morningIso(ymd, DEFAULT_TZ);
 }
