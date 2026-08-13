@@ -151,7 +151,11 @@ export default async function ContactDetailPage({
           <Stat label="Owner" value={contact.owner?.full_name || contact.owner?.email?.split('@')[0] || 'Unassigned'} />
           {contact.email ? (
             <Stat label="Email" customValue={
-              <a href={`mailto:${contact.email}`} className="font-display text-sm md:text-base tracking-wider truncate text-primary hover:text-primary/80 hover:underline block">
+              <a
+                href={contact.account_id ? `/send/${contact.account_id}?contact=${id}` : `mailto:${contact.email}`}
+                title="Write to them with a template"
+                className="font-display text-sm md:text-base tracking-wider truncate text-primary hover:text-primary/80 hover:underline block"
+              >
                 {contact.email}
               </a>
             } icon={Mail} />
