@@ -189,7 +189,16 @@ export const HELP: HelpTopic[] = [
     path: "/map",
     title: "Map",
     what: "Your territory as a picture, with crypto density underneath.",
-    gotchas: ["The heat layer is where crypto is already being spent, not where your shops are."],
+    steps: [
+      "Near me puts a blue dot where you are standing and keeps it updated while you drive.",
+      "With the dot showing, tap 1, 3 or 10 miles to cut the map down to what is actually reachable.",
+      "Tap the same distance again to go back to your whole book.",
+    ],
+    gotchas: [
+      "The heat layer is where crypto is already being spent, not where your shops are.",
+      "Distances are straight line, not driving miles - close enough to pick the next stop, not a route.",
+      "If you block the location prompt it stays blocked. Turn it back on in your browser settings for this site.",
+    ],
   },
 ];
 

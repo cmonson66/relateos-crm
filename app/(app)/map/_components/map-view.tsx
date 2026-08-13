@@ -6,6 +6,7 @@ import { FilterChips, type FilterChip } from '@/components/app/filter-chips';
 import { VERTICALS, verticalLabel } from '@/lib/verticals';
 import { cn } from '@/lib/utils';
 import { computeCryptoStats, ATM_COLOR, type CryptoSignal } from '@/lib/crypto/density';
+import { useMyLocation, milesBetween } from './my-location';
 
 export type MapAccount = {
   id: string;
@@ -48,6 +49,10 @@ export function MapView({
   const [band, setBand] = useState('all');
   const [vertical, setVertical] = useState('all');
   const [fitSignal, setFitSignal] = useState(0);
+  const [followSignal, setFollowSignal] = useState(0);
+  // Miles from where the rep is standing. null = the whole book.
+  const [radius, setRadius] = useState<number | null>(null);
+  const { fix, error: locError, watching, start, stop } = useMyLocation();
   const [nativeOnly, setNativeOnly] = useState(false);
   const [showHeat, setShowHeat] = useState(false);
   const [heatFilter, setHeatFilter] = useState<HeatFilter>('all');
@@ -59,6 +64,14 @@ export function MapView({
         if (nativeOnly) list = list.filter(a => a.cryptoNative);
     return list;
   }, [accounts, band, vertical, nativeOnly]);
+
+  // Tighten to what a rep could actually walk or drive to right now. Straight
+  // line rather than driving distance - it only has to be right enough to
+  // decide which shops are worth the next hour.
+  const nearby = useMemo(() => {
+    if (!fix || !radius) return filtered;
+    return filtered.filter(a => milesBetween(fix, { lat: a.lat, lng: a.lng }) <= radius);
+  }, [filtered, fix, radius]);
 
   // Computed over the full account set, not the filtered one, so the
   // percentile means the same thing no matter which chips are active.
@@ -103,7 +116,7 @@ export function MapView({
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
-          {filtered.length} doors on the map
+          {nearby.length} doors on the map
           {vertical !== 'all' ? ` · ${verticalLabel(vertical)}` : ''}
           {band !== 'all' ? ` · ${band}` : ''}
         </div>
@@ -186,6 +199,50 @@ export function MapView({
 
           <button
             type="button"
+            onClick={() => {
+              if (!watching && !fix) start();
+              setFollowSignal(n => n + 1);
+            }}
+            title="Show where you are"
+            className={cn(
+              CONTROL,
+              fix
+                ? 'border-blue-500/60 bg-blue-500/10 text-blue-300'
+                : 'border-border/40 text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50'
+            )}
+          >
+            {watching && !fix ? 'Finding you...' : 'Near me'}
+          </button>
+
+          {fix && (
+            <>
+              {[1, 3, 10].map(m => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setRadius(radius === m ? null : m)}
+                  className={cn(
+                    CONTROL,
+                    radius === m
+                      ? 'border-blue-500/60 bg-blue-500/10 text-blue-300'
+                      : 'border-border/40 text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50'
+                  )}
+                >
+                  {m} mi
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => { stop(); setRadius(null); }}
+                className="text-[11px] text-muted-foreground hover:text-foreground"
+              >
+                Stop
+              </button>
+            </>
+          )}
+
+          <button
+            type="button"
             onClick={() => setFitSignal(n => n + 1)}
             className={cn(
               CONTROL,
@@ -197,8 +254,19 @@ export function MapView({
         </div>
       </div>
 
+      {locError && <p className="mb-2 text-[12px] text-destructive">{locError}</p>}
+
+      {fix && radius && (
+        <p className="mb-2 text-[12px] text-muted-foreground">
+          {nearby.length} shop{nearby.length === 1 ? '' : 's'} within {radius} mile
+          {radius === 1 ? '' : 's'} of you
+        </p>
+      )}
+
       <LeafletMap
-        accounts={filtered}
+        accounts={nearby}
+        myFix={fix}
+        followSignal={followSignal}
         focusId={focusId}
         fitSignal={fitSignal}
         signals={signals}

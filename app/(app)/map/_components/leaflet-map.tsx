@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
+import { FollowMe, MyLocationMarker, type Fix } from './my-location';
 import type { CircleMarker as LeafletCircleMarkerType } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { verticalLabel } from '@/lib/verticals';
@@ -98,6 +99,8 @@ export default function LeafletMap({
   showHeat = false,
   heatFilter = 'all',
   cryptoStats,
+  myFix = null,
+  followSignal = 0,
 }: {
   accounts: MapAccount[];
   focusId?: string | null;
@@ -106,6 +109,8 @@ export default function LeafletMap({
   showHeat?: boolean;
   heatFilter?: 'all' | 'atm' | 'merchant';
   cryptoStats?: Map<string, CryptoStats>;
+  myFix?: Fix | null;
+  followSignal?: number;
 }) {
   const shownSignals = showHeat
     ? signals.filter(s => heatFilter === 'all' || s.signal_type === heatFilter)
@@ -131,7 +136,9 @@ export default function LeafletMap({
 
         <CryptoHeat signals={shownSignals} visible={showHeat} />
 
-        <FitBounds accounts={accounts} fitSignal={fitSignal} hasFocus={!!focusAccount} />
+        <FitBounds accounts={accounts} fitSignal={fitSignal} hasFocus={!!focusAccount || !!myFix} />
+        <FollowMe fix={myFix} signal={followSignal} />
+        <MyLocationMarker fix={myFix} />
         <FocusView account={focusAccount} markerRefs={markerRefs} />
 
         {/* Kiosks render BEFORE accounts on purpose: the canvas renderer
