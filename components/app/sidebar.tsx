@@ -10,7 +10,7 @@ import {
   Megaphone,
   HardDrive,
   Coins,
-  BookOpen, Globe } from 'lucide-react';
+  BookOpen, Globe, ListChecks } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Profile, UserRole } from '@/lib/auth/get-user';
 import type { ResolvedBrand } from '@/lib/brand/brand';
@@ -22,6 +22,7 @@ const navItems: {
   roles: UserRole[];
 }[] = [
   { href: '/dashboard',  label: 'Dashboard',  icon: LayoutDashboard, roles: ['super_admin','admin','manager','rep'] },
+  { href: '/plan',       label: 'My day',     icon: ListChecks,      roles: ['super_admin','admin','manager','rep'] },
   { href: '/accounts',   label: 'Accounts',   icon: Building2,       roles: ['super_admin','admin','manager','rep'] },
   { href: '/contacts',   label: 'Contacts',   icon: Users,           roles: ['super_admin','admin','manager','rep'] },
   { href: '/deals',      label: 'Deals',      icon: Briefcase,       roles: ['super_admin','admin','manager','rep'] },
