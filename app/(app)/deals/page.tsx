@@ -1,4 +1,6 @@
 import { getUser } from '@/lib/auth/get-user';
+import { regionScope } from '@/lib/db/region-scope';
+import { RegionSwitcher } from '@/components/app/region-switcher';
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { Briefcase } from 'lucide-react';
@@ -8,21 +10,35 @@ import { Button } from '@/components/ui/button';
 import { PipelineKanban } from './_components/pipeline-kanban';
 import { formatDealValue } from '@/lib/db/deals';
 
-export default async function DealsPage() {
+export default async function DealsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ region?: string }>;
+}) {
+  const { region } = await searchParams;
   const { profile } = await getUser();
   const canDelete = profile.role === 'super_admin' || profile.role === 'admin';
   const supabase = await createClient();
+  const { regions, activeRegionId } = await regionScope(supabase, profile, region ?? null);
+
+  // Filtered through the ACCOUNT rather than the deal. deals_with_stage is a
+  // view built before regions existed, and a view's column list is fixed when
+  // it is created - so region_id is not in it even though deals.region_id
+  // exists. accounts!inner gives the same answer without a migration, and
+  // 058's cascade keeps a deal's region equal to its account's. account_id is
+  // NOT NULL, so the inner join drops nothing.
+  const dealQuery = supabase
+    .from('deals_with_stage')
+    .select(`
+      *,
+      account:accounts!inner(id, name, vertical, region_id),
+      contact:contacts!deals_primary_contact_id_fkey(id, first_name, last_name),
+      owner:profiles!deals_owner_id_fkey(id, full_name, email)
+    `)
+    .order('stage_position').order('value_cents', { ascending: false });
 
   const [{ data: deals }, { data: stages }] = await Promise.all([
-    supabase
-      .from('deals_with_stage')
-      .select(`
-        *,
-        account:accounts(id, name, vertical),
-        contact:contacts!deals_primary_contact_id_fkey(id, first_name, last_name),
-        owner:profiles!deals_owner_id_fkey(id, full_name, email)
-      `)
-      .order('stage_position').order('value_cents', { ascending: false }),
+    activeRegionId ? dealQuery.eq('account.region_id', activeRegionId) : dealQuery,
     supabase.from('pipeline_stages').select('*').order('position'),
   ]);
 
@@ -48,6 +64,12 @@ export default async function DealsPage() {
           </Link>
         }
       />
+
+      {regions.length > 1 && (
+        <div className="mb-3">
+          <RegionSwitcher regions={regions} activeId={activeRegionId} basePath="/deals" allowAll />
+        </div>
+      )}
 
       {dealList.length === 0 ? (
         <EmptyState

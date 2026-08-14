@@ -2,34 +2,48 @@ import { getUser } from "@/lib/auth/get-user";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_BASE_WEEKLY_CENTS, DEFAULT_TIERS, type CompTier } from "@/lib/db/comp";
 import { EarningsView } from "./_components/earnings-view";
+import { regionScope } from "@/lib/db/region-scope";
+import { RegionSwitcher } from "@/components/app/region-switcher";
+import { DEFAULT_TZ, todayIn, zonedIso, addDays, formatDateIn, type TimeZone } from "@/lib/db/tz";
 
 export const dynamic = "force-dynamic";
 
-// Phoenix has no DST, so the whole app anchors on UTC-7.
-const PHX = 7 * 3600000;
-
-/** Monday 00:00 Phoenix as a UTC instant - the bonus ladder resets here. */
-function phxWeekStart(offsetWeeks = 0): Date {
-  const now = new Date(Date.now() - PHX);
-  const monday = new Date(now);
-  monday.setUTCDate(now.getUTCDate() - ((now.getUTCDay() + 6) % 7) - offsetWeeks * 7);
-  monday.setUTCHours(0, 0, 0, 0);
-  return new Date(monday.getTime() + PHX);
+/**
+ * Monday 00:00 in the REGION as a UTC instant - the bonus ladder resets here.
+ *
+ * This used to be a fixed UTC-7 offset. A Dallas rep closing a deal late on a
+ * Sunday night is already Monday in Phoenix terms, so the sale would land in
+ * the wrong pay week and the ladder would pay the wrong rate for it.
+ */
+function weekStart(tz: TimeZone, offsetWeeks = 0): Date {
+  const today = todayIn(tz);
+  const [y, m, d] = today.split("-").map(Number);
+  // getUTCDay on a plain date is safe: no zone involved, just the weekday.
+  const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  const monday = addDays(today, -(((dow + 6) % 7) + offsetWeeks * 7));
+  return new Date(zonedIso(monday, 0, 0, tz));
 }
 
-const label = (d: Date) =>
-  new Date(d.getTime() - PHX).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  });
-
-export default async function EarningsPage() {
+export default async function EarningsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ region?: string }>;
+}) {
+  const { region } = await searchParams;
   const { profile } = await getUser();
   const supabase = await createClient();
+  const { regions, activeRegionId } = await regionScope(supabase, profile, region ?? null);
+
+  // Pay weeks run on the region's clock. Falls back to Phoenix when looking
+  // at every region at once, which is the only sane single answer.
+  const { data: regionRow } = activeRegionId
+    ? await supabase.from("regions").select("timezone").eq("id", activeRegionId).maybeSingle()
+    : { data: null };
+  const tz: TimeZone = (regionRow?.timezone as TimeZone) ?? DEFAULT_TZ;
+  const label = (d: Date) => formatDateIn(d.toISOString(), tz).replace(/,? \d{4}$/, "");
 
   const isLead = ["super_admin", "admin", "manager"].includes(profile.role);
-  const windowStart = phxWeekStart(5);
+  const windowStart = weekStart(tz, 5);
 
   const [{ data: repRows }, { data: tierRows }, { data: wonRows }, { data: people }] =
     await Promise.all([
@@ -41,7 +55,7 @@ export default async function EarningsPage() {
         .eq("stage_is_won", true)
         .gte("updated_at", windowStart.toISOString())
         .order("updated_at", { ascending: false }),
-      supabase.from("profiles").select("id, full_name").eq("is_active", true),
+      supabase.from("profiles").select("id, full_name, region_id").eq("is_active", true),
     ]);
 
   const tiers: CompTier[] =
@@ -62,7 +76,18 @@ export default async function EarningsPage() {
     ]),
   );
 
-  const all = wonRows ?? [];
+  // Region narrows WHICH REPS are in view. It must never narrow into a
+  // pooled figure: the ladder is per rep and marginal, so a region roll-up is
+  // the SUM OF PER-REP LADDERS. Filtering the rep set keeps that intact.
+  const regionRepIds = new Set(
+    (people ?? [])
+      .filter((p) => !activeRegionId || p.region_id === activeRegionId)
+      .map((p) => p.id as string),
+  );
+
+  const all = (wonRows ?? []).filter(
+    (d) => !activeRegionId || (d.owner_id && regionRepIds.has(d.owner_id as string)),
+  );
   // A rep only ever sees their own. A lead sees everyone, but every ladder is
   // still computed PER REP - pooling the team into one ladder would report a
   // bonus nobody earned.
@@ -70,9 +95,9 @@ export default async function EarningsPage() {
 
   const weekBounds = Array.from({ length: 6 }, (_, i) => ({
     i,
-    start: phxWeekStart(i).getTime(),
-    end: phxWeekStart(i - 1).getTime(),
-    startsOn: label(phxWeekStart(i)),
+    start: weekStart(tz, i).getTime(),
+    end: weekStart(tz, i - 1).getTime(),
+    startsOn: label(weekStart(tz, i)),
   }));
 
   /** Deals for one owner (or everyone), bucketed into Monday-anchored weeks. */
@@ -98,9 +123,14 @@ export default async function EarningsPage() {
 
   // Everyone who either sold something in the window or has a rep record, so
   // a rep at zero this week still appears rather than quietly vanishing.
+  // Region-filtered too, or a Phoenix rep with no DFW sales would show up in
+  // the DFW roll-up at zero and pad the payroll line with a base they are
+  // not paid out of this region.
   const ownerIds = Array.from(
     new Set([
-      ...(repRows ?? []).map((r) => r.profile_id as string),
+      ...(repRows ?? [])
+        .map((r) => r.profile_id as string)
+        .filter((id) => !activeRegionId || regionRepIds.has(id)),
       ...all.map((d) => d.owner_id as string).filter(Boolean),
     ]),
   );
@@ -118,6 +148,12 @@ export default async function EarningsPage() {
     : [];
 
   return (
+    <>
+      {regions.length > 1 && (
+        <div className="px-4 pt-4 md:px-8">
+          <RegionSwitcher regions={regions} activeId={activeRegionId} basePath="/earnings" allowAll />
+        </div>
+      )}
     <EarningsView
       isLead={isLead}
       firstName={
@@ -130,5 +166,6 @@ export default async function EarningsPage() {
       weeks={weeksFor(isLead ? null : profile.id)}
       team={team}
     />
+    </>
   );
 }

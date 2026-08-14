@@ -1,4 +1,6 @@
 import { getUser } from '@/lib/auth/get-user';
+import { regionScope } from '@/lib/db/region-scope';
+import { RegionSwitcher } from '@/components/app/region-switcher';
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import {
@@ -34,9 +36,32 @@ type ActivityRow = {
 const one = <T,>(v: T[] | T | null | undefined): T | null =>
   Array.isArray(v) ? (v[0] ?? null) : (v ?? null);
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ region?: string }>;
+}) {
+  const { region } = await searchParams;
   const { profile } = await getUser();
   const supabase = await createClient();
+  const { regions, activeRegionId } = await regionScope(supabase, profile, region ?? null);
+
+  // Three different join paths, because the dashboard reads three different
+  // shapes of thing:
+  //   deals  -> through the account, since deals_with_stage is a pre-region
+  //             view and its column list is fixed at creation
+  //   accounts -> directly, they carry region_id
+  //   activities -> through the OWNER, they have no region of their own
+  // NOT wrapped in a generic helper. Passing a PostgREST builder through one
+  // trips "Type instantiation is excessively deep" - the same trap as 043 and
+  // 054. Concrete expressions at each call site, every time.
+  const RID = activeRegionId ?? '';
+
+  const { data: regionPeople } = activeRegionId
+    ? await supabase.from('profiles').select('id').eq('region_id', activeRegionId)
+    : { data: null };
+  const regionOwnerIds = regionPeople?.map((p) => p.id as string) ?? null;
+  const OWNERS = regionOwnerIds ?? [];
 
   const todayStart = phxDayStartUtc(0);
   const todayEnd = new Date(todayStart.getTime() + 86400000);
@@ -57,19 +82,36 @@ export default async function DashboardPage() {
     { data: allDeals },
     { data: profiles },
   ] = await Promise.all([
-    supabase.from('deals_with_stage')
-      .select('value_cents, stage_name, stage_position, stage_is_won, stage_is_lost')
-      .eq('stage_is_won', false).eq('stage_is_lost', false),
-    supabase.from('deals_with_stage')
-      .select('id, name, updated_at, stage_is_won')
-      .eq('stage_is_won', true)
-      .gte('updated_at', prevWeekStart.toISOString()),
+    (async () =>
+      activeRegionId
+        ? await supabase.from('deals_with_stage')
+            .select('value_cents, stage_name, stage_position, stage_is_won, stage_is_lost, account:accounts!inner(region_id)')
+            .eq('stage_is_won', false).eq('stage_is_lost', false).eq('account.region_id', RID)
+        : await supabase.from('deals_with_stage')
+            .select('value_cents, stage_name, stage_position, stage_is_won, stage_is_lost')
+            .eq('stage_is_won', false).eq('stage_is_lost', false)
+    )(),
+    (async () =>
+      activeRegionId
+        ? await supabase.from('deals_with_stage')
+            .select('id, name, updated_at, stage_is_won, account:accounts!inner(region_id)')
+            .eq('stage_is_won', true).gte('updated_at', prevWeekStart.toISOString())
+            .eq('account.region_id', RID)
+        : await supabase.from('deals_with_stage')
+            .select('id, name, updated_at, stage_is_won')
+            .eq('stage_is_won', true).gte('updated_at', prevWeekStart.toISOString())
+    )(),
     // Terminals physically sitting in shops right now. RLS-scoped, so a
     // rep sees their own and Chad sees every one that is out.
-    supabase.from('deals_with_stage')
-      .select('id, trial_start, trial_days, trial_end, trial_outcome')
-      .not('trial_start', 'is', null)
-      .is('trial_outcome', null),
+    (async () =>
+      activeRegionId
+        ? await supabase.from('deals_with_stage')
+            .select('id, trial_start, trial_days, trial_end, trial_outcome, account:accounts!inner(region_id)')
+            .not('trial_start', 'is', null).is('trial_outcome', null).eq('account.region_id', RID)
+        : await supabase.from('deals_with_stage')
+            .select('id, trial_start, trial_days, trial_end, trial_outcome')
+            .not('trial_start', 'is', null).is('trial_outcome', null)
+    )(),
     // Signed but not yet invoiced: money agreed to and never asked for.
     supabase.from('trial_agreements')
       .select('deal_id, business_name, signed_at')
@@ -79,24 +121,46 @@ export default async function DashboardPage() {
     // ONE list for today: appointments, callbacks, installs AND tasks.
     // (The old dashboard ran two overlapping queries, so a task due today
     // appeared in both "My tasks" and "On your calendar today".)
-    supabase.from('activities')
-      .select('id, type, subject, body, scheduled_at, completed_at, account:accounts(id, name, city)')
-      .is('completed_at', null)
-      .lt('scheduled_at', todayEnd.toISOString())
-      .order('scheduled_at', { ascending: true })
-      .limit(40),
-    supabase.from('activities')
-      .select('id, type, subject, created_at, owner_id')
-      .gte('created_at', prevWeekStart.toISOString()),
+    (async () =>
+      regionOwnerIds
+        ? await supabase.from('activities')
+            .select('id, type, subject, body, scheduled_at, completed_at, account:accounts(id, name, city)')
+            .is('completed_at', null).lt('scheduled_at', todayEnd.toISOString())
+            .in('owner_id', OWNERS)
+            .order('scheduled_at', { ascending: true }).limit(40)
+        : await supabase.from('activities')
+            .select('id, type, subject, body, scheduled_at, completed_at, account:accounts(id, name, city)')
+            .is('completed_at', null).lt('scheduled_at', todayEnd.toISOString())
+            .order('scheduled_at', { ascending: true }).limit(40)
+    )(),
+    (async () =>
+      regionOwnerIds
+        ? await supabase.from('activities')
+            .select('id, type, subject, created_at, owner_id')
+            .gte('created_at', prevWeekStart.toISOString()).in('owner_id', OWNERS)
+        : await supabase.from('activities')
+            .select('id, type, subject, created_at, owner_id')
+            .gte('created_at', prevWeekStart.toISOString())
+    )(),
     supabase.from('notifications')
       .select('id, title, body, entity_type, entity_id, created_at')
       .eq('recipient_id', profile.id).eq('type', 'system_alert').is('read_at', null)
       .order('created_at', { ascending: false }).limit(4),
-    supabase.from('accounts')
-      .select('id', { count: 'exact', head: true })
-      .contains('tags', ['HOT']).is('owner_id', null),
+    (async () =>
+      activeRegionId
+        ? await supabase.from('accounts').select('id', { count: 'exact', head: true })
+            .contains('tags', ['HOT']).is('owner_id', null).eq('region_id', RID)
+        : await supabase.from('accounts').select('id', { count: 'exact', head: true })
+            .contains('tags', ['HOT']).is('owner_id', null)
+    )(),
     supabase.from('pipeline_stages').select('id, name, position, is_won, is_lost').order('position'),
-    supabase.from('deals_with_stage').select('stage_position, stage_is_won, stage_is_lost'),
+    (async () =>
+      activeRegionId
+        ? await supabase.from('deals_with_stage')
+            .select('stage_position, stage_is_won, stage_is_lost, account:accounts!inner(region_id)')
+            .eq('account.region_id', RID)
+        : await supabase.from('deals_with_stage').select('stage_position, stage_is_won, stage_is_lost')
+    )(),
     supabase.from('profiles').select('id, full_name'),
   ]);
 
@@ -186,6 +250,12 @@ export default async function DashboardPage() {
           {overdue.length > 0 && <span className="text-destructive"> · {overdue.length} overdue</span>}
         </p>
       </div>
+
+      {regions.length > 1 && (
+        <div className="mb-6">
+          <RegionSwitcher regions={regions} activeId={activeRegionId} basePath="/dashboard" allowAll />
+        </div>
+      )}
 
       {/* ---------------- KPIs ---------------- */}
       <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-2">This week</div>

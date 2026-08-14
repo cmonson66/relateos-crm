@@ -1,11 +1,18 @@
 import { getUser } from "@/lib/auth/get-user";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { regionScope } from "@/lib/db/region-scope";
+import { RegionSwitcher } from "@/components/app/region-switcher";
 import { TerminalsView } from "./_components/terminals-view";
 
 export const dynamic = "force-dynamic";
 
-export default async function TerminalsPage() {
+export default async function TerminalsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ region?: string }>;
+}) {
+  const { region } = await searchParams;
   const { profile } = await getUser();
   // Stock is an org-level concern, not a rep-level one.
   if (!profile || !["super_admin", "admin", "manager"].includes(profile.role)) {
@@ -13,17 +20,22 @@ export default async function TerminalsPage() {
   }
 
   const supabase = await createClient();
+  const { regions, activeRegionId } = await regionScope(supabase, profile, region ?? null);
+
+  // Hardware is physically in one market. A Phoenix manager assigning a unit
+  // that is sitting in a Fort Worth rep's trunk is not a useful screen.
+  const terminalQuery = supabase
+    .from("terminals")
+    .select(
+      "id, serial, model, status, held_by_profile_id, account_id, deal_id, deployed_at, created_at",
+    )
+    .order("created_at", { ascending: false });
 
   const [{ data: rows, error: rowsErr }, { data: people }] = await Promise.all([
-    supabase
-      .from("terminals")
-      .select(
-        "id, serial, model, status, held_by_profile_id, account_id, deal_id, deployed_at, created_at",
-      )
-      .order("created_at", { ascending: false }),
+    activeRegionId ? terminalQuery.eq("region_id", activeRegionId) : terminalQuery,
     supabase
       .from("profiles")
-      .select("id, full_name")
+      .select("id, full_name, region_id")
       .eq("is_active", true)
       .in("role", ["super_admin", "admin", "manager", "rep"]),
   ]);
@@ -62,6 +74,12 @@ export default async function TerminalsPage() {
   );
 
   return (
+    <>
+      {regions.length > 1 && (
+        <div className="px-4 pt-4 md:px-8">
+          <RegionSwitcher regions={regions} activeId={activeRegionId} basePath="/terminals" allowAll />
+        </div>
+      )}
     <TerminalsView
       terminals={terminals.map((t) => ({
         id: t.id as string,
@@ -74,10 +92,13 @@ export default async function TerminalsPage() {
         accountId: (t.account_id as string | null) ?? null,
         deployedAt: (t.deployed_at as string | null) ?? null,
       }))}
-      people={(people ?? []).map((p) => ({
-        id: p.id as string,
-        name: (p.full_name as string) ?? "Rep",
-      }))}
+      people={(people ?? [])
+        .filter((p) => !activeRegionId || p.region_id === activeRegionId || p.region_id === null)
+        .map((p) => ({
+          id: p.id as string,
+          name: (p.full_name as string) ?? "Rep",
+        }))}
     />
+    </>
   );
 }

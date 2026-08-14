@@ -43,6 +43,12 @@ export function RegionSwitcher({
     const next = new URLSearchParams(params.toString());
     if (id === 'all') next.delete('region');
     else next.set('region', id);
+
+    // Remember the choice so it survives navigation to another page. The URL
+    // still wins when present; this is only the fallback. Cleared on "all" so
+    // a stale region cannot quietly follow you around the app.
+    const maxAge = id === 'all' ? 0 : 60 * 60 * 24 * 30;
+    document.cookie = `np_region=${id === 'all' ? '' : id}; path=/; max-age=${maxAge}; samesite=lax`;
     for (const p of clearParams) next.delete(p);
     const qs = next.toString();
     start(() => {

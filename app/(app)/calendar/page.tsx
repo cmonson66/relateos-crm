@@ -1,4 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
+import { getUser } from '@/lib/auth/get-user';
+import { regionScope } from '@/lib/db/region-scope';
+import { RegionSwitcher } from '@/components/app/region-switcher';
 import { CalendarView, type CalEvent, type CalMode } from './_components/week-view';
 
 export const dynamic = 'force-dynamic';
@@ -16,7 +19,7 @@ function phxToday(): { y: number; m: number; d: number } {
 export default async function CalendarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ v?: string; o?: string; w?: string; d?: string }>;
+  searchParams: Promise<{ v?: string; o?: string; w?: string; d?: string; region?: string }>;
 }) {
   const sp = await searchParams;
   const view: CalMode = sp.v === 'day' || sp.v === 'month' ? sp.v : 'week';
@@ -67,15 +70,31 @@ export default async function CalendarPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  const { profile } = await getUser();
+  const { regions, activeRegionId } = await regionScope(supabase, profile, sp.region ?? null);
+
+  // Activities carry no region of their own - they belong to whoever booked
+  // them - so the region is applied through the OWNER. Corporate profiles
+  // have no region and stay visible in every view, since they book calls
+  // anywhere.
+  const { data: regionPeople } = activeRegionId
+    ? await supabase.from('profiles').select('id').eq('region_id', activeRegionId)
+    : { data: null };
+  const regionOwnerIds = regionPeople?.map((p) => p.id as string) ?? null;
+
   // RLS scopes this: reps see their book, super_admin sees everyone
-  const { data: rows } = await supabase
+  const activityQuery = supabase
     .from('activities')
     .select('id, type, subject, scheduled_at, completed_at, owner_id, account:accounts(id, name, city)')
     .gte('scheduled_at', rangeStart)
     .lt('scheduled_at', rangeEnd)
     .order('scheduled_at', { ascending: true });
 
-  const { data: profiles } = await supabase.from('profiles').select('id, full_name');
+  const { data: rows } = regionOwnerIds
+    ? await activityQuery.in('owner_id', regionOwnerIds)
+    : await activityQuery;
+
+  const { data: profiles } = await supabase.from('profiles').select('id, full_name, region_id');
   const nameById = new Map((profiles ?? []).map((p) => [p.id, p.full_name?.split(' ')[0] ?? '']));
 
   const events: CalEvent[] = (rows ?? []).map((r) => {
@@ -95,14 +114,21 @@ export default async function CalendarPage({
   });
 
   return (
-    <CalendarView
-      events={events}
-      view={view}
-      rangeStartIso={rangeStart}
-      numDays={numDays}
-      label={label}
-      offset={offset}
-      focusMonth={focusMonth}
-    />
+    <>
+      {regions.length > 1 && (
+        <div className="px-4 pt-4 md:px-8">
+          <RegionSwitcher regions={regions} activeId={activeRegionId} basePath="/calendar" allowAll />
+        </div>
+      )}
+      <CalendarView
+        events={events}
+        view={view}
+        rangeStartIso={rangeStart}
+        numDays={numDays}
+        label={label}
+        offset={offset}
+        focusMonth={focusMonth}
+      />
+    </>
   );
 }
