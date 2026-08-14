@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { CampaignControl } from './_components/campaign-control';
 import { todaysCap, campaignDay, type CampaignSettings } from '@/lib/campaigns/engine';
 import { resolveRegion, zoneOf } from '@/lib/campaigns/region';
-import Link from 'next/link';
+import { RegionSwitcher } from '@/components/app/region-switcher';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +34,7 @@ export default async function CampaignsPage({
     supabase.from('campaign_runs').select('*')
       .eq('region_id', region?.id ?? '00000000-0000-0000-0000-000000000000')
       .order('ran_at', { ascending: false }).limit(10),
-    supabase.from('profiles').select('id, full_name, email').eq('is_active', true)
+    supabase.from('profiles').select('id, full_name, email, region_id').eq('is_active', true)
       .in('role', ['super_admin', 'admin', 'manager', 'rep']).order('full_name'),
   ]);
 
@@ -69,30 +69,27 @@ export default async function CampaignsPage({
   }
 
   const s = settings as CampaignSettings;
-  const tabs = regions.length > 1 ? (
-    <div className="flex flex-wrap gap-2 px-4 pt-4 md:px-8">
-      {regions.map((r) => (
-        <Link
-          key={r.id}
-          href={`/campaigns?region=${r.id}`}
-          className={
-            r.id === region?.id
-              ? 'rounded-md border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium tracking-wide text-primary'
-              : 'rounded-md border border-border/40 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground'
-          }
-        >
-          {r.code}
-          {!r.is_active && <span className="ml-1.5 opacity-60">off</span>}
-        </Link>
-      ))}
+  const tabs = (
+    <div className="px-4 pt-4 md:px-8">
+      <RegionSwitcher regions={regions} activeId={region?.id ?? null} basePath="/campaigns" />
     </div>
-  ) : null;
+  );
 
   return (
     <>
     {tabs}
     <CampaignControl
+      // The key is the fix for two bugs at once. CampaignControl seeds its
+      // status and its whole settings form from props via useState, which
+      // only reads them on FIRST render - so switching to DFW kept Phoenix's
+      // RUNNING button and Phoenix's domain in the form. Changing the key
+      // remounts the component, which re-seeds every field from the region
+      // actually being displayed.
+      key={region?.id ?? 'none'}
       regionId={region?.id ?? ''}
+      regionCode={region?.code ?? ''}
+      sendHour={region?.send_hour ?? 6}
+      timezone={tz}
       settings={{
         status: s.status,
         hasKey: !!s.resend_api_key,
@@ -107,7 +104,13 @@ export default async function CampaignsPage({
         send_owner_id: s.send_owner_id ?? null,
         assigned_only: s.assigned_only ?? true,
       }}
-      people={(people ?? []).map(p => ({ id: p.id, name: p.full_name || p.email || 'Rep' }))}
+      // Whose identity this region can send as. Filtered to the region, or
+      // DFW's "send as" list offers Eric in Phoenix - replies would reach
+      // somebody who cannot see the account. Corporate has no region and can
+      // send anywhere.
+      people={(people ?? [])
+        .filter(p => !region || p.region_id === region.id || p.region_id === null)
+        .map(p => ({ id: p.id, name: p.full_name || p.email || 'Rep' }))}
       cap={todaysCap(s, tz)}
       day={campaignDay(s, tz)}
       queued={queued}

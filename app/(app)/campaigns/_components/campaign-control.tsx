@@ -36,11 +36,16 @@ type PreviewItem = { placeId: string; stage: number; to: string; name: string; v
 
 export function CampaignControl({
   settings, cap, day, queued, emailable, runs, people, stageCounts, engagedCount, regionId,
+  regionCode, sendHour, timezone,
 }: {
   settings: Settings; cap: number; day: number; queued: number; emailable: number; runs: Run[];
   /** Which region's campaign this is. Every action is keyed on it, so viewing
    *  DFW and hitting Save cannot write Phoenix's row. */
   regionId: string;
+  regionCode: string;
+  /** This region's own send hour and zone. "6:00 AM Phoenix" was hardcoded. */
+  sendHour: number;
+  timezone: string;
   people: { id: string; name: string }[];
   stageCounts: number[];
   engagedCount: number;
@@ -65,12 +70,30 @@ export function CampaignControl({
 
   const todayRun = runs.find(r => new Date(r.ran_at).toDateString() === new Date().toDateString());
   const sentToday = todayRun?.sent ?? 0;
-  const ready = settings.hasKey && !!settings.physical_address && !!settings.pulse_base_url;
+  // from_domain joins the gate: 065 deliberately leaves it blank on a new
+  // region so nobody inherits another region's warmed sending reputation,
+  // which means "start" has to refuse until this region has its own.
+  const missing = [
+    !settings.hasKey && 'Resend key',
+    !settings.from_domain && 'sending domain',
+    !settings.reply_to && 'reply-to address',
+    !settings.physical_address && 'physical address',
+    !settings.pulse_base_url && 'Pulse URL',
+  ].filter(Boolean) as string[];
+  const ready = missing.length === 0;
+
+  const sendClock = `${sendHour === 0 ? 12 : sendHour > 12 ? sendHour - 12 : sendHour}:00 ${sendHour < 12 ? 'AM' : 'PM'}`;
+  const zoneShort = (() => {
+    try {
+      return new Intl.DateTimeFormat('en-US', { timeZone: timezone, timeZoneName: 'short' })
+        .formatToParts(new Date()).find(p => p.type === 'timeZoneName')?.value ?? '';
+    } catch { return ''; }
+  })();
 
   const toggle = () => {
     const next = status === 'running' ? 'paused' : 'running';
     if (next === 'running' && !ready) {
-      toast.error('Add the Resend key, physical address, and Pulse URL before starting.');
+      toast.error(`${regionCode || 'This region'} still needs: ${missing.join(', ')}.`);
       setShowSettings(true);
       return;
     }
@@ -78,7 +101,7 @@ export function CampaignControl({
       try {
         await setCampaignStatus(next, regionId);
         setStatus(next);
-        toast.success(next === 'running' ? 'Campaign running — daily send at 6:00 AM Phoenix.' : 'Campaign paused.');
+        toast.success(next === 'running' ? `Campaign running - daily send at ${sendClock} ${zoneShort}.` : 'Campaign paused.');
         router.refresh();
       } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed'); }
     });
@@ -139,7 +162,7 @@ export function CampaignControl({
         <Stat label="Today's cap" value={cap.toString()} sub={`warm-up day ${day}`} />
         <Stat label="Sent today" value={sentToday.toString()} sub={todayRun ? todayRun.trigger : 'not yet run'} tone={sentToday > 0 ? 'green' : undefined} />
         <Stat label="Queued (never emailed)" value={queued.toLocaleString()} sub={`${emailable.toLocaleString()} emailable total`} />
-        <Stat label="Next send" value="6:00 AM" sub={status === 'running' ? 'automatic, Phoenix time' : 'paused'} tone={status === 'running' ? 'gold' : undefined} />
+        <Stat label="Next send" value={sendClock} sub={status === 'running' ? `automatic, ${zoneShort || 'local'}` : 'paused'} tone={status === 'running' ? 'gold' : undefined} />
       </div>
 
       <div className="mb-6 flex flex-wrap gap-2">
@@ -302,7 +325,7 @@ export function CampaignControl({
         {runs.map(r => (
           <div key={r.id} className="flex flex-wrap items-baseline justify-between gap-2 border-b border-dashed border-border/30 py-2 text-sm last:border-0">
             <span className="font-bold">
-              {new Date(r.ran_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Phoenix' })}
+              {new Date(r.ran_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: timezone })}
               <span className="ml-2 text-[11px] font-normal uppercase tracking-wider text-muted-foreground">{r.trigger}</span>
             </span>
             <span className="text-xs text-muted-foreground">

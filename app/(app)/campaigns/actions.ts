@@ -57,7 +57,25 @@ export async function saveCampaignSettings(input: {
 }
 
 export async function setCampaignStatus(status: 'running' | 'paused', regionId?: string) {
-  const { settings: current } = await adminSettings(regionId);
+  const { settings: current, region } = await adminSettings(regionId);
+
+  // Server-side twin of the client gate. The button already refuses, but a
+  // half-configured region starting a 30-a-day cold send is exactly the thing
+  // that should not depend on the browser being honest - and with from_domain
+  // blank the engine would build a From address out of nothing.
+  if (status === 'running') {
+    const missing = [
+      !current.resend_api_key && 'Resend key',
+      !current.from_domain && 'sending domain',
+      !current.reply_to && 'reply-to address',
+      !current.physical_address && 'physical address',
+      !current.pulse_base_url && 'Pulse URL',
+    ].filter(Boolean) as string[];
+    if (missing.length > 0) {
+      throw new Error(`${region?.code ?? 'This region'} still needs: ${missing.join(', ')}.`);
+    }
+  }
+
   const supabase = await createClient();
   const { error } = await supabase
     .from('campaign_settings')
