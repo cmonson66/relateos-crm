@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef } from 'react';
 import Link from 'next/link';
-import { Printer, FileText, BookOpen, PackageCheck, ChevronLeft, Search, X, MapPin, Compass } from 'lucide-react';
+import { Printer, FileText, BookOpen, PackageCheck, ChevronLeft, Search, X, MapPin, Compass, BookMarked } from 'lucide-react';
 import { OnePager } from './one-pager';
 import { searchAccounts } from '@/app/(app)/appointments/actions';
 
@@ -13,6 +13,7 @@ const HOOKS: { who: string; line: string }[] = [
   { who: 'Jewelry, auto, med spa, pool, liquor', line: 'On your ticket sizes, 3% is real money - about $3,600 a year out of a $10K a month shop.' },
   { who: 'Barber, tattoo, food, sneakers, nails', line: 'Your crowd is exactly who holds crypto. First shop on the block to take it gets the customers who go looking.' },
   { who: 'Phone repair, gyms', line: 'Work delivered, then clawed back weeks later. A settled crypto payment is final - no dispute window.' },
+  { who: 'Cash-pay dental, vets, event venues', line: 'Big ticket, work already done. 3% on a $1,400 crown is $42, and a disputed deposit lands after the room was held. Settled crypto is final.' },
   { who: 'Already takes crypto', line: 'Respect first, never explain crypto to them. You are the third option: real terminal, zero fee, straight to their own wallet.' },
 ];
 
@@ -150,6 +151,24 @@ export function PlaybookView({
               <div className="mt-1 text-xs text-muted-foreground">{blurb}</div>
             </button>
           ))}
+
+          {/* A file, not a tab - it opens in the phone's own PDF reader, which
+              handles 36 pages far better than anything rendered in here. */}
+          <Link
+            href="/ambassador-handbook.pdf"
+            target="_blank"
+            rel="noopener"
+            className="card-lit rounded-md border border-border/40 p-5 text-left transition-colors hover:border-primary/50"
+          >
+            <BookMarked className="mb-2.5 h-6 w-6 text-primary" />
+            <div className="font-display text-lg tracking-wider">THE AMBASSADOR HANDBOOK</div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              NectarPay&apos;s own 36-page field edition. Read it once cover to cover.
+            </div>
+            <div className="mt-2 text-[11px] text-amber-300/80">
+              Pilot Launch v1.0 - the pay page is out of date. Ask before quoting it.
+            </div>
+          </Link>
         </div>
       )}
 

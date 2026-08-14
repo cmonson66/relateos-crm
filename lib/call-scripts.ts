@@ -29,6 +29,13 @@ export const CALL_CLUSTER_MAP: Record<string, CallCluster> = {
   'gaming': 'crowd',
   'thrift-vintage': 'crowd',
   'phone-repair': 'simple',
+  // Cash-pay dental, vets and event venues are all the same shape: a large
+  // ticket, work or a room already delivered, and a dispute window that opens
+  // afterwards. Mapped to 'math' because the fee on a $1,400 crown is the
+  // provable half of the pitch - but the chargeback story is the stronger one
+  // and there is no cluster that leads with it yet.
+  'dental-vet': 'math',
+  'event-venue': 'math',
   'gym-supps': 'simple',
   'crypto-native': 'native',
 };
