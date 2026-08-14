@@ -54,13 +54,21 @@ export default async function MapPage({
   // Crypto touchpoints (ATMs + accepting merchants). Reference data, not
   // org-scoped. fetchAllRows swallows the error and returns [] if migration
   // 017 hasn't been applied yet, so the map still renders without the layer.
-  const signals = await fetchAllRows<CryptoSignal>((from, to) =>
-    supabase
+  //
+  // Scoped to the region on display since 062. computeCryptoStats works out
+  // percentiles from whatever it is handed, so mixing two metros would rank
+  // a Phoenix corridor against Dallas kiosks and put the wrong number in the
+  // legend. Corporate viewing all regions gets everything, which matches the
+  // pins they are looking at.
+  const signalRegionId = activeRegionId ?? (isCorporate ? null : profile.region_id ?? null);
+  const signals = await fetchAllRows<CryptoSignal>((from, to) => {
+    const q = supabase
       .from('crypto_signals')
       .select('id, signal_type, name, brand, city, lat, lng, weight')
       .order('id', { ascending: true })
-      .range(from, to)
-  );
+      .range(from, to);
+    return signalRegionId ? q.eq('region_id', signalRegionId) : q;
+  });
 
   const accounts: MapAccount[] = rows.map(r => {
     const c = r.contacts?.[0] ?? null;
