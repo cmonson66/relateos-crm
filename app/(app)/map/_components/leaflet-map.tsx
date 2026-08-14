@@ -125,7 +125,14 @@ export default function LeafletMap({
   const atmCount = shownSignals.filter(s => s.signal_type === 'atm').length;
 
   return (
-    <div className="relative h-[70vh] rounded-md overflow-hidden border border-border/40">
+    // `isolate` is load-bearing. Leaflet hardcodes high z-indexes - panes at
+    // 400, controls at 1000 - and `relative` alone does not create a stacking
+    // context, so those numbers competed in the page root against overlays
+    // portalled to body: the filter sheet (z-50), the help panel (z-60) and
+    // every dialog all rendered BEHIND the map on this page. isolation:isolate
+    // confines Leaflet's ordering to this box, and the legend below keeps
+    // working because it is inside the same context.
+    <div className="relative isolate h-[70vh] rounded-md overflow-hidden border border-border/40">
       <MapContainer
         center={DEFAULT_CENTER}
         zoom={10}
