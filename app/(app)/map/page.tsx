@@ -2,7 +2,8 @@ import { getUser } from '@/lib/auth/get-user';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/app/page-header';
 import { fetchAllRows, fetchAllRowsById } from '@/lib/db/fetch-all';
-import { MapView, type MapAccount } from './_components/map-view';
+import { MapView, type MapAccount, type MapRegion } from './_components/map-view';
+import { listRegions } from '@/lib/campaigns/region';
 import type { CryptoSignal } from '@/lib/crypto/density';
 
 type Row = {
@@ -27,18 +28,28 @@ type Row = {
 export default async function MapPage({
   searchParams,
 }: {
-  searchParams: Promise<{ focus?: string }>;
+  searchParams: Promise<{ focus?: string; region?: string }>;
 }) {
-  const { focus } = await searchParams;
-  await getUser();
+  const { focus, region } = await searchParams;
+  const { profile } = await getUser();
   const supabase = await createClient();
 
-  const rows = await fetchAllRowsById<Row>(() =>
-    supabase
+  // Only corporate ever sees more than one. A rep or manager is already
+  // fenced by RLS, so the picker would be a dropdown with one entry.
+  const isCorporate = profile.role === 'super_admin' || profile.role === 'admin';
+  const regionRows = isCorporate ? await listRegions(supabase, profile.org_id) : [];
+  const regions: MapRegion[] = regionRows.map(r => ({ id: r.id, code: r.code, name: r.name }));
+  const activeRegionId = region && regions.some(r => r.id === region) ? region : null;
+
+  // Narrowed in the QUERY, not in the browser. Hopping to DFW should not ship
+  // every Phoenix pin down the wire first.
+  const rows = await fetchAllRowsById<Row>(() => {
+    const base = supabase
       .from('accounts')
       .select('id, name, vertical, city, latitude, longitude, tags, last_activity_at, crypto_native, contacts(first_name, last_name, phone, title, lifecycle_stage)')
-      .not('latitude', 'is', null)
-  );
+      .not('latitude', 'is', null);
+    return activeRegionId ? base.eq('region_id', activeRegionId) : base;
+  });
 
   // Crypto touchpoints (ATMs + accepting merchants). Reference data, not
   // org-scoped. fetchAllRows swallows the error and returns [] if migration
@@ -76,7 +87,13 @@ export default async function MapPage({
         highlight="Map"
         description="Every pin is a door. Filter by band and vertical, then plan the day's route."
       />
-      <MapView accounts={accounts} signals={signals} focusId={focus ?? null} />
+      <MapView
+        accounts={accounts}
+        signals={signals}
+        focusId={focus ?? null}
+        regions={regions}
+        activeRegionId={activeRegionId}
+      />
     </div>
   );
 }
