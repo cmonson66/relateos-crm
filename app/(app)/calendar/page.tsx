@@ -6,15 +6,16 @@ import { CalendarView, type CalEvent, type CalMode } from './_components/week-vi
 
 export const dynamic = 'force-dynamic';
 
-const DAY_MS = 86400000;
-const PHX_MS = 7 * 3600000; // Phoenix = UTC-7, no DST
-const TZ = 'America/Phoenix';
+import { addDays, dayStartUtc, formatDateIn, todayIn, type TimeZone } from '@/lib/db/tz';
 
-// All ranges are anchored to PHOENIX days: a "day" starts at 07:00 UTC.
-function phxToday(): { y: number; m: number; d: number } {
-  const p = new Date(Date.now() - PHX_MS);
-  return { y: p.getUTCFullYear(), m: p.getUTCMonth(), d: p.getUTCDate() };
-}
+// Ranges are anchored to the VIEWER'S region. This used to assume a day
+// starts at 07:00 UTC, which is only true in Phoenix - a Dallas rep saw their
+// appointments laid out on Arizona grid lines, two hours off, and anything
+// booked in that window landed in the wrong column.
+//
+// Days are built by CALENDAR arithmetic on YYYY-MM-DD rather than by adding
+// 86,400,000 ms. On the two DST change days a local day is 23 or 25 hours
+// long, so millisecond stepping drifts an hour and eventually a column.
 
 export default async function CalendarPage({
   searchParams,
@@ -24,54 +25,59 @@ export default async function CalendarPage({
   const sp = await searchParams;
   const view: CalMode = sp.v === 'day' || sp.v === 'month' ? sp.v : 'week';
   const offset = Number(sp.o ?? sp.w ?? '0') || 0; // w= kept for old links
-  const { y, m, d } = phxToday();
 
-  let startMs: number;
+  const supabase = await createClient();
+  const { profile } = await getUser();
+  const { regions, activeRegionId, timezone } = await regionScope(supabase, profile, sp.region ?? null);
+  const TZ: TimeZone = timezone;
+
+  /** Weekday of a plain date, Monday = 0. No zone involved, just the day. */
+  const mondayIndex = (ymd: string) => {
+    const [yy, mm, dd] = ymd.split('-').map(Number);
+    return (new Date(Date.UTC(yy, mm - 1, dd)).getUTCDay() + 6) % 7;
+  };
+
+  const today = todayIn(TZ);
+  let startYmd: string;
   let numDays: number;
   let label: string;
   let focusMonth: number | null = null;
 
   if (view === 'day') {
-    if (sp.d) {
-      const [dy, dm, dd] = sp.d.split('-').map(Number);
-      startMs = Date.UTC(dy, dm - 1, dd, 7);
-    } else {
-      startMs = Date.UTC(y, m, d + offset, 7);
-    }
+    startYmd = sp.d ?? addDays(today, offset);
     numDays = 1;
-    label = new Date(startMs).toLocaleDateString('en-US', {
+    label = new Date(dayStartUtc(startYmd, TZ)).toLocaleDateString('en-US', {
       weekday: 'long', month: 'long', day: 'numeric', timeZone: TZ,
     });
   } else if (view === 'month') {
-    const firstMs = Date.UTC(y, m + offset, 1, 7);
-    const first = new Date(firstMs);
-    focusMonth = first.getUTCMonth();
-    const pad = (first.getUTCDay() + 6) % 7; // Monday-start
-    startMs = firstMs - pad * DAY_MS;
-    const daysInMonth = new Date(Date.UTC(first.getUTCFullYear(), focusMonth + 1, 0)).getUTCDate();
+    const [ty, tm] = today.split('-').map(Number);
+    const target = new Date(Date.UTC(ty, tm - 1 + offset, 1));
+    const firstYmd = target.toISOString().slice(0, 10);
+    focusMonth = target.getUTCMonth();
+    const pad = mondayIndex(firstYmd);
+    startYmd = addDays(firstYmd, -pad);
+    const daysInMonth = new Date(Date.UTC(target.getUTCFullYear(), focusMonth + 1, 0)).getUTCDate();
     numDays = Math.ceil((pad + daysInMonth) / 7) * 7;
-    label = first.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: TZ });
+    label = new Date(dayStartUtc(firstYmd, TZ)).toLocaleDateString('en-US', {
+      month: 'long', year: 'numeric', timeZone: TZ,
+    });
   } else {
-    const todayMs = Date.UTC(y, m, d, 7);
-    const dow = (new Date(todayMs).getUTCDay() + 6) % 7;
-    startMs = todayMs - dow * DAY_MS + offset * 7 * DAY_MS;
+    startYmd = addDays(today, -mondayIndex(today) + offset * 7);
     numDays = 7;
-    const endD = new Date(startMs + 6 * DAY_MS);
     label =
-      new Date(startMs).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: TZ }) +
-      ' – ' + endD.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: TZ });
+      formatDateIn(dayStartUtc(startYmd, TZ), TZ).replace(/,? \d{4}$/, '') +
+      ' - ' +
+      formatDateIn(dayStartUtc(addDays(startYmd, 6), TZ), TZ).replace(/,? \d{4}$/, '');
   }
 
-  const rangeStart = new Date(startMs).toISOString();
-  const rangeEnd = new Date(startMs + numDays * DAY_MS).toISOString();
-
-  const supabase = await createClient();
+  // Half-open local bounds. Built from the day AFTER the last one rather than
+  // by adding numDays * 86,400,000, so a 23 or 25 hour DST day cannot shift
+  // the window off the grid it is drawing.
+  const rangeStart = dayStartUtc(startYmd, TZ);
+  const rangeEnd = dayStartUtc(addDays(startYmd, numDays), TZ);
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const { profile } = await getUser();
-  const { regions, activeRegionId } = await regionScope(supabase, profile, sp.region ?? null);
 
   // Activities carry no region of their own - they belong to whoever booked
   // them - so the region is applied through the OWNER. Corporate profiles
@@ -124,6 +130,7 @@ export default async function CalendarPage({
         events={events}
         view={view}
         rangeStartIso={rangeStart}
+        timezone={TZ}
         numDays={numDays}
         label={label}
         offset={offset}

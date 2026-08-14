@@ -8,6 +8,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { addDays, dayStartUtc, partsIn, zonedIso } from '@/lib/db/tz';
 import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, X, CheckCircle2, Trash2, ExternalLink, Plus, Phone, FileText, Mail, Pencil } from 'lucide-react';
 import { DaySlotPicker } from '@/components/day-slot-picker';
@@ -28,8 +29,9 @@ export type CalEvent = {
   city: string;
 };
 
-const DAY_MS = 86400000;
-const TZ = 'America/Phoenix';
+// Every date here is read and written in the REGION'S zone, passed down from
+// the server. It was hardcoded to America/Phoenix, so a Dallas rep's grid
+// lines, day grouping and drag-to-reschedule were all two hours out.
 
 function evtClass(e: CalEvent): string {
   if (e.subject.startsWith('Install')) return 'border-emerald-500/50 bg-emerald-500/10 text-emerald-200';
@@ -37,16 +39,12 @@ function evtClass(e: CalEvent): string {
   return 'border-amber-500/50 bg-amber-500/10 text-amber-100';
 }
 
-const fmtT = (iso: string) =>
-  new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ });
-
-const keyOf = (msOrIso: number | string) =>
-  new Date(msOrIso).toLocaleDateString('en-CA', { timeZone: TZ });
 
 export function CalendarView({
   events,
   view,
   rangeStartIso,
+  timezone,
   numDays,
   label,
   offset,
@@ -55,11 +53,18 @@ export function CalendarView({
   events: CalEvent[];
   view: CalMode;
   rangeStartIso: string;
+  /** IANA zone of the region being viewed. */
+  timezone: string;
   numDays: number;
   label: string;
   offset: number;
   focusMonth: number | null;
 }) {
+  const TZ = timezone;
+  const fmtT = (iso: string) =>
+    new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ });
+  const keyOf = (msOrIso: number | string) =>
+    new Date(msOrIso).toLocaleDateString('en-CA', { timeZone: TZ });
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState<CalEvent | null>(null);
@@ -67,8 +72,19 @@ export function CalendarView({
   const [dragOver, setDragOver] = useState<string | null>(null);
 
   const start = new Date(rangeStartIso).getTime();
-  const days = Array.from({ length: numDays }, (_, i) => new Date(start + i * DAY_MS));
-  const todayKey = keyOf(Date.now());
+  // Stepped by CALENDAR day, not by 86,400,000 ms. A local day is 23 or 25
+  // hours on the DST change days, so millisecond stepping puts every column
+  // after it an hour out and eventually skips or repeats one.
+  const startYmd = keyOf(rangeStartIso);
+  const days = Array.from({ length: numDays }, (_, i) => {
+    const ymd = addDays(startYmd, i);
+    return { ymd, date: new Date(dayStartUtc(ymd, TZ)) };
+  });
+  // Date.now() during render is impure and the rule is right to flag it. A
+  // lazy initializer also stops "today" moving under a tab left open past
+  // midnight while someone is dragging an appointment.
+  const [nowMs] = useState(() => Date.now());
+  const todayKey = keyOf(nowMs);
   const byDay = new Map<string, CalEvent[]>();
   for (const e of events) byDay.set(keyOf(e.at), [...(byDay.get(keyOf(e.at)) ?? []), e]);
   const anyForeign = events.some((e) => !e.mine);
@@ -76,10 +92,11 @@ export function CalendarView({
   const dropOn = (targetKey: string, evtId: string) => {
     const e = events.find((x) => x.id === evtId);
     if (!e || keyOf(e.at) === targetKey) return;
-    const old = new Date(e.at);
-    const [yy, mm, dd] = targetKey.split('-').map(Number);
-    const phxHours = (old.getUTCHours() - 7 + 24) % 24;
-    const moved = new Date(Date.UTC(yy, mm - 1, dd, phxHours + 7, old.getUTCMinutes()));
+    // Keep the LOCAL clock time and move the date. Reading the hour with
+    // getUTCHours and subtracting seven only worked in Phoenix; in Dallas it
+    // silently shifted every dragged appointment by two hours.
+    const localNow = partsIn(TZ, new Date(e.at));
+    const moved = new Date(zonedIso(targetKey, localNow.hour, localNow.minute, TZ));
     const newLabel =
       moved.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: TZ }) +
       ' · ' + fmtT(moved.toISOString());
@@ -198,7 +215,7 @@ export function CalendarView({
         <div className="mx-auto max-w-2xl">
           {(byDay.get(keyOf(start)) ?? []).length === 0 && (
             <div className="rounded-xl border border-border/40 bg-sidebar/60 p-6 text-center text-sm text-muted-foreground">
-              Nothing scheduled. The doors won't knock themselves.
+              Nothing scheduled. The doors won&apos;t knock themselves.
             </div>
           )}
           {(byDay.get(keyOf(start)) ?? []).map((e) => (
@@ -248,8 +265,8 @@ export function CalendarView({
       {/* ---------------- WEEK ---------------- */}
       {view === 'week' && (
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-7">
-          {days.map((dObj) => {
-            const k = keyOf(dObj.getTime());
+          {days.map(({ ymd, date: dObj }) => {
+            const k = ymd;
             const list = byDay.get(k) ?? [];
             const isToday = k === todayKey;
             return (
@@ -294,11 +311,11 @@ export function CalendarView({
             {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((w) => <div key={w}>{w}</div>)}
           </div>
           <div className="grid grid-cols-7 gap-1.5">
-            {days.map((dObj) => {
-              const k = keyOf(dObj.getTime());
+            {days.map(({ ymd, date: dObj }) => {
+              const k = ymd;
               const list = byDay.get(k) ?? [];
               const isToday = k === todayKey;
-              const inMonth = focusMonth === null || dObj.getUTCMonth() === focusMonth;
+              const inMonth = focusMonth === null || Number(ymd.slice(5, 7)) - 1 === focusMonth;
               return (
                 <div
                   key={k}

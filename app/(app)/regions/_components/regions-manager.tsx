@@ -59,7 +59,14 @@ function localNow(tz: string): string {
   }
 }
 
-export function RegionsManager({ regions }: { regions: RegionCard[] }) {
+export function RegionsManager({
+  regions,
+  canCreate = false,
+}: {
+  regions: RegionCard[];
+  /** Creating a region is super_admin only (067). Admins can still tune one. */
+  canCreate?: boolean;
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [adding, setAdding] = useState(false);
@@ -267,11 +274,15 @@ export function RegionsManager({ regions }: { regions: RegionCard[] }) {
             <Button variant="ghost" disabled={pending} onClick={() => setAdding(false)}>Cancel</Button>
           </div>
         </div>
-      ) : (
+      ) : canCreate ? (
         <Button variant="outline" onClick={() => setAdding(true)}>
           <Plus className="mr-1.5 h-4 w-4" />
           Add a region
         </Button>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Opening a new region is a super admin action. You can change the settings above.
+        </p>
       )}
     </div>
   );

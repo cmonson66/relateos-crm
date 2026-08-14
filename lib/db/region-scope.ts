@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { listRegions } from '@/lib/campaigns/region';
+import { DEFAULT_TZ, type TimeZone } from '@/lib/db/tz';
 
 /**
  * Which region a corporate viewer is looking at, on every page.
@@ -24,16 +25,32 @@ export type RegionScope = {
   regions: ScopeRegion[];
   activeRegionId: string | null;
   isCorporate: boolean;
+  /**
+   * Whose clock this page should draw on. A rep or manager gets their own
+   * region's; corporate gets the region they are viewing, or Phoenix while
+   * looking at all of them - there is no single honest answer for "every
+   * region at once", and Phoenix is where the company is.
+   */
+  timezone: TimeZone;
 };
 
 export async function regionScope(
   supabase: SupabaseClient,
-  profile: { role: string; org_id: string },
+  profile: { role: string; org_id: string; region_id?: string | null },
   paramRegion?: string | null,
 ): Promise<RegionScope> {
   const isCorporate = profile.role === 'super_admin' || profile.role === 'admin';
+
   if (!isCorporate) {
-    return { regions: [], activeRegionId: null, isCorporate: false };
+    // No switcher, but they still need their own clock: a Dallas rep's
+    // calendar must draw Dallas days.
+    let timezone: TimeZone = DEFAULT_TZ;
+    if (profile.region_id) {
+      const { data } = await supabase
+        .from('regions').select('timezone').eq('id', profile.region_id).maybeSingle();
+      if (data?.timezone) timezone = data.timezone as TimeZone;
+    }
+    return { regions: [], activeRegionId: null, isCorporate: false, timezone };
   }
 
   const rows = await listRegions(supabase, profile.org_id);
@@ -48,5 +65,12 @@ export async function regionScope(
   // rather than an empty page nobody can explain.
   const activeRegionId = wanted && regions.some((r) => r.id === wanted) ? wanted : null;
 
-  return { regions, activeRegionId, isCorporate: true };
+  let timezone: TimeZone = DEFAULT_TZ;
+  if (activeRegionId) {
+    const { data } = await supabase
+      .from('regions').select('timezone').eq('id', activeRegionId).maybeSingle();
+    if (data?.timezone) timezone = data.timezone as TimeZone;
+  }
+
+  return { regions, activeRegionId, isCorporate: true, timezone };
 }

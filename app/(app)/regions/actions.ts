@@ -9,7 +9,7 @@ import { revalidatePath } from 'next/cache';
 // "An error occurred in the Server Components render".
 export type ActionResult = { ok: true } | { ok: false; message: string };
 
-async function requireAdmin() {
+async function requireAdmin(needSuper = false) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Unauthorized');
@@ -18,7 +18,13 @@ async function requireAdmin() {
   if (!profile || !['super_admin', 'admin'].includes(profile.role)) {
     throw new Error('Admin access required');
   }
-  return { supabase, orgId: profile.org_id as string };
+  // Opening a market is a different decision from tuning one. 067 enforces
+  // this in RLS as well; this check exists so the refusal is a sentence
+  // rather than a silent zero-row insert.
+  if (needSuper && profile.role !== 'super_admin') {
+    throw new Error('Only a super admin can open a new region.');
+  }
+  return { supabase, orgId: profile.org_id as string, role: profile.role as string };
 }
 
 function clean(v: string | undefined | null): string {
@@ -33,7 +39,7 @@ export async function createRegion(input: {
   agenda_hour: number;
 }): Promise<ActionResult> {
   try {
-    const { supabase, orgId } = await requireAdmin();
+    const { supabase, orgId } = await requireAdmin(true);
     const name = clean(input.name);
     const code = clean(input.code).toUpperCase();
     if (!name) return { ok: false, message: 'Give the region a name.' };
@@ -51,6 +57,9 @@ export async function createRegion(input: {
     });
     if (error) {
       if (error.code === '23505') return { ok: false, message: `A region already uses the code ${code}.` };
+      if (error.code === '42501') {
+        return { ok: false, message: 'Only a super admin can open a new region.' };
+      }
       // The 058 trigger raises this by name when the zone is not real
       if (error.message.includes('Unknown IANA timezone')) {
         return { ok: false, message: error.message };

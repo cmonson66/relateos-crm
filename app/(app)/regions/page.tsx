@@ -75,7 +75,7 @@ export default async function RegionsPage() {
           No regions yet - run migration 058, then reload.
         </p>
       ) : (
-        <RegionsManager regions={cards} />
+        <RegionsManager regions={cards} canCreate={profile.role === 'super_admin'} />
       )}
     </div>
   );
