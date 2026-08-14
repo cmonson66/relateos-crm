@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { dayBoundsUtc, formatTimeIn, hourIn, todayIn, type TimeZone } from '@/lib/db/tz';
+import { buildPlanFor } from '@/lib/planner/generate';
 
 // Morning agendas and merchant visit reminders, now HOURLY (vercel.json).
 //
@@ -58,12 +59,32 @@ async function runRegion(
   supabase: ReturnType<typeof createServiceClient>,
   region: RegionRow,
   ownerIds: string[],
-): Promise<{ items: number; agenda: number; merchant: number }> {
+): Promise<{ items: number; agenda: number; merchant: number; plans: number }> {
   const tz = region.timezone;
   const { startIso, endIso } = dayBoundsUtc(todayIn(tz), tz);
   const fmtTime = (iso: string) => formatTimeIn(iso, tz);
 
-  if (ownerIds.length === 0) return { items: 0, agenda: 0, merchant: 0 };
+  if (ownerIds.length === 0) return { items: 0, agenda: 0, merchant: 0, plans: 0 };
+
+  // Build each rep's day before the agenda email goes out, so the email can
+  // point at a plan that already exists. Discovery was the real gap: a page
+  // nobody knows to open is a page nobody opens.
+  //
+  // Under the service role there is no RLS, so buildPlanFor scopes every
+  // query by owner_id itself. One rep's failure must not stop the others'.
+  let plans = 0;
+  for (const ownerId of ownerIds) {
+    try {
+      const { data: p } = await supabase
+        .from('profiles').select('id, org_id, region_id').eq('id', ownerId).maybeSingle();
+      if (!p) continue;
+      const res = await buildPlanFor(supabase, p as { id: string; org_id: string; region_id: string | null }, tz);
+      if (res.ok) plans++;
+      else console.error('plan', ownerId, res.message);
+    } catch (e) {
+      console.error('plan', ownerId, e instanceof Error ? e.message : 'failed');
+    }
+  }
 
   const { data: rows, error } = await supabase
     .from('activities')
@@ -79,7 +100,7 @@ async function runRegion(
     const acct = Array.isArray(r.account) ? r.account[0] : r.account;
     return { ...r, accountName: acct?.name ?? '', city: acct?.city ?? '' };
   });
-  if (items.length === 0) return { items: 0, agenda: 0, merchant: 0 };
+  if (items.length === 0) return { items: 0, agenda: 0, merchant: 0, plans };
 
   const { data: profiles } = await supabase
     .from('profiles').select('id, email, full_name').in('id', ownerIds);
@@ -105,7 +126,11 @@ async function runRegion(
     const lines = list.map(
       (it) => `  ${fmtTime(it.scheduled_at)}  ${it.subject ?? it.type}  -  ${it.accountName}${it.city ? ` (${it.city})` : ''}`
     );
-    const text = `${first},\n\nToday's schedule (${list.length}):\n\n${lines.join('\n')}\n\nGo get 'em.\n- NectarPay CRM`;
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
+    const planLine = appUrl
+      ? `\n\nYour calls and sends for this morning are already ranked: ${appUrl}/plan`
+      : '';
+    const text = `${first},\n\nToday's schedule (${list.length}):\n\n${lines.join('\n')}${planLine}\n\nGo get 'em.\n- NectarPay CRM`;
     if (await sendEmail('NectarPay CRM <crm@nectarpayaz.com>', prof.email, `Today: ${list.length} on the calendar`, text)) agendaSent++;
   }
 
@@ -144,7 +169,7 @@ async function runRegion(
     }
   }
 
-  return { items: items.length, agenda: agendaSent, merchant: merchantSent };
+  return { items: items.length, agenda: agendaSent, merchant: merchantSent, plans };
 }
 
 export async function GET(req: NextRequest) {

@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { logActivity } from "@/app/(app)/activities/actions";
 import { isMailApp, type MailApp } from "@/lib/mail-links";
+import { completePlanItem } from "@/lib/planner/complete";
+import { DEFAULT_TZ, type TimeZone } from "@/lib/db/tz";
 
 async function resendSend(from: string, to: string[], subject: string, text: string, replyTo?: string) {
   const key = process.env.RESEND_API_KEY;
@@ -73,6 +75,30 @@ export async function logFieldMessage(input: {
       contact_id: input.contactId,
       scheduled_at: due.toISOString(),
     });
+  }
+
+  // Same loop-closing as a logged call: if this send was on today's plan, it
+  // is done now and the rep should not have to say so twice.
+  {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles").select("region_id").eq("id", user.id).maybeSingle();
+      let tz: TimeZone = DEFAULT_TZ;
+      if (profile?.region_id) {
+        const { data: r } = await supabase
+          .from("regions").select("timezone").eq("id", profile.region_id).maybeSingle();
+        if (r?.timezone) tz = r.timezone as TimeZone;
+      }
+      await completePlanItem(supabase, {
+        profileId: user.id,
+        accountId: input.accountId,
+        kind: "send",
+        outcome: `${label}: ${input.templateLabel}`,
+        tz,
+      });
+    }
   }
 
   return { ok: true };

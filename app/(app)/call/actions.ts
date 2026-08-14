@@ -3,6 +3,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { logActivity } from '@/app/(app)/activities/actions';
 import { advanceDealTo } from '@/app/(app)/deals/automation';
+import { completePlanItem } from '@/lib/planner/complete';
+import { DEFAULT_TZ, type TimeZone } from '@/lib/db/tz';
 
 export type CallOutcome =
   | 'booked'
@@ -86,6 +88,32 @@ export async function logCallOutcome(input: {
       p_dnc: outcome === 'dnc',
     });
     if (error) console.error('record_call_outcome:', error.message);
+  }
+
+  // The plan tracks itself. A rep who ran the call should never also have to
+  // go tick it off - and a "sent" outcome closes the send item too, since
+  // Call Mode's send row is how that send usually happens.
+  {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles').select('region_id').eq('id', user.id).maybeSingle();
+      let tz: TimeZone = DEFAULT_TZ;
+      if (profile?.region_id) {
+        const { data: r } = await supabase
+          .from('regions').select('timezone').eq('id', profile.region_id).maybeSingle();
+        if (r?.timezone) tz = r.timezone as TimeZone;
+      }
+      await completePlanItem(supabase, {
+        profileId: user.id, accountId, kind: 'call', outcome: OUTCOME_LABEL[outcome], tz,
+      });
+      if (outcome === 'sent_onepager' || outcome === 'sent_pulse') {
+        await completePlanItem(supabase, {
+          profileId: user.id, accountId, kind: 'send', outcome: OUTCOME_LABEL[outcome], tz,
+        });
+      }
+    }
   }
 
   return { ok: true };
