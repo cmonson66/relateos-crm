@@ -6,6 +6,9 @@ import { Check, ChevronRight } from 'lucide-react';
 import { bulkAssignAccounts, bulkDeleteAccounts } from '../actions';
 import { bulkSetCampaignEligibility } from '../campaign-actions';
 import { FilterChips, type FilterChip } from '@/components/app/filter-chips';
+import { RegionSwitcher } from '@/components/app/region-switcher';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { SlidersHorizontal, X } from 'lucide-react';
 import { VerticalBadge } from '@/components/app/vertical-badge';
 import { Input } from '@/components/ui/input';
 import { formatRelative, initials } from '@/lib/utils/format';
@@ -15,18 +18,79 @@ import { CryptoScoreBadge } from '@/components/app/crypto-score-badge';
 
 type SortKey = 'recent' | 'crypto' | 'city' | 'name';
 
+type Opt = { value: string; label: string; count: number };
+
+function ActivePill({ label, onClear }: { label: string; onClear: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClear}
+      className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-sidebar-accent/40 px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+    >
+      {label}
+      <X className="h-3 w-3" />
+    </button>
+  );
+}
+
+/** A labelled list of options with counts. Zero-count options are disabled
+ *  rather than hidden, so the absence of a vertical in a region is visible
+ *  rather than mysterious. */
+function OptionGroup({
+  title, options, value, onChange,
+}: { title: string; options: Opt[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="border-b border-border/30 py-3 last:border-0">
+      <div className="mb-2 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">{title}</div>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map(o => (
+          <button
+            key={o.value}
+            type="button"
+            disabled={o.count === 0 && o.value !== value}
+            aria-pressed={o.value === value}
+            onClick={() => onChange(o.value)}
+            className={`rounded-md border px-2.5 py-1.5 text-xs transition-colors disabled:opacity-35 ${
+              o.value === value
+                ? 'border-primary/50 bg-primary/10 text-primary'
+                : 'border-border/40 text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {o.label}
+            <span className="ml-1.5 font-mono text-[10px] opacity-70">{o.count.toLocaleString()}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function AccountsTable({
   accounts,
   currentUserId,
   reps = [],
   canAssign = false,
+  regions = [],
+  activeRegionId = null,
 }: {
   accounts: (AccountWithOwner & { crypto_native?: boolean | null })[];
   currentUserId: string;
   reps?: { profile_id: string; first_name: string; can_send?: boolean }[];
   canAssign?: boolean;
+  /** Corporate only. A rep or manager is fenced to one region by RLS. */
+  regions?: { id: string; code: string; name: string }[];
+  activeRegionId?: string | null;
 }) {
-  const [filter, setFilter] = useState('all');
+  // Vertical and focus used to share ONE state, so picking Barber cleared
+  // "Mine" and vice versa - the reason they had to live on one chip rail of
+  // twenty-eight. They are separate dimensions now and combine freely.
+  const [vertical, setVertical] = useState('all');
+  const [focus, setFocus] = useState('all');
+  const [sheetOpen, setSheetOpen] = useState(false);
+  // Date.now() during render is impure and the purity rule rightly flags it.
+  // A lazy initializer runs once per mount, which is also more correct: the
+  // cutoff should not drift while someone is reading the list.
+  const [coldCutoff] = useState(() => Date.now() - 14 * 86400000);
   // Band is its own dimension - it COMBINES with the category chips
   // (Hot + Med Spa, Warm + Pool/Landscape, etc.)
   const [bandFilter, setBandFilter] = useState<'HOT' | 'WARM' | 'COOL' | null>(null);
@@ -59,19 +123,19 @@ export function AccountsTable({
         ? list.filter(a => !a.owner_id)
         : list.filter(a => a.owner_id === ownerFilter);
     }
-    if (filter === 'mine') {
+    if (vertical !== 'all') {
+      list = list.filter(a => a.vertical === vertical);
+    }
+    if (focus === 'mine') {
       list = list.filter(a => a.owner_id === currentUserId);
-    } else if (filter === 'hold') {
+    } else if (focus === 'hold') {
       list = list.filter(a => a.tags.includes('HOLD'));
-    } else if (filter === 'crypto-native-flag') {
+    } else if (focus === 'crypto-native-flag') {
       list = list.filter(a => a.crypto_native);
-    } else if (VERTICALS.some(v => v.value === filter)) {
-      list = list.filter(a => a.vertical === filter);
-    } else if (filter === 'crypto') {
+    } else if (focus === 'crypto') {
       list = list.filter(a => (a.crypto_score ?? 0) >= 70);
-    } else if (filter === 'cold') {
-      const fourteenDaysAgo = Date.now() - 14 * 86400000;
-      list = list.filter(a => !a.last_activity_at || new Date(a.last_activity_at).getTime() < fourteenDaysAgo);
+    } else if (focus === 'cold') {
+      list = list.filter(a => !a.last_activity_at || new Date(a.last_activity_at).getTime() < coldCutoff);
     }
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -104,14 +168,14 @@ export function AccountsTable({
       list = [...list].sort((a, b) => a.name.localeCompare(b.name));
     }
     return list;
-  }, [accounts, filter, bandFilter, ownerFilter, search, currentUserId, sort]);
+  }, [accounts, vertical, focus, bandFilter, ownerFilter, search, currentUserId, sort, coldCutoff]);
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
     // A changed view means a changed meaning of "selected" — start clean
     setSelected(new Set());
     setAllMatching(false);
-  }, [filter, search, sort]);
+  }, [vertical, focus, bandFilter, ownerFilter, search, sort]);
 
   const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
 
@@ -138,22 +202,11 @@ export function AccountsTable({
     }
   };
 
-  const ownerChips: FilterChip[] = canAssign
-    ? [
-        ...reps.map(r => ({
-          id: r.profile_id,
-          label: r.first_name,
-          count: accounts.filter(a => a.owner_id === r.profile_id).length,
-        })),
-        { id: 'unassigned', label: 'Unassigned', count: accounts.filter(a => !a.owner_id).length },
-      ]
-    : [];
-
   const applyDelete = () => {
     const ids = allMatching ? filtered.map(a => a.id) : [...selected];
     if (ids.length === 0) return;
     const who = ownerFilter
-      ? ` owned by ${ownerChips.find(o => o.id === ownerFilter)?.label ?? 'this rep'}`
+      ? ` owned by ${reps.find(r => r.profile_id === ownerFilter)?.first_name ?? (ownerFilter === 'unassigned' ? 'nobody' : 'this rep')}`
       : '';
     if (!confirm(
       `Delete ${ids.length.toLocaleString()} account${ids.length === 1 ? '' : 's'}${who}?\n\n` +
@@ -221,16 +274,16 @@ export function AccountsTable({
   );
   const categoryBase = useMemo(() => {
     let list = accounts;
-    if (filter === 'mine') list = list.filter(a => a.owner_id === currentUserId);
-    else if (filter === 'crypto-native-flag') list = list.filter(a => a.crypto_native);
-    else if (VERTICALS.some(v => v.value === filter)) list = list.filter(a => a.vertical === filter);
-    else if (filter === 'crypto') list = list.filter(a => (a.crypto_score ?? 0) >= 70);
-    else if (filter === 'cold') {
-      const cutoff = Date.now() - 14 * 86400000;
-      list = list.filter(a => !a.last_activity_at || new Date(a.last_activity_at).getTime() < cutoff);
+    if (vertical !== 'all') list = list.filter(a => a.vertical === vertical);
+    if (focus === 'mine') list = list.filter(a => a.owner_id === currentUserId);
+    else if (focus === 'crypto-native-flag') list = list.filter(a => a.crypto_native);
+    else if (focus === 'hold') list = list.filter(a => a.tags.includes('HOLD'));
+    else if (focus === 'crypto') list = list.filter(a => (a.crypto_score ?? 0) >= 70);
+    else if (focus === 'cold') {
+      list = list.filter(a => !a.last_activity_at || new Date(a.last_activity_at).getTime() < coldCutoff);
     }
     return list;
-  }, [accounts, filter, currentUserId]);
+  }, [accounts, vertical, focus, currentUserId, coldCutoff]);
 
   const bandChips: FilterChip[] = (['HOT', 'WARM', 'COOL'] as const).map(b => ({
     id: b,
@@ -238,91 +291,134 @@ export function AccountsTable({
     count: categoryBase.filter(a => a.tags.includes(b)).length,
   }));
 
-  const chips: FilterChip[] = [
-    { id: 'all', label: 'All', count: accounts.length },
-    { id: 'mine', label: 'Mine', count: accounts.filter(a => a.owner_id === currentUserId).length },
-    {
-      id: 'crypto-native-flag',
-      label: 'Crypto Native',
-      count: bandBase.filter(a => a.crypto_native).length,
-    },
-    // Compliance hold (042): visible so nobody works a held shop
+  // Was a single rail of ~28 chips: All, Mine, Crypto Native, On hold, all
+  // 23 verticals, Crypto 70+ and Going cold. Split into two dropdowns the
+  // filter sheet owns, counted against everything else that is active.
+  const verticalOptions = VERTICALS.map(v => ({
+    value: v.value,
+    label: v.label,
+    count: bandBase.filter(a => a.vertical === v.value).length,
+  }));
+
+  const focusOptions = [
+    { value: 'all', label: 'Everything', count: accounts.length },
+    { value: 'mine', label: 'Mine', count: accounts.filter(a => a.owner_id === currentUserId).length },
+    { value: 'crypto-native-flag', label: 'Crypto native', count: bandBase.filter(a => a.crypto_native).length },
     ...(accounts.some(a => a.tags.includes('HOLD'))
-      ? [{
-          id: 'hold',
-          label: 'On hold',
-          count: bandBase.filter(a => a.tags.includes('HOLD')).length,
-        }]
+      ? [{ value: 'hold', label: 'On compliance hold', count: bandBase.filter(a => a.tags.includes('HOLD')).length }]
       : []),
-    ...VERTICALS.map(v => ({
-      id: v.value,
-      label: v.label,
-      count: bandBase.filter(a => a.vertical === v.value).length,
-    })),
     ...(hasCrypto
-      ? [{
-          id: 'crypto',
-          label: 'Crypto 70+',
-          count: accounts.filter(a => (a.crypto_score ?? 0) >= 70).length,
-        }]
+      ? [{ value: 'crypto', label: 'Crypto density 70+', count: accounts.filter(a => (a.crypto_score ?? 0) >= 70).length }]
       : []),
-    { id: 'cold', label: 'Going cold', count: accounts.filter(a => {
-      const fourteenDaysAgo = Date.now() - 14 * 86400000;
-      return !a.last_activity_at || new Date(a.last_activity_at).getTime() < fourteenDaysAgo;
-    }).length },
+    {
+      value: 'cold',
+      label: 'Going cold',
+      count: accounts.filter(
+        a => !a.last_activity_at || new Date(a.last_activity_at).getTime() < coldCutoff
+      ).length,
+    },
   ];
+
+  const ownerOptions = [
+    { value: 'all', label: 'Anyone', count: accounts.length },
+    ...reps.map(r => ({
+      value: r.profile_id,
+      label: r.first_name,
+      count: accounts.filter(a => a.owner_id === r.profile_id).length,
+    })),
+    { value: 'unassigned', label: 'Unassigned', count: accounts.filter(a => !a.owner_id).length },
+  ];
+
+  const activeCount =
+    (vertical !== 'all' ? 1 : 0) +
+    (focus !== 'all' ? 1 : 0) +
+    (ownerFilter ? 1 : 0) +
+    (sort !== 'recent' ? 1 : 0);
+
+  const clearAll = () => {
+    setVertical('all');
+    setFocus('all');
+    setOwnerFilter(null);
+    setSort('recent');
+  };
+
+  const label = (opts: { value: string; label: string }[], v: string) =>
+    opts.find(o => o.value === v)?.label ?? v;
+
 
   return (
     <>
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4 mb-5">
-        <div className="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
-          {canAssign && ownerChips.length > 0 && (
-            <FilterChips
-              chips={ownerChips}
-              activeId={ownerFilter ?? ''}
-              onChange={(id) => setOwnerFilter(cur => (cur === id ? null : id))}
-            />
-          )}
+      {regions.length > 1 && (
+        <div className="mb-3">
+          <RegionSwitcher
+            regions={regions}
+            activeId={activeRegionId}
+            basePath="/accounts"
+            allowAll
+          />
+        </div>
+      )}
+
+      <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
+        {/* Band is the one filter that gets touched all day. Everything else
+            lives in the sheet. */}
+        <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
           <FilterChips
             chips={bandChips}
             activeId={bandFilter ?? ''}
             onChange={(id) => setBandFilter(cur => (cur === id ? null : (id as 'HOT' | 'WARM' | 'COOL')))}
           />
-          <FilterChips chips={chips} activeId={filter} onChange={setFilter} />
         </div>
-        <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
-          {(
-            <div className="inline-flex rounded-md border border-border/40 overflow-hidden shrink-0">
-              {([
-                ['recent', 'Recent'],
-                ['city', 'City'],
-                ['name', 'Name'],
-                ...(hasCrypto ? ([['crypto', 'Density']] as [SortKey, string][]) : []),
-              ] as [SortKey, string][]).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  aria-pressed={sort === id}
-                  onClick={() => setSort(id)}
-                  className={`text-[11px] uppercase tracking-[0.15em] px-2.5 py-2 border-r border-border/40 last:border-r-0 transition-colors ${
-                    sort === id
-                      ? 'bg-primary/15 text-primary'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setSheetOpen(true)}
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-2 text-[11px] uppercase tracking-[0.15em] transition-colors ${
+              activeCount > 0
+                ? 'border-primary/50 bg-primary/10 text-primary'
+                : 'border-border/40 text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            Filters
+            {activeCount > 0 && (
+              <span className="rounded-full bg-primary/25 px-1.5 font-mono text-[10px] normal-case tracking-normal">
+                {activeCount}
+              </span>
+            )}
+          </button>
           <Input
             placeholder="Search name, city, tag…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="flex-1 min-w-[180px] md:flex-none md:w-72"
+            className="min-w-[160px] flex-1 md:w-72 md:flex-none"
           />
         </div>
       </div>
+
+      {activeCount > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-1.5">
+          {vertical !== 'all' && (
+            <ActivePill label={label(verticalOptions, vertical)} onClear={() => setVertical('all')} />
+          )}
+          {focus !== 'all' && (
+            <ActivePill label={label(focusOptions, focus)} onClear={() => setFocus('all')} />
+          )}
+          {ownerFilter && (
+            <ActivePill label={label(ownerOptions, ownerFilter)} onClear={() => setOwnerFilter(null)} />
+          )}
+          {sort !== 'recent' && (
+            <ActivePill label={`Sorted by ${sort}`} onClear={() => setSort('recent')} />
+          )}
+          <button
+            type="button"
+            onClick={clearAll}
+            className="ml-1 text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            Clear
+          </button>
+        </div>
+      )}
 
       {/* DESKTOP TABLE */}
       <div className="hidden md:block card-lit border border-border/40 rounded-md overflow-hidden">
@@ -593,6 +689,68 @@ export function AccountsTable({
           </div>
         </div>
       )}
+
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Filters</SheetTitle>
+            <SheetDescription>
+              {filtered.length.toLocaleString()} of {accounts.length.toLocaleString()} accounts
+              {activeRegionId && regions.length > 1
+                ? ` in ${regions.find(r => r.id === activeRegionId)?.code ?? 'this region'}`
+                : ''}
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="px-4 pb-6">
+            {canAssign && (
+              <OptionGroup
+                title="Owner"
+                options={ownerOptions}
+                value={ownerFilter ?? 'all'}
+                onChange={v => setOwnerFilter(v === 'all' ? null : v)}
+              />
+            )}
+            <OptionGroup title="Show" options={focusOptions} value={focus} onChange={setFocus} />
+            <OptionGroup
+              title="Vertical"
+              options={[{ value: 'all', label: 'All verticals', count: accounts.length }, ...verticalOptions]}
+              value={vertical}
+              onChange={setVertical}
+            />
+            <OptionGroup
+              title="Sort by"
+              options={[
+                { value: 'recent', label: 'Recent activity', count: filtered.length },
+                { value: 'city', label: 'City', count: filtered.length },
+                { value: 'name', label: 'Name', count: filtered.length },
+                ...(hasCrypto ? [{ value: 'crypto', label: 'Crypto density', count: filtered.length }] : []),
+              ]}
+              value={sort}
+              onChange={v => setSort(v as SortKey)}
+            />
+
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setSheetOpen(false)}
+                className="flex-1 rounded-md bg-primary/90 px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary"
+              >
+                Show {filtered.length.toLocaleString()} account{filtered.length === 1 ? '' : 's'}
+              </button>
+              {activeCount > 0 && (
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  className="rounded-md border border-border/40 px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   );
 }
