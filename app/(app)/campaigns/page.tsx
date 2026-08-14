@@ -40,7 +40,12 @@ export default async function CampaignsPage({
 
   // Counted through a security-definer bridge (044): nectarpay_leads RLS
   // gives app users nothing, so direct counts here all came back 0
-  const { data: statsRaw } = await supabase.rpc('get_campaign_stats');
+  // Region-scoped since 064. Without the argument the queue, stage bars and
+  // held count were org-wide numbers sitting beside region-scoped ones, so
+  // switching tabs left them unchanged.
+  const { data: statsRaw } = await supabase.rpc('get_campaign_stats', {
+    p_region_id: region?.id ?? null,
+  });
   const stats = (statsRaw ?? {}) as {
     stages?: Record<string, number>;
     queued?: number; emailable?: number; engaged?: number; held?: number;
