@@ -137,7 +137,7 @@ export function PlaybookView({
         <div className="grid gap-3 sm:grid-cols-2 print:hidden">
           {([
             ['week1', 'Your first week', 'New here? Start with this. What to do each day and what good looks like.', Compass],
-            ['script', 'The script', 'Opener, hooks, the math, closes, and the six walls. Learn it once.', BookOpen],
+            ['script', 'The door script', 'Walking in. Be a customer first, diagnose before you present. Not the phone script.', BookOpen],
             ['onepager', 'The one-pager', 'Your leave-behind, with your name and cell on it.', FileText],
             ['kit', 'Print a kit', 'A packet per shop: their sheet plus a one-pager to leave.', PackageCheck],
           ] as const).map(([id, title, blurb, Icon]) => (
@@ -285,6 +285,14 @@ export function PlaybookView({
 
       {tab === 'script' && (
       <>
+
+      <div className="mb-3 rounded-md border border-amber-500/30 bg-amber-500/[0.06] px-4 py-3 text-sm print:hidden">
+        <b className="text-amber-300">This is the door script.</b> You are standing in their
+        shop, so you have their attention and you can afford to diagnose before you present.
+        On the phone you cannot - you get about ten seconds and no permission, which is why
+        Call Mode hooks first and asks second. Running this one down a phone line gets you
+        hung up on at &quot;how long have you been here?&quot;
+      </div>
 
       <div id="playbook" className="rounded-md border border-border/40 bg-white p-6 text-black sm:p-8">
         <div className="avoid-break mb-5">

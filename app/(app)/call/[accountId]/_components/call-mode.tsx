@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -42,6 +43,40 @@ export function CallMode({ account, contact, intel, recent, script, pulseRead }:
   const lossYr = useMemo(() => vol * 0.03 * 12, [vol]);
 
   const router = useRouter();
+  const [wallOpen, setWallOpen] = useState(false);
+  const [wallQuery, setWallQuery] = useState('');
+
+  // Matched against how the owner ACTUALLY said it, not our tidy heading.
+  // A rep types the two or three words still ringing in their ear.
+  const walls = useMemo(() => {
+    const q = wallQuery.trim().toLowerCase();
+    if (!q) return script.objections;
+    return script.objections.filter(
+      (o) =>
+        o.q.toLowerCase().includes(q) ||
+        o.a.toLowerCase().includes(q) ||
+        o.heard.some((h) => h.includes(q) || q.includes(h)),
+    );
+  }, [script.objections, wallQuery]);
+
+  // One touch, mid-call, at the moment they say "send me something". The
+  // outcome is logged on the way out so the call is never lost to the detour.
+  const sendAndLog = (template: string) => {
+    startTransition(async () => {
+      await logCallOutcome({
+        accountId: account.id,
+        contactId: contact?.id ?? null,
+        legacyId: contact?.legacyId ?? null,
+        outcome: template === 'one-pager' ? 'sent_onepager' : 'sent_pulse',
+        notes,
+        volume: volTouched || intel.monthlyVolume ? vol : null,
+        scheduledAt: null,
+        scheduleLabel: null,
+      });
+      const to = contact?.id ? `&contact=${contact.id}` : '';
+      router.push(`/send/${account.id}?t=${template}${to}`);
+    });
+  };
 
   const dispo = (outcome: CallOutcome, scheduledAt?: string, scheduleLabel?: string) => {
     // Booked + callback expand into the scheduler first - the appointment
@@ -91,7 +126,7 @@ export function CallMode({ account, contact, intel, recent, script, pulseRead }:
               {contact?.name && <span className="ml-2 font-normal text-muted-foreground">· {contact.name}</span>}
             </div>
             <div className="text-xs text-muted-foreground">
-              {account.city ?? '—'} · {script.clusterLabel}
+              {account.city ?? '-'} · {script.clusterLabel}
             </div>
           </div>
         </div>
@@ -159,6 +194,9 @@ export function CallMode({ account, contact, intel, recent, script, pulseRead }:
             </div>
           )}
 
+          <div className="mb-2 text-[10px] font-extrabold tracking-[0.16em] text-muted-foreground">
+            ON THE PHONE · ten seconds to earn the next thirty
+          </div>
           <div className="mb-4 flex flex-wrap items-center gap-2">
             {STEPS.map((s, i) => (
               <button
@@ -176,12 +214,16 @@ export function CallMode({ account, contact, intel, recent, script, pulseRead }:
                 {i + 1} · {s}
               </button>
             ))}
-            <a
-              href="#objections"
+            {/* Opens OVER the script instead of scrolling to it. Jumping to
+                an anchor mid-call means losing your place while somebody is
+                still talking. */}
+            <button
+              type="button"
+              onClick={() => setWallOpen(true)}
               className={cn(CONTROL, 'ml-auto inline-flex items-center gap-1 border-red-500/40 text-red-300 hover:bg-red-500/10')}
             >
               <Zap className="h-3.5 w-3.5" /> OBJECTIONS
-            </a>
+            </button>
           </div>
 
           <div className="rounded-2xl border border-border/40 bg-sidebar/60 p-5">
@@ -271,17 +313,34 @@ export function CallMode({ account, contact, intel, recent, script, pulseRead }:
             )}
           </div>
 
-          {/* objections */}
-          <div id="objections" className="mt-4 rounded-2xl border border-border/40 bg-sidebar/60 p-5">
-            <h2 className="mb-3 flex items-center gap-2 text-xs font-extrabold tracking-[0.14em] text-amber-600">
-              <Zap className="h-4 w-4" /> OBJECTION DRAWER - ANY TIME
-            </h2>
-            {script.objections.map((o) => (
-              <details key={o.q} className="mb-2 rounded-xl border border-border/40 bg-background/40">
-                <summary className="cursor-pointer px-4 py-3 text-sm font-bold text-foreground/90">{o.q}</summary>
-                <div className="px-4 pb-3.5 text-[14.5px] leading-relaxed">{o.a}</div>
-              </details>
-            ))}
+          {/* Send, without leaving the call. These are the two things an
+              owner asks for by name, and the rep should not have to hang up
+              and go find them. */}
+          <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-border/40 bg-sidebar/60 p-4">
+            <span className="text-[11px] font-extrabold tracking-[0.14em] text-muted-foreground">
+              &quot;SEND ME SOMETHING&quot;
+            </span>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => sendAndLog('one-pager')}
+              className={cn(CONTROL, 'inline-flex items-center gap-1.5 border-amber-500/50 text-amber-200 hover:bg-amber-500/10')}
+            >
+              <MessageSquareText className="h-3.5 w-3.5" /> The one-pager
+            </button>
+            {intel.pulseUrl && (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => sendAndLog('send-me-something')}
+                className={cn(CONTROL, 'inline-flex items-center gap-1.5 border-amber-500/50 text-amber-200 hover:bg-amber-500/10')}
+              >
+                <Link2 className="h-3.5 w-3.5" /> Their own page
+              </button>
+            )}
+            <span className="text-[11px] text-muted-foreground">
+              Logs the call, then opens the message with their number already in it.
+            </span>
           </div>
         </div>
 
@@ -375,6 +434,60 @@ export function CallMode({ account, contact, intel, recent, script, pulseRead }:
           </Rail>
         </div>
       </div>
+
+      {/* Bottom sheet on purpose: a rep holding a phone to their ear reads the
+          top of the screen and taps at the bottom. Coming up from under the
+          thumb also leaves the step they were on visible above it. */}
+      <Sheet open={wallOpen} onOpenChange={setWallOpen}>
+        <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2 text-amber-500">
+              <Zap className="h-4 w-4" /> What did they just say?
+            </SheetTitle>
+            <SheetDescription>
+              Type a couple of their own words. {script.objections.length} answers in here.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="px-4 pb-6">
+            <input
+              autoFocus
+              value={wallQuery}
+              onChange={(e) => setWallQuery(e.target.value)}
+              placeholder="cards / think about it / crash / cash out..."
+              className="mb-3 w-full rounded-lg border border-border/40 bg-background px-3.5 py-2.5 text-[15px]"
+            />
+
+            {walls.length === 0 ? (
+              <div className="rounded-xl border border-border/40 bg-background/40 p-4 text-sm text-muted-foreground">
+                Nothing matched that. Clear the box to see all {script.objections.length} - and
+                if what they said really is not in here, it should be. Say so.
+              </div>
+            ) : (
+              walls.map((o) => (
+                <details
+                  key={o.q}
+                  open={wallQuery.trim().length > 0}
+                  className="mb-2 rounded-xl border border-border/40 bg-background/40"
+                >
+                  <summary className="cursor-pointer px-4 py-3 text-sm font-bold text-foreground/90">
+                    {o.q}
+                  </summary>
+                  <div className="px-4 pb-3.5 text-[15px] leading-relaxed">{o.a}</div>
+                </details>
+              ))
+            )}
+
+            <button
+              type="button"
+              onClick={() => setWallOpen(false)}
+              className="mt-4 w-full rounded-md bg-primary/90 px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary"
+            >
+              Back to the call
+            </button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

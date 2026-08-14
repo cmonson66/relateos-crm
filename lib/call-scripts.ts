@@ -1,4 +1,4 @@
-// Call Mode scripts — same five stories as the email cadences, spoken.
+// Call Mode scripts - same five stories as the email cadences, spoken.
 // Assembled per lead: {owner}, {shop}, {city} interpolate at render, and
 // the math step computes on the lead's self-reported volume when Pulse
 // (or a prior call) captured one. Voice rules match the emails: plain
@@ -29,13 +29,12 @@ export const CALL_CLUSTER_MAP: Record<string, CallCluster> = {
   'gaming': 'crowd',
   'thrift-vintage': 'crowd',
   'phone-repair': 'simple',
-  // Cash-pay dental, vets and event venues are all the same shape: a large
-  // ticket, work or a room already delivered, and a dispute window that opens
-  // afterwards. Mapped to 'math' because the fee on a $1,400 crown is the
-  // provable half of the pitch - but the chargeback story is the stronger one
-  // and there is no cluster that leads with it yet.
-  'dental-vet': 'math',
-  'event-venue': 'math',
+  // Cash-pay dental, vets and event venues share one shape: a large ticket,
+  // work or a room already delivered, and a dispute window that opens after.
+  // 'simple' is the final-payment cluster - the invoice that comes back - so
+  // they lead with the clawback, not the fee. A crown cannot be repossessed.
+  'dental-vet': 'simple',
+  'event-venue': 'simple',
   'gym-supps': 'simple',
   'crypto-native': 'native',
 };
@@ -47,7 +46,44 @@ export type CallCtx = {
   rep: string;            // rep first name
 };
 
-export type Objection = { q: string; a: string };
+/**
+ * `q` is written the way an OWNER says it, not the tidy version - a rep
+ * mid-call scans for the words they just heard. `heard` carries the other
+ * phrasings so the drawer's search finds it from any of them.
+ */
+export type Objection = { q: string; a: string; heard: string[] };
+
+/**
+ * Two motions, and they are not the same script.
+ *
+ * On the PHONE you have about ten seconds and no permission. You cannot
+ * discover your way into a stranger's day - you give them a reason to stay on
+ * the line, then earn the questions.
+ *
+ * At the DOOR you already have their attention and the social contract of
+ * being in their shop. Presenting early there is amateur; the handbook is
+ * right that you diagnose first and present last.
+ *
+ * A rep running the door script on the phone gets hung up on at "how long
+ * have you been here?". A rep running the phone script at the door sounds
+ * like a telemarketer standing in a barbershop.
+ */
+export const PHONE_ARC = [
+  { step: 'Opener', goal: 'Ten seconds. Earn the next thirty.' },
+  { step: 'Hook', goal: 'One reason to keep listening, matched to their shop.' },
+  { step: 'Discovery', goal: 'Their numbers, in their words. Write them down.' },
+  { step: 'The math', goal: 'Say it out loud with their number, not yours.' },
+  { step: 'Close', goal: 'One clear ask. Trial beats everything.' },
+] as const;
+
+export const DOOR_ARC = [
+  { step: 'Be a customer', goal: 'Buy something first. Off-peak, never mid-rush.' },
+  { step: 'Open warmly', goal: 'A neighbor, not a pitch. No product yet.' },
+  { step: 'Discover', goal: 'How do they take payments today? Let them describe it.' },
+  { step: 'Listen back', goal: 'Talk under half the time. Repeat their words to them.' },
+  { step: 'Diagnose', goal: 'Name what the status quo costs. Let it land.' },
+  { step: 'Show, then ask', goal: 'Now demo. One small next step before you leave.' },
+] as const;
 export type ClosePath = { title: string; script: string; note?: string };
 
 export type CallScript = {
@@ -72,43 +108,80 @@ const SHARED_DISCOVERY = [
 
 const SHARED_OBJECTIONS: Objection[] = [
   {
-    q: `"My customers pay with cards."`,
+    q: `"Yeah, we're fine - everybody just uses their card."`,
+    heard: ['card', 'cards', 'credit card', "we're fine", 'nobody asks', 'no demand'],
     a: `"And they'll keep doing that - nothing about your card setup changes. Same reader, same flow. This adds a lane on the side, and every sale that uses it is a sale with no fee on it."`,
   },
   {
-    q: `"I don't understand crypto."`,
-    a: `"You don't need to. Staff types the amount, customer scans, ten seconds, money's in your wallet. You never touch an exchange, never hold anything you don't want to. It's a cash register that can't be charged back."`,
+    q: `"I don't know anything about crypto."`,
+    heard: ['understand', 'know nothing', 'confusing', 'bitcoin', 'over my head', 'not techy'],
+    a: `"You don't need to. Staff types the amount, customer scans, ten seconds, money's in your wallet. You never touch an exchange, never hold anything you don't want to. It's a register that can't be charged back."`,
   },
   {
-    q: `"Is this legal / is it taxed?"`,
+    q: `"Crypto goes up and down - I'm not gambling with my money."`,
+    heard: ['volatile', 'crash', 'risky', 'gambling', 'up and down', 'lose value', 'fake money'],
+    // Confirmed with NectarPay Aug 14: the MERCHANT picks the settlement
+    // asset. That makes this answerable without hedging, which it was not
+    // before - the handbook and the app were answering it two ways.
+    a: `"You pick what it lands in. Want dollars? Set it to a dollar-pegged coin - a dollar in is a dollar out, and you're never holding anything that moves. Want to keep bitcoin? That's your call too. It's your wallet and your choice, not ours."`,
+  },
+  {
+    q: `"How do I turn it into actual dollars?"`,
+    heard: ['cash out', 'convert', 'dollars', 'bank', 'spend it', 'off ramp', 'real money'],
+    a: `"Same as moving money out of any account. Most owners set it to land in a dollar-pegged coin so there's nothing to convert, then move it to their bank on whatever schedule they like - some sweep it Friday, some let it sit. It's your money and your timing."`,
+  },
+  {
+    q: `"What if you guys go out of business?"`,
+    heard: ['out of business', 'go under', 'disappear', 'still work', 'what happens to my money', 'shut down'],
+    // The strongest answer in the deck and neither document was using it.
+    a: `"Nothing happens to your money, and that's the part worth hearing. We never hold it. It goes straight from your customer into a wallet you own, and that wallet is yours whether we exist or not. Worst case you lose the software and keep every dollar."`,
+  },
+  {
+    q: `"What if my cashier rings up the wrong amount?"`,
+    heard: ['wrong amount', 'mistake', 'typo', 'refund', 'void', 'take it back', 'undo'],
+    // Say it BEFORE the register does. A merchant who hears this from us
+    // feels dealt with straight; one who finds out at the counter feels lied
+    // to, and "no chargebacks" is the claim that sets up the fall.
+    a: `"Then you refund them out of your wallet, same as handing back cash. I'd rather say that now than have you find out at the register - crypto is final in both directions. Nobody can charge you back, and you can't pull one back either. For most shops that's the good side of the trade, but you should hear both halves from me."`,
+  },
+  {
+    q: `"What do I tell my bookkeeper?"`,
+    heard: ['accountant', 'bookkeeper', 'taxes', 'records', 'quickbooks', 'irs', 'write it off'],
+    a: `"It's revenue, recorded like a card sale - the terminal keeps the record, date, amount, what came in, and your bookkeeper treats it like any other deposit. I'm not a tax guy and I won't pretend to be, so if they want the fine print, that's a question for your CPA."`,
+  },
+  {
+    q: `"Is that even legal?"`,
+    heard: ['legal', 'allowed', 'regulated', 'against the law'],
     a: `"Completely - it's a payment method, same as cash or card. Sales get recorded on the terminal like any register, and your accountant treats it like revenue because it is revenue."`,
   },
   {
-    q: `"What's it cost?"`,
-    a: `"$499 once for the terminal, then $19 a month for the membership, paid annually. Never a percentage of your sales - that's the whole point. Year one all-in is about $727, which is less than what cards take from most shops every two months. And you don't have to decide on that today - I can put one in on a trial first and it costs you nothing while it runs."`,
+    q: `"What's this gonna run me?"`,
+    heard: ['cost', 'price', 'how much', 'expensive', 'what do you charge'],
+    a: `"$499 once for the terminal, then $19 a month for the membership, paid annually. Never a percentage of your sales - that's the whole point. Year one all-in is about $727, which is less than what cards take from most shops every two months. And you don't have to decide today - I can put one in on a trial first and it costs you nothing while it runs."`,
   },
   {
-    q: `"Crypto crashes / it's fake money."`,
-    a: `"If you want, it settles to a stablecoin - dollar-pegged, a dollar in is a dollar out. You're not betting on anything. And if you'd rather hold it, that's your call - it's your wallet."`,
+    q: `"Sounds complicated."`,
+    heard: ['complicated', 'hard', 'learn', 'train', 'staff', 'another thing', 'time'],
+    a: `"It's simpler than the card terminal you already use - type the amount, they scan, done. And if you'd rather not have another box at all, the NectarPay app runs right on your phone. You'd just be giving up the receipt printer and the rugged handheld."`,
   },
   {
-    q: `"It sounds complicated."`,
-    a: `"It's simpler than the card terminal you already use - type the amount, they scan, done. And if you'd rather not have another box at all, the Nectar.Pay app runs right on your phone. You'd just be giving up the receipt printer and the rugged handheld."`,
-  },
-  {
-    q: `"What happens if it breaks?"`,
+    q: `"What if it breaks?"`,
+    heard: ['break', 'broken', 'warranty', 'repair', 'quits', 'stops working'],
     a: `"One-year warranty. If it quits on its own, we replace it, full stop. If it gets thrown across the shop, that one's on you - fair is fair. Thermal paper is the only thing you'd ever buy, and that's a few dollars anywhere."`,
   },
   {
-    q: `"Is there a way to try it first?"`,
-    a: `"Yes, and I'd rather you did. I can put a terminal in for a trial and it costs you nothing while it runs - no $499, no monthly, nothing. You take real payments on it. If it earns its place you keep it, and if it doesn't I come get it and we shake hands. That's the whole risk."`,
-  },
-  {
     q: `"What if something goes wrong and I need somebody?"`,
+    heard: ['support', 'help', 'someone to call', 'service', 'who do i call'],
     a: `"Standard membership is $19 and you've got me. If you want NectarPay picking up the phone directly, white-glove is $99 a month. Most shops start standard - you can move up any time."`,
   },
   {
-    q: `"I need to think about it."`,
+    q: `"Can I try it first?"`,
+    heard: ['try', 'trial', 'test', 'demo', 'see it work', 'trial run'],
+    a: `"Yes, and I'd rather you did. I can put a terminal in for a trial and it costs you nothing while it runs - no $499, no monthly, nothing. You take real payments on it. If it earns its place you keep it, and if it doesn't I come get it and we shake hands. That's the whole risk."`,
+  },
+  {
+    q: `"Let me think about it."`,
+    heard: ['think about it', 'get back to you', 'not right now', 'call me later', 'talk to my partner'],
     a: `"Totally fair. Here's what I'd rather do than have you think about it cold: let me put one in on a trial. Costs you nothing while it runs, you take real payments on it, and if it doesn't earn its place I pick it up. That way you're deciding on what actually happened instead of on my say-so."`,
   },
 ];
@@ -238,10 +311,12 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
         objections: [
           {
             q: `"My QR setup works fine."`,
+            heard: ['qr', 'wallet address', 'we just show a code', 'works fine', 'already free'],
             a: `"And it's free, which I respect. The gap is everything around the payment - amount entry, staff being able to run it, receipts, refunds. That's what keeps the crypto lane from actually getting used. Let me put a terminal in on a trial, run both side by side for a couple of weeks, and watch which one your staff reaches for."`,
           },
           {
             q: `"I'm on BitPay already."`,
+            heard: ['bitpay', 'coinbase commerce', 'processor', 'already have a provider', 'strike'],
             a: `"Then you know the drill - they take their cut and the bank deposit shows up in a day or two. Ours is zero fee and settles to your wallet in seconds. Same customers, same coins, none of the skim. Put one in on a trial and run them side by side - the difference shows up on the first sale."`,
           },
           ...SHARED_OBJECTIONS.slice(2),
