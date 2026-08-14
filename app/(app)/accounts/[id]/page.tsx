@@ -116,6 +116,12 @@ export default async function AccountDetailPage({
             <Link href={`/send/${id}`}>
               <Button variant="outline" size="sm" className="font-display tracking-wider" title="Send a message from a template">✉ Send</Button>
             </Link>
+            {/* Lands on the send screen with the one-pager message already
+                picked, so it is two taps from here to it being in their
+                inbox. */}
+            <Link href={`/send/${id}?t=one-pager`}>
+              <Button variant="outline" size="sm" className="font-display tracking-wider" title="Email or text the one-pager">📄 One-pager</Button>
+            </Link>
             <Link href={`/appointments/new?account=${id}`}>
               <Button variant="outline" size="sm" className="font-display tracking-wider">📅 Appt</Button>
             </Link>

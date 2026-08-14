@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Phone, Zap, CalendarCheck, MessageSquareText, Link2, PhoneMissed, XCircle, Ban, ChevronLeft, Copy, Check } from 'lucide-react';
 import { logCallOutcome, type CallOutcome } from '../../actions';
@@ -40,6 +41,8 @@ export function CallMode({ account, contact, intel, recent, script, pulseRead }:
 
   const lossYr = useMemo(() => vol * 0.03 * 12, [vol]);
 
+  const router = useRouter();
+
   const dispo = (outcome: CallOutcome, scheduledAt?: string, scheduleLabel?: string) => {
     // Booked + callback expand into the scheduler first - the appointment
     // gets locked while they're still on the line
@@ -59,6 +62,16 @@ export function CallMode({ account, contact, intel, recent, script, pulseRead }:
         scheduleLabel: scheduleLabel ?? null,
       });
       setLogged(outcome);
+
+      // "Sent one-pager" used to log an outcome for something that had not
+      // been sent - the rep still had to go find a way to send it. Log the
+      // call first (notes and volume are captured while they are fresh),
+      // then hand straight off to the send screen with the message already
+      // picked and the recipient editable.
+      if (outcome === 'sent_onepager') {
+        const to = contact?.id ? `&contact=${contact.id}` : '';
+        router.push(`/send/${account.id}?t=one-pager${to}`);
+      }
     });
   };
 

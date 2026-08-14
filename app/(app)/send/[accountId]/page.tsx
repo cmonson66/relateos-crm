@@ -55,12 +55,17 @@ export default async function SendPage({
 
   let intel: Intel = {};
   let pulseUrl: string | null = null;
+  let onePagerUrl: string | null = null;
   if (legacyId) {
     const { data } = await supabase.rpc("get_call_intel", { p_legacy_id: legacyId });
     intel = (data ?? {}) as Intel;
     if (intel.pulse_token) {
       const { data: base } = await supabase.rpc("get_pulse_base");
       if (base) pulseUrl = `${String(base).replace(/\/$/, "")}/s/${intel.pulse_token}`;
+      // The one-pager is served by the CRM itself, not Pulse, so it hangs off
+      // this app's own origin rather than get_pulse_base.
+      const origin = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      onePagerUrl = `${origin.replace(/\/$/, "")}/one-pager/${intel.pulse_token}`;
     }
   }
 
@@ -123,6 +128,7 @@ export default async function SendPage({
         repCell: repRow?.cell ?? null,
         repEmail: repRow?.from_email ?? null,
         pulseUrl,
+        onePagerUrl,
       }}
       initialMailApp={mailApp}
       initialTemplateId={templateParam ?? null}

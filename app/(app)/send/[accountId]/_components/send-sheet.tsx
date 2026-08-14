@@ -70,6 +70,13 @@ export function SendSheet({
   );
   const [mailApp, setMailApp] = useState<MailApp>(initialMailApp);
   const [recipientId, setRecipientId] = useState<string | null>(contact?.id ?? null);
+  // An override the rep types in. Null means "use whatever is on the contact",
+  // which is the common case; a shop where the owner gives you a different
+  // address at the door is the reason this exists at all.
+  const [toOverride, setToOverride] = useState<{ email: string | null; phone: string | null }>({
+    email: null,
+    phone: null,
+  });
   const [draft, setDraft] = useState<{ key: string; subject: string; body: string } | null>(null);
   const [followUp, setFollowUp] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -106,8 +113,14 @@ export function SendSheet({
   const setSubject = (v: string) => setDraft({ key: draftKey, subject: v, body });
   const setBody = (v: string) => setDraft({ key: draftKey, subject, body: v });
 
-  const toEmail = recipient?.email ?? null;
-  const toPhone = recipient?.phone ?? null;
+  const contactEmail = recipient?.email ?? null;
+  const contactPhone = recipient?.phone ?? null;
+  const toEmail = toOverride.email !== null ? toOverride.email.trim() || null : contactEmail;
+  const toPhone = toOverride.phone !== null ? toOverride.phone.trim() || null : contactPhone;
+  const overridden =
+    channel === "email"
+      ? toOverride.email !== null && toEmail !== contactEmail
+      : toOverride.phone !== null && toPhone !== contactPhone;
 
   const href =
     channel === "email"
@@ -118,14 +131,16 @@ export function SendSheet({
 
   const blocked =
     channel === "email" && !toEmail
-      ? "No email address on this contact. Text it or copy it instead."
+      ? "No email address yet. Type one below, or text it instead."
       : channel === "text" && !toPhone
-        ? "No phone number on this contact. Email it or copy it instead."
+        ? "No phone number yet. Type one below, or email it instead."
         : channel === "email" && mailApp === "copy"
           ? "Your mail app is set to copy only. Copy the message and paste it yourself."
           : null;
 
   const missingPulse = template.wantsPulse && !tokens.pulseUrl;
+  // A one-pager message with no link is just a paragraph about a link.
+  const missingSheet = template.wantsSheet && !tokens.onePagerUrl;
 
   const copyAll = () => {
     const text = channel === "email" && subject ? `${subject}\n\n${body}` : body;
@@ -330,6 +345,62 @@ export function SendSheet({
                 This shop has no Pulse page yet, so the line offering one was left out. The rest
                 of the message is complete.
               </span>
+            </div>
+          )}
+
+          {missingSheet && (
+            <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2.5 text-[12px] text-amber-200">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>
+                This shop has no one-pager link, so the message points at nothing. It needs to be
+                synced to the lead pool first - Sync on the account page.
+              </span>
+            </div>
+          )}
+
+          {/* Who it actually goes to. Typed here, it overrides the contact
+              for this send only - useful when the owner hands you a different
+              address at the door and you have not updated the record yet. */}
+          {channel !== "copy" && (
+            <div className="rounded-lg border border-border/40 p-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+                  {channel === "email" ? "Send to" : "Text to"}
+                </span>
+                {overridden && (
+                  <button
+                    type="button"
+                    onClick={() => setToOverride({ email: null, phone: null })}
+                    className="text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                  >
+                    Use the one on file
+                  </button>
+                )}
+              </div>
+              <input
+                type={channel === "email" ? "email" : "tel"}
+                inputMode={channel === "email" ? "email" : "tel"}
+                autoComplete="off"
+                value={
+                  channel === "email"
+                    ? (toOverride.email ?? contactEmail ?? "")
+                    : (toOverride.phone ?? contactPhone ?? "")
+                }
+                onChange={(e) =>
+                  setToOverride((cur) =>
+                    channel === "email"
+                      ? { ...cur, email: e.target.value }
+                      : { ...cur, phone: e.target.value },
+                  )
+                }
+                placeholder={channel === "email" ? "name@shop.com" : "(602) 555-0134"}
+                className="w-full rounded-lg border border-border/40 bg-background px-3 py-2 text-sm"
+              />
+              {overridden && (
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  Sending here this once. The contact record is unchanged.
+                </p>
+              )}
             </div>
           )}
 

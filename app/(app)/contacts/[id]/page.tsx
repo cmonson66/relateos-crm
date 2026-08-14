@@ -112,6 +112,11 @@ export default async function ContactDetailPage({
               </Link>
             )}
             {contact.account_id && (
+              <Link href={`/send/${contact.account_id}?contact=${id}&t=one-pager`}>
+                <Button variant="outline" size="sm" className="font-display tracking-wider" title="Email or text the one-pager">📄 One-pager</Button>
+              </Link>
+            )}
+            {contact.account_id && (
               <Link href={`/call/${contact.account_id}/sheet`}>
                 <Button variant="outline" size="sm" className="font-display tracking-wider" title="Printable walk-in sheet">📄 Sheet</Button>
               </Link>

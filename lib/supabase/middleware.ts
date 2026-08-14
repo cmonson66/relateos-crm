@@ -42,6 +42,7 @@ export async function updateSession(request: NextRequest) {
     path.startsWith('/start/') ||
     path.startsWith('/invoice/') ||
     path.startsWith('/cryptopop') ||
+    path.startsWith('/one-pager/') ||
     path === '/locked';
 
   // Not signed in + private path -> /login

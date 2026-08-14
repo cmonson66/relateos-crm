@@ -11,8 +11,10 @@
  *
  * Tokens (all optional - renderTemplate degrades gracefully):
  *   {{shop}} {{owner}} {{city}} {{rep}} {{repCell}} {{repEmail}} {{pulseUrl}}
+ *   {{onePagerUrl}}
  * Conditional sections:
  *   {{#pulse}} ... {{/pulse}}   only rendered when a Pulse URL is present
+ *   {{#sheet}} ... {{/sheet}}   only rendered when a one-pager URL is present
  *   {{#owner}} ... {{/owner}}   only rendered when a real owner name is known
  */
 
@@ -36,6 +38,8 @@ export type FieldTemplate = {
   text: string;
   /** True when the message reads badly without a Pulse link. */
   wantsPulse?: boolean;
+  /** True when the message is pointless without the one-pager link. */
+  wantsSheet?: boolean;
 };
 
 export const FIELD_TEMPLATE_GROUPS: {
@@ -74,6 +78,26 @@ export const FIELD_TEMPLATES: FieldTemplate[] = [
   /* ------------------------------------------------------------------ *
    * FIRST TOUCH - rep led, before or instead of the campaign
    * ------------------------------------------------------------------ */
+  {
+    id: "one-pager",
+    label: "Send the one-pager",
+    when: "They want to see it in writing, or you promised to send something over.",
+    group: "they-asked",
+    subject: "The one-pager for {{shop}}",
+    email: `{{#owner}}{{owner}},{{/owner}}{{^owner}}Hi,{{/owner}}
+
+{{rep}} with NectarPay.{{#sheet}} Here is the one page I mentioned - what the terminal is, what it costs, and what you keep.
+
+{{onePagerUrl}}{{/sheet}}
+
+Short version: it sits by the register and takes crypto with no processing fee, and the money lands in a wallet you own the second they pay. Your card reader keeps doing what it does.
+
+Any questions, call or text me at {{repCell}}.
+
+{{rep}}`,
+    text: `{{#owner}}{{owner}}, {{/owner}}{{rep}} with NectarPay.{{#sheet}} Here is that one page on the terminal: {{onePagerUrl}}{{/sheet}} No processing fee, money straight to a wallet you own the second they pay. Call or text me with anything.`,
+    wantsSheet: true,
+  },
   {
     id: "cold-intro",
     label: "Cold introduction",
@@ -410,6 +434,8 @@ export type FieldTokens = {
   repCell?: string | null;
   repEmail?: string | null;
   pulseUrl?: string | null;
+  /** Public one-pager link for this shop. Absent when the shop has no lead. */
+  onePagerUrl?: string | null;
 };
 
 export type RenderedMessage = {
@@ -445,9 +471,11 @@ function section(source: string, key: string, present: boolean): string {
 function fill(source: string, tokens: FieldTokens): string {
   const owner = realOwnerName(tokens.owner);
   const pulse = (tokens.pulseUrl ?? "").trim();
+  const sheet = (tokens.onePagerUrl ?? "").trim();
 
   let out = source;
   out = section(out, "pulse", pulse.length > 0);
+  out = section(out, "sheet", sheet.length > 0);
   out = section(out, "owner", owner !== null);
   // A shop with no city on file should read "the Valley", not "in ."
   out = section(out, "city", (tokens.city ?? "").trim().length > 0);
@@ -460,6 +488,7 @@ function fill(source: string, tokens: FieldTokens): string {
     repCell: (tokens.repCell ?? "").trim(),
     repEmail: (tokens.repEmail ?? "").trim(),
     pulseUrl: pulse,
+    onePagerUrl: sheet,
   };
 
   out = out.replace(/\{\{(\w+)\}\}/g, (whole, key: string) =>
