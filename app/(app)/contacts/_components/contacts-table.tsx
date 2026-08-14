@@ -3,19 +3,14 @@
 import { useState, useMemo, useEffect, useTransition } from 'react';
 import { bulkDeleteContacts } from '../actions';
 import Link from 'next/link';
-import { ChevronRight, MapPin, SlidersHorizontal, X } from 'lucide-react';
+import { ChevronRight, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { FilterChips, type FilterChip } from '@/components/app/filter-chips';
+import { ActivePill, OptionGroup, FilterButton, SheetActions } from '@/components/app/filter-sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { LifecycleBadge } from '@/components/app/lifecycle-badge';
 import { VerticalBadge } from '@/components/app/vertical-badge';
 import { Input } from '@/components/ui/input';
-import {
-  Popover, PopoverContent, PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger,
-} from '@/components/ui/select';
-import { cn } from '@/lib/utils';
 import { formatRelative, initials } from '@/lib/utils/format';
 import type { ContactWithRefs, Vertical, ContactLifecycle } from '@/lib/db/types';
 import { VERTICALS, verticalLabel } from '@/lib/verticals';
@@ -43,7 +38,13 @@ export function ContactsTable({
   allOwners: Owner[];
 }) {
   const router = useRouter();
-  const [chip, setChip] = useState('all');
+  // Band and focus used to share ONE chip rail, so "Hot" and "Mine" could not
+  // both be on. Split to match accounts and the map: band stays inline, the
+  // rest lives in the sheet, and they combine.
+  const [band, setBand] = useState<'HOT' | 'WARM' | 'COOL' | null>(null);
+  const [focus, setFocus] = useState('all');
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [coldCutoff] = useState(() => Date.now() - 14 * 86400000);
   const [search, setSearch] = useState('');
   const [vertical, setVertical] = useState<'any' | Vertical>('any');
   const [lifecycle, setLifecycle] = useState<'any' | ContactLifecycle>('any');
@@ -58,12 +59,6 @@ export function ContactsTable({
   const canDelete = currentRole === 'super_admin' || currentRole === 'admin';
 
   const canFilterByOwner = currentRole === 'super_admin' || currentRole === 'admin' || currentRole === 'manager';
-  const refineActiveCount = [
-    vertical !== 'any',
-    lifecycle !== 'any',
-    canFilterByOwner && ownerId !== 'any',
-    tagQuery.trim().length > 0,
-  ].filter(Boolean).length;
 
   // All unique tags across visible contacts (for tag autocomplete UX later — for now just free text)
   const allTags = useMemo(() => {
@@ -83,18 +78,17 @@ export function ContactsTable({
       return bv.localeCompare(av);
     });
 
-    // Primary chip filters
-    if (chip === 'mine') {
+    if (band) {
+      list = list.filter(c => c.tags.includes(band));
+    }
+    if (focus === 'mine') {
       list = list.filter(c => c.owner_id === currentUserId);
-    } else if (chip === 'cold') {
-      const fourteenDaysAgo = Date.now() - 14 * 86400000;
-      list = list.filter(c => !c.last_activity_at || new Date(c.last_activity_at).getTime() < fourteenDaysAgo);
-    } else if (chip === 'customers') {
+    } else if (focus === 'cold') {
+      list = list.filter(c => !c.last_activity_at || new Date(c.last_activity_at).getTime() < coldCutoff);
+    } else if (focus === 'customers') {
       list = list.filter(c => c.lifecycle_stage === 'customer');
-    } else if (chip === 'disqualified') {
+    } else if (focus === 'disqualified') {
       list = list.filter(c => c.lifecycle_stage === 'disqualified');
-    } else if (chip === 'HOT' || chip === 'WARM' || chip === 'COOL') {
-      list = list.filter(c => c.tags.includes(chip));
     }
 
     // Secondary refine
@@ -128,7 +122,7 @@ export function ContactsTable({
       );
     }
     return list;
-  }, [contacts, chip, search, currentUserId, vertical, lifecycle, ownerId, tagQuery, canFilterByOwner]);
+  }, [contacts, band, focus, search, currentUserId, vertical, lifecycle, ownerId, tagQuery, canFilterByOwner, coldCutoff]);
 
   // Rendering ~10k rows (twice: desktop + mobile) locks the main thread.
   // Render a window and expand on demand; reset when filters change.
@@ -136,7 +130,7 @@ export function ContactsTable({
     setVisibleCount(PAGE_SIZE);
     setSelected(new Set());
     setAllMatching(false);
-  }, [chip, search, vertical, lifecycle, ownerId, tagQuery]);
+  }, [band, focus, search, vertical, lifecycle, ownerId, tagQuery]);
   const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
 
   const selectedCount = allMatching ? filtered.length : selected.size;
@@ -173,21 +167,71 @@ export function ContactsTable({
     });
   };
 
-  const chips: FilterChip[] = [
+  const bandChips: FilterChip[] = [
     { id: 'all', label: 'All', count: contacts.length },
-    { id: 'mine', label: 'Mine', count: contacts.filter(c => c.owner_id === currentUserId).length },
-    { id: 'cold', label: 'Going cold', count: contacts.filter(c => {
-      const fourteenDaysAgo = Date.now() - 14 * 86400000;
-      return !c.last_activity_at || new Date(c.last_activity_at).getTime() < fourteenDaysAgo;
-    }).length },
     { id: 'HOT', label: 'Hot', count: contacts.filter(c => c.tags.includes('HOT')).length },
     { id: 'WARM', label: 'Warm', count: contacts.filter(c => c.tags.includes('WARM')).length },
     { id: 'COOL', label: 'Cool', count: contacts.filter(c => c.tags.includes('COOL')).length },
-    { id: 'customers', label: 'Customers', count: contacts.filter(c => c.lifecycle_stage === 'customer').length },
-    { id: 'disqualified', label: 'Disqualified', count: contacts.filter(c => c.lifecycle_stage === 'disqualified').length },
   ];
 
-  function clearRefine() {
+  // Counted against the band, so the numbers move with what is already on.
+  const bandBase = band ? contacts.filter(c => c.tags.includes(band)) : contacts;
+
+  const focusOptions = [
+    { value: 'all', label: 'Everyone', count: contacts.length },
+    { value: 'mine', label: 'Mine', count: bandBase.filter(c => c.owner_id === currentUserId).length },
+    {
+      value: 'cold',
+      label: 'Going cold',
+      count: bandBase.filter(
+        c => !c.last_activity_at || new Date(c.last_activity_at).getTime() < coldCutoff
+      ).length,
+    },
+    { value: 'customers', label: 'Customers', count: bandBase.filter(c => c.lifecycle_stage === 'customer').length },
+    { value: 'disqualified', label: 'Disqualified', count: bandBase.filter(c => c.lifecycle_stage === 'disqualified').length },
+  ];
+
+  const verticalOptions = [
+    { value: 'any', label: 'All verticals', count: contacts.length },
+    ...VERTICALS.map(v => ({
+      value: v.value,
+      label: v.label,
+      count: bandBase.filter(c => c.account?.vertical === v.value).length,
+    })),
+  ];
+
+  const stageOptions = [
+    { value: 'any', label: 'Any stage', count: contacts.length },
+    ...(['new', 'working', 'engaged', 'customer', 'disqualified'] as const).map(st => ({
+      value: st,
+      label: LIFECYCLE_LABEL[st],
+      count: bandBase.filter(c => c.lifecycle_stage === st).length,
+    })),
+  ];
+
+  const ownerOptions = [
+    { value: 'any', label: 'Anyone', count: contacts.length },
+    ...allOwners.map(o => ({
+      value: o.id,
+      label: o.full_name || o.email.split('@')[0],
+      count: contacts.filter(c => c.owner_id === o.id).length,
+    })),
+    { value: 'unassigned', label: 'Unassigned', count: contacts.filter(c => !c.owner_id).length },
+  ];
+
+  const activeCount =
+    (focus !== 'all' ? 1 : 0) +
+    (vertical !== 'any' ? 1 : 0) +
+    (lifecycle !== 'any' ? 1 : 0) +
+    (canFilterByOwner && ownerId !== 'any' ? 1 : 0) +
+    (tagQuery.trim() ? 1 : 0);
+
+  const optLabel = (opts: { value: string; label: string }[], v: string) =>
+    opts.find(o => o.value === v)?.label ?? v;
+
+
+  function clearAll() {
+    setFocus('all');
     setVertical('any');
     setLifecycle('any');
     setOwnerId('any');
@@ -203,108 +247,30 @@ export function ContactsTable({
 
   return (
     <>
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4 mb-4">
-        <div className="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
-          <FilterChips chips={chips} activeId={chip} onChange={setChip} />
+      <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
+        <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
+          <FilterChips
+            chips={bandChips}
+            activeId={band ?? 'all'}
+            onChange={(id) => setBand(id === 'all' ? null : (id as 'HOT' | 'WARM' | 'COOL'))}
+          />
         </div>
-        <div className="flex items-center gap-2 md:gap-3">
-          <Popover>
-            <PopoverTrigger
-              className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs uppercase tracking-[0.12em] transition-colors min-h-[36px]',
-                refineActiveCount > 0
-                  ? 'border-primary/50 text-primary bg-primary/5 hover:bg-primary/10'
-                  : 'border-border/40 text-muted-foreground hover:text-foreground hover:bg-card'
-              )}
-            >
-              <SlidersHorizontal className="h-3 w-3" />
-              <span className="hidden md:inline">Refine</span>
-              {refineActiveCount > 0 && (
-                <span className="ml-0.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 bg-primary text-primary-foreground rounded text-[9px] font-bold tabular-nums">
-                  {refineActiveCount}
-                </span>
-              )}
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-[280px] p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-display text-sm tracking-wider">REFINE</h3>
-                {refineActiveCount > 0 && (
-                  <button
-                    onClick={clearRefine}
-                    className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-                  >
-                    <X className="h-3 w-3" /> Clear
-                  </button>
-                )}
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-1.5">Vertical</div>
-                  <Select value={vertical} onValueChange={(v: string | null) => v && setVertical(v as typeof vertical)}>
-                    <SelectTrigger className="h-9"><span>{vertical === 'any' ? 'Any vertical' : verticalLabel(vertical)}</span></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="any">Any vertical</SelectItem>
-                      {VERTICALS.map(v => (
-                        <SelectItem key={v.value} value={v.value}>{v.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-1.5">Stage</div>
-                  <Select value={lifecycle} onValueChange={(v: string | null) => v && setLifecycle(v as typeof lifecycle)}>
-                    <SelectTrigger className="h-9"><span>{LIFECYCLE_LABEL[lifecycle]}</span></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="any">Any stage</SelectItem>
-                      <SelectItem value="new">New</SelectItem>
-                      <SelectItem value="working">Working</SelectItem>
-                      <SelectItem value="engaged">Engaged</SelectItem>
-                      <SelectItem value="customer">Customer</SelectItem>
-                      <SelectItem value="disqualified">Disqualified</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {canFilterByOwner && (
-                  <div>
-                    <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-1.5">Owner</div>
-                    <Select value={ownerId} onValueChange={(v: string | null) => v && setOwnerId(v)}>
-                      <SelectTrigger className="h-9"><span>{ownerLabel}</span></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="any">Any owner</SelectItem>
-                        <SelectItem value="unassigned">Unassigned</SelectItem>
-                        {allOwners.map(o => (
-                          <SelectItem key={o.id} value={o.id}>
-                            {o.full_name || o.email.split('@')[0]}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-1.5">Tag contains</div>
-                  <Input
-                    value={tagQuery}
-                    onChange={e => setTagQuery(e.target.value)}
-                    placeholder={allTags.length ? `e.g. ${allTags[0]}` : 'champion, q3-target…'}
-                    className="h-9"
-                    list="contacts-tag-list"
-                  />
-                  <datalist id="contacts-tag-list">
-                    {allTags.map(t => <option key={t} value={t} />)}
-                  </datalist>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-          <Input placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} className="md:max-w-xs" />
+        <div className="flex items-center gap-2">
+          <FilterButton activeCount={activeCount} onClick={() => setSheetOpen(true)} />
+          <Input
+            placeholder="Search…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="min-w-[160px] flex-1 md:w-72 md:flex-none"
+          />
         </div>
       </div>
 
-      {/* Show active refine summary as a strip when there are active filters */}
-      {refineActiveCount > 0 && (
-        <div className="flex items-center gap-2 mb-4 flex-wrap text-xs">
-          <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Filters:</span>
+      {activeCount > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-1.5 text-xs">
+          {focus !== 'all' && (
+            <ActivePill label={optLabel(focusOptions, focus)} onClear={() => setFocus('all')} />
+          )}
           {vertical !== 'any' && (
             <ActivePill label={verticalLabel(vertical)} onClear={() => setVertical('any')} />
           )}
@@ -317,6 +283,13 @@ export function ContactsTable({
           {tagQuery.trim() && (
             <ActivePill label={`tag: ${tagQuery}`} onClear={() => setTagQuery('')} />
           )}
+          <button
+            type="button"
+            onClick={clearAll}
+            className="ml-1 text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            Clear
+          </button>
         </div>
       )}
 
@@ -525,23 +498,59 @@ export function ContactsTable({
           </div>
         </div>
       )}
+
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Filters</SheetTitle>
+            <SheetDescription>
+              {filtered.length.toLocaleString()} of {contacts.length.toLocaleString()} contacts
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="px-4 pb-6">
+            {canFilterByOwner && (
+              <OptionGroup title="Owner" options={ownerOptions} value={ownerId} onChange={setOwnerId} />
+            )}
+            <OptionGroup title="Show" options={focusOptions} value={focus} onChange={setFocus} />
+            <OptionGroup
+              title="Vertical"
+              options={verticalOptions}
+              value={vertical}
+              onChange={v => setVertical(v as typeof vertical)}
+            />
+            <OptionGroup
+              title="Stage"
+              options={stageOptions}
+              value={lifecycle}
+              onChange={v => setLifecycle(v as typeof lifecycle)}
+            />
+
+            <div className="border-b border-border/30 py-3 last:border-0">
+              <div className="mb-2 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Tag</div>
+              <Input
+                value={tagQuery}
+                onChange={e => setTagQuery(e.target.value)}
+                placeholder={allTags.length ? `e.g. ${allTags[0]}` : 'champion, q3-target…'}
+                className="h-9"
+                list="contacts-tag-list"
+              />
+              <datalist id="contacts-tag-list">
+                {allTags.map(t => <option key={t} value={t} />)}
+              </datalist>
+            </div>
+
+            <SheetActions
+              count={filtered.length}
+              noun="contact"
+              activeCount={activeCount}
+              onDone={() => setSheetOpen(false)}
+              onClear={clearAll}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   );
 }
 
-function ActivePill({ label, onClear }: { label: string; onClear: () => void }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-primary/40 bg-primary/10 text-primary text-[11px]">
-      {label}
-      <button
-        type="button"
-        onClick={onClear}
-        className="hover:text-primary/70"
-        aria-label={`Clear ${label}`}
-      >
-        <X className="h-3 w-3" />
-      </button>
-    </span>
-
-  );
-}

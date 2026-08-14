@@ -8,7 +8,7 @@ import { bulkSetCampaignEligibility } from '../campaign-actions';
 import { FilterChips, type FilterChip } from '@/components/app/filter-chips';
 import { RegionSwitcher } from '@/components/app/region-switcher';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { SlidersHorizontal, X } from 'lucide-react';
+import { ActivePill, OptionGroup, FilterButton, SheetActions } from '@/components/app/filter-sheet';
 import { VerticalBadge } from '@/components/app/vertical-badge';
 import { Input } from '@/components/ui/input';
 import { formatRelative, initials } from '@/lib/utils/format';
@@ -17,53 +17,6 @@ import { VERTICALS } from '@/lib/verticals';
 import { CryptoScoreBadge } from '@/components/app/crypto-score-badge';
 
 type SortKey = 'recent' | 'crypto' | 'city' | 'name';
-
-type Opt = { value: string; label: string; count: number };
-
-function ActivePill({ label, onClear }: { label: string; onClear: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClear}
-      className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-sidebar-accent/40 px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-    >
-      {label}
-      <X className="h-3 w-3" />
-    </button>
-  );
-}
-
-/** A labelled list of options with counts. Zero-count options are disabled
- *  rather than hidden, so the absence of a vertical in a region is visible
- *  rather than mysterious. */
-function OptionGroup({
-  title, options, value, onChange,
-}: { title: string; options: Opt[]; value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="border-b border-border/30 py-3 last:border-0">
-      <div className="mb-2 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">{title}</div>
-      <div className="flex flex-wrap gap-1.5">
-        {options.map(o => (
-          <button
-            key={o.value}
-            type="button"
-            disabled={o.count === 0 && o.value !== value}
-            aria-pressed={o.value === value}
-            onClick={() => onChange(o.value)}
-            className={`rounded-md border px-2.5 py-1.5 text-xs transition-colors disabled:opacity-35 ${
-              o.value === value
-                ? 'border-primary/50 bg-primary/10 text-primary'
-                : 'border-border/40 text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {o.label}
-            <span className="ml-1.5 font-mono text-[10px] opacity-70">{o.count.toLocaleString()}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export function AccountsTable({
   accounts,
@@ -370,23 +323,7 @@ export function AccountsTable({
           />
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setSheetOpen(true)}
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-2 text-[11px] uppercase tracking-[0.15em] transition-colors ${
-              activeCount > 0
-                ? 'border-primary/50 bg-primary/10 text-primary'
-                : 'border-border/40 text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            Filters
-            {activeCount > 0 && (
-              <span className="rounded-full bg-primary/25 px-1.5 font-mono text-[10px] normal-case tracking-normal">
-                {activeCount}
-              </span>
-            )}
-          </button>
+          <FilterButton activeCount={activeCount} onClick={() => setSheetOpen(true)} />
           <Input
             placeholder="Search name, city, tag…"
             value={search}
@@ -730,24 +667,13 @@ export function AccountsTable({
               onChange={v => setSort(v as SortKey)}
             />
 
-            <div className="mt-5 flex gap-2">
-              <button
-                type="button"
-                onClick={() => setSheetOpen(false)}
-                className="flex-1 rounded-md bg-primary/90 px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary"
-              >
-                Show {filtered.length.toLocaleString()} account{filtered.length === 1 ? '' : 's'}
-              </button>
-              {activeCount > 0 && (
-                <button
-                  type="button"
-                  onClick={clearAll}
-                  className="rounded-md border border-border/40 px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
+            <SheetActions
+              count={filtered.length}
+              noun="account"
+              activeCount={activeCount}
+              onDone={() => setSheetOpen(false)}
+              onClear={clearAll}
+            />
           </div>
         </SheetContent>
       </Sheet>
