@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { SlidersHorizontal, Crosshair, Maximize2, X, Globe } from 'lucide-react';
 import { FilterChips, type FilterChip } from '@/components/app/filter-chips';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { VERTICALS, verticalLabel } from '@/lib/verticals';
 import { cn } from '@/lib/utils';
 import { computeCryptoStats, ATM_COLOR, type CryptoSignal } from '@/lib/crypto/density';
@@ -207,27 +207,25 @@ export function MapView({
     router.push(`/map${next.toString() ? `?${next.toString()}` : ''}`);
   }
 
-  if (accounts.length === 0) {
-    return (
-      <div className="card-lit border border-border/40 rounded-md p-10 text-center text-muted-foreground">
-        {activeRegionId
-          ? 'No mapped shops in this region yet - they appear here once they have coordinates.'
-          : 'No mapped accounts yet - accounts appear here once they have coordinates.'}
-      </div>
-    );
-  }
-
+  // An empty region used to return early and render nothing but a message,
+  // which took the region picker with it - switching to a region with no
+  // shops yet was a one-way trip that could only be undone by editing the
+  // URL. The bar stays; only the map is replaced.
+  const isEmpty = accounts.length === 0;
   const activeRegion = regions.find(r => r.id === activeRegionId);
+  const regionLabel = activeRegion ? activeRegion.code : 'All regions';
 
   return (
     <div className="space-y-3">
       {/* Band stays in reach: it is the one filter a rep touches all day. */}
-      <div className="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
-        <FilterChips chips={bandChips} activeId={band} onChange={setBand} />
-      </div>
+      {!isEmpty && (
+        <div className="overflow-x-auto -mx-4 md:mx-0 px-4 md:px-0">
+          <FilterChips chips={bandChips} activeId={band} onChange={setBand} />
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0 text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+        <div className="min-w-0 truncate text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
           <span className="text-foreground">{nearby.length}</span> doors
           {activeRegion && <span className="ml-1.5 text-muted-foreground/70">· {activeRegion.code}</span>}
         </div>
@@ -236,11 +234,14 @@ export function MapView({
           {regions.length > 1 && (
             <Select value={activeRegionId ?? 'all'} onValueChange={(v: string | null) => v && goToRegion(v)}>
               <SelectTrigger
-                className="h-[30px] w-auto gap-1.5 rounded-md border-border/40 px-2.5 text-[11px] uppercase tracking-[0.15em]"
+                className="h-[30px] w-auto max-w-[9rem] gap-1.5 rounded-md border-border/40 px-2.5 text-[11px] uppercase tracking-[0.15em]"
                 aria-label="Region"
               >
-                <Globe className="h-3.5 w-3.5" />
-                <SelectValue />
+                <Globe className="h-3.5 w-3.5 shrink-0" />
+                {/* An explicit label, not SelectValue. This Select renders the
+                    raw value, so SelectValue printed the region's UUID across
+                    the whole bar. Same reason user-admin-table uses a span. */}
+                <span className="truncate">{regionLabel}</span>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All regions</SelectItem>
@@ -251,6 +252,8 @@ export function MapView({
             </Select>
           )}
 
+          {!isEmpty && (
+          <>
           <button
             type="button"
             onClick={() => setSheetOpen(true)}
@@ -289,11 +292,13 @@ export function MapView({
             <Maximize2 className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Fit</span>
           </button>
+          </>
+          )}
         </div>
       </div>
 
       {/* What is currently narrowing the map, and one tap to undo each. */}
-      {activeCount > 0 && (
+      {!isEmpty && activeCount > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
           {vertical !== 'all' && (
             <ActivePill label={verticalLabel(vertical)} onClear={() => setVertical('all')} />
@@ -320,6 +325,13 @@ export function MapView({
 
       {locError && <p className="text-[12px] text-destructive">{locError}</p>}
 
+      {isEmpty ? (
+        <div className="card-lit rounded-md border border-border/40 p-10 text-center text-muted-foreground">
+          {activeRegionId
+            ? 'No mapped shops in this region yet - they appear here once they have coordinates.'
+            : 'No mapped accounts yet - accounts appear here once they have coordinates.'}
+        </div>
+      ) : (
       <LeafletMap
         accounts={nearby}
         myFix={fix}
@@ -332,6 +344,7 @@ export function MapView({
         heatFilter={heatFilter}
         cryptoStats={cryptoStats}
       />
+      )}
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-sm">
@@ -350,7 +363,9 @@ export function MapView({
               {/* A dropdown, not chips. Two dozen verticals on a scrolling
                   rail pushed the map off the bottom of a phone. */}
               <Select value={vertical} onValueChange={(v: string | null) => v && setVertical(v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <span>{vertical === 'all' ? `All verticals (${accounts.length})` : verticalLabel(vertical)}</span>
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All verticals ({accounts.length})</SelectItem>
                   {VERTICALS.map(v => {

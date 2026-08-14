@@ -7,7 +7,7 @@ import { Plus, Clock, Power, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { createRegion, updateRegion } from '../actions';
 
 export type RegionCard = {
@@ -39,6 +39,17 @@ const HOURS = Array.from({ length: 24 }, (_, h) => ({
   value: String(h),
   label: h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`,
 }));
+
+// This Select renders whatever raw value it is given, so every trigger below
+// resolves its own label. Left to SelectValue, the hour pickers displayed "6"
+// and "7" and the timezone picker displayed the IANA string.
+function zoneLabel(tz: string): string {
+  return ZONES.find((z) => z.value === tz)?.label ?? tz;
+}
+
+function hourLabel(h: number): string {
+  return HOURS.find((x) => x.value === String(h))?.label ?? String(h);
+}
 
 function localNow(tz: string): string {
   try {
@@ -128,7 +139,7 @@ export function RegionsManager({ regions }: { regions: RegionCard[] }) {
                 disabled={pending}
                 onValueChange={(v: string | null) => v && run(() => updateRegion(r.id, { timezone: v }))}
               >
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1"><span className="truncate">{zoneLabel(r.timezone)}</span></SelectTrigger>
                 <SelectContent>
                   {ZONES.some((z) => z.value === r.timezone) ? null : (
                     <SelectItem value={r.timezone}>{r.timezone}</SelectItem>
@@ -146,7 +157,7 @@ export function RegionsManager({ regions }: { regions: RegionCard[] }) {
                 disabled={pending}
                 onValueChange={(v: string | null) => v && run(() => updateRegion(r.id, { send_hour: Number(v) }))}
               >
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1"><span>{hourLabel(r.send_hour)}</span></SelectTrigger>
                 <SelectContent>
                   {HOURS.map((h) => <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>)}
                 </SelectContent>
@@ -159,7 +170,7 @@ export function RegionsManager({ regions }: { regions: RegionCard[] }) {
                 disabled={pending}
                 onValueChange={(v: string | null) => v && run(() => updateRegion(r.id, { agenda_hour: Number(v) }))}
               >
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1"><span>{hourLabel(r.agenda_hour)}</span></SelectTrigger>
                 <SelectContent>
                   {HOURS.map((h) => <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>)}
                 </SelectContent>
@@ -200,7 +211,7 @@ export function RegionsManager({ regions }: { regions: RegionCard[] }) {
             <div>
               <Label className="text-xs">Time zone</Label>
               <Select value={form.timezone} onValueChange={(v: string | null) => v && setForm({ ...form, timezone: v })}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1"><span className="truncate">{zoneLabel(form.timezone)}</span></SelectTrigger>
                 <SelectContent>
                   {ZONES.map((z) => <SelectItem key={z.value} value={z.value}>{z.label}</SelectItem>)}
                 </SelectContent>
@@ -213,7 +224,7 @@ export function RegionsManager({ regions }: { regions: RegionCard[] }) {
                   value={String(form.send_hour)}
                   onValueChange={(v: string | null) => v && setForm({ ...form, send_hour: Number(v) })}
                 >
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="mt-1"><span>{hourLabel(form.send_hour)}</span></SelectTrigger>
                   <SelectContent>
                     {HOURS.map((h) => <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>)}
                   </SelectContent>
@@ -225,7 +236,7 @@ export function RegionsManager({ regions }: { regions: RegionCard[] }) {
                   value={String(form.agenda_hour)}
                   onValueChange={(v: string | null) => v && setForm({ ...form, agenda_hour: Number(v) })}
                 >
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="mt-1"><span>{hourLabel(form.agenda_hour)}</span></SelectTrigger>
                   <SelectContent>
                     {HOURS.map((h) => <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>)}
                   </SelectContent>
