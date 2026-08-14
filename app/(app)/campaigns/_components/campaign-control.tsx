@@ -73,14 +73,21 @@ export function CampaignControl({
   // from_domain joins the gate: 065 deliberately leaves it blank on a new
   // region so nobody inherits another region's warmed sending reputation,
   // which means "start" has to refuse until this region has its own.
+  // What genuinely stops a send. reply_to is NOT here: Phoenix has been
+  // sending for days without one, and the engine builds the From address out
+  // of from_domain, so blocking on reply_to broke a region that works.
   const missing = [
-    !settings.hasKey && 'Resend key',
+    !settings.hasKey && 'Resend API key',
     !settings.from_domain && 'sending domain',
-    !settings.reply_to && 'reply-to address',
-    !settings.physical_address && 'physical address',
-    !settings.pulse_base_url && 'Pulse URL',
+    !settings.physical_address && 'physical address (CAN-SPAM)',
+    !settings.pulse_base_url && 'Pulse base URL',
   ].filter(Boolean) as string[];
   const ready = missing.length === 0;
+
+  // Worth setting, never worth blocking on. A blank reply-to means a merchant
+  // hitting reply lands on the sending alias rather than a person in this
+  // region - a real thing to fix, not a reason to stop the campaign.
+  const recommended = [!settings.reply_to && 'a reply-to address'].filter(Boolean) as string[];
 
   const sendClock = `${sendHour === 0 ? 12 : sendHour > 12 ? sendHour - 12 : sendHour}:00 ${sendHour < 12 ? 'AM' : 'PM'}`;
   const zoneShort = (() => {
@@ -154,7 +161,7 @@ export function CampaignControl({
               : 'bg-primary text-primary-foreground hover:bg-primary/90'
           )}
         >
-          {status === 'running' ? <><Pause className="h-4 w-4" /> RUNNING — PAUSE</> : <><Play className="h-4 w-4" /> START CAMPAIGN</>}
+          {status === 'running' ? <><Pause className="h-4 w-4" /> RUNNING - PAUSE</> : <><Play className="h-4 w-4" /> START CAMPAIGN</>}
         </button>
       </div>
 
@@ -177,11 +184,19 @@ export function CampaignControl({
         </Button>
       </div>
 
-      {!ready && (
+      {/* Driven by the SAME array the start button checks. It used to keep a
+          second hardcoded list, so a requirement added to one and not the
+          other rendered this banner with nothing after the colon. */}
+      {!ready && missing.length > 0 && (
         <div className="mb-6 rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm">
-          <b>Setup needed before sending:</b>{' '}
-          {[!settings.hasKey && 'Resend API key', !settings.physical_address && 'physical address (CAN-SPAM)', !settings.pulse_base_url && 'Pulse base URL']
-            .filter(Boolean).join(' · ')}
+          <b>{regionCode ? `${regionCode} needs` : 'Setup needed'} before sending:</b>{' '}
+          {missing.join(' · ')}
+        </div>
+      )}
+
+      {ready && recommended.length > 0 && (
+        <div className="mb-6 rounded-md border border-border/40 bg-muted/20 p-4 text-sm text-muted-foreground">
+          Worth adding: {recommended.join(' · ')}. Not required to send.
         </div>
       )}
 
@@ -190,7 +205,7 @@ export function CampaignControl({
           <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-md bg-primary/50" />
           <h2 className="mb-4 font-display text-lg tracking-wider">SENDING IDENTITY</h2>
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label={`Resend API key ${settings.hasKey ? '(saved — leave blank to keep)' : '(required)'}`}>
+            <Field label={`Resend API key ${settings.hasKey ? '(saved - leave blank to keep)' : '(required)'}`}>
               <Input type="password" placeholder={settings.hasKey ? '••••••••••••' : 're_...'}
                 value={form.resend_api_key} onChange={e => setForm({ ...form, resend_api_key: e.target.value })} />
             </Field>

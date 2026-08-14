@@ -63,11 +63,13 @@ export async function setCampaignStatus(status: 'running' | 'paused', regionId?:
   // half-configured region starting a 30-a-day cold send is exactly the thing
   // that should not depend on the browser being honest - and with from_domain
   // blank the engine would build a From address out of nothing.
+  //
+  // reply_to is deliberately NOT required. Phoenix has run without one since
+  // launch; making it blocking would have paused a working campaign.
   if (status === 'running') {
     const missing = [
       !current.resend_api_key && 'Resend key',
       !current.from_domain && 'sending domain',
-      !current.reply_to && 'reply-to address',
       !current.physical_address && 'physical address',
       !current.pulse_base_url && 'Pulse URL',
     ].filter(Boolean) as string[];
