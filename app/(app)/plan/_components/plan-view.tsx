@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Phone, Send, Check, X, RefreshCw, CalendarCheck, Clock } from 'lucide-react';
+import { Phone, Send, Check, X, RefreshCw, CornerDownRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { generatePlan, setItemState } from '../actions';
 
@@ -30,93 +30,53 @@ export type Appointment = {
   subject: string;
 };
 
-// Defined at module scope, not inside PlanView. A component created during
-// render is a brand new type every pass, so React unmounts and remounts the
-// whole subtree - which drops focus and throws away any local state in it.
-function Row({
-  item,
-  pending,
-  busy,
-  onMark,
-}: {
-  item: PlanItemView;
-  pending: boolean;
-  busy: string | null;
-  onMark: (id: string, state: 'done' | 'skipped') => void;
-}) {
-  return (
-    <div className="flex items-start gap-3 border-b border-border/25 py-3 last:border-0">
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-baseline gap-x-2">
-          {item.accountId ? (
-            <Link href={`/accounts/${item.accountId}`} className="font-medium hover:text-primary">
-              {item.accountName}
-            </Link>
-          ) : (
-            <span className="font-medium">{item.accountName}</span>
-          )}
-          {item.city && <span className="text-xs text-muted-foreground">{item.city}</span>}
-        </div>
-        {/* The reason is the whole feature. A list that cannot say why it
-            picked something gets ignored by the second morning. */}
-        <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{item.reason}</p>
-      </div>
+/**
+ * The morning as a BURN-DOWN, not a list.
+ *
+ * Three things drive the layout, and all three are arguments with how the
+ * first version looked:
+ *
+ * 1. ONE QUEUE. Calls and sends were two separate lists, which made a rep
+ *    context-switch between them to work out what was actually next. They are
+ *    one ordered queue now with a small tag on each row - the question a rep
+ *    is asking is "what next", not "what kind".
+ *
+ * 2. THE REASON IS THE HEADLINE. Every CRM makes the company name the biggest
+ *    thing on the card. But "tapped waiting to get paid yesterday and put
+ *    themselves at $40k a month" is what makes somebody pick up the phone -
+ *    the shop name is just the label on it. So the name is the eyebrow and
+ *    the reason is set large. That inversion only makes sense in this product,
+ *    because the reason column exists at all here.
+ *
+ * 3. FINITE, VISIBLY. A segmented rail with one tick per item. Twelve ticks
+ *    is a morning you can see the end of; a scrolling list is not.
+ */
 
-      <div className="flex shrink-0 items-center gap-1.5">
-        {item.kind === 'call' && item.accountId && (
-          <Link
-            href={`/call/${item.accountId}`}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary/90 px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary"
-          >
-            <Phone className="h-3.5 w-3.5" /> Call
-          </Link>
-        )}
-        {item.kind === 'send' && item.accountId && (
-          <Link
-            href={`/send/${item.accountId}${item.contactId ? `?contact=${item.contactId}` : ''}`}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary/90 px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary"
-          >
-            <Send className="h-3.5 w-3.5" /> Send
-          </Link>
-        )}
-        <button
-          type="button"
-          title="Done"
-          disabled={pending && busy === item.id}
-          onClick={() => onMark(item.id, 'done')}
-          className="rounded-md border border-border/40 p-2 text-emerald-400 transition-colors hover:bg-emerald-500/10 disabled:opacity-50"
-        >
-          <Check className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          title="Not today"
-          disabled={pending && busy === item.id}
-          onClick={() => onMark(item.id, 'skipped')}
-          className="rounded-md border border-border/40 p-2 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-      </div>
+const TICK = 'h-1.5 flex-1 rounded-full motion-safe:transition-colors motion-safe:duration-300';
+
+function BurnDown({ total, done }: { total: number; done: number }) {
+  if (total === 0) return null;
+  return (
+    <div className="flex items-center gap-1" aria-hidden>
+      {Array.from({ length: total }, (_, i) => (
+        <span
+          key={i}
+          className={cn(
+            TICK,
+            i < done ? 'bg-primary' : i === done ? 'bg-primary/40' : 'bg-border',
+          )}
+        />
+      ))}
     </div>
   );
 }
 
-function Block({
-  title,
-  sub,
-  children,
-}: {
-  title: string;
-  sub: string;
-  children: React.ReactNode;
-}) {
+function KindTag({ kind }: { kind: 'call' | 'send' }) {
   return (
-    <section className="card-lit mb-4 rounded-md border border-border/40 p-5">
-      <div className="mb-1 font-display text-lg tracking-wider">{title}</div>
-      <p className="mb-3 text-xs text-muted-foreground">{sub}</p>
-      {children}
-    </section>
+    <span className="inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+      {kind === 'call' ? <Phone className="h-3 w-3" /> : <Send className="h-3 w-3" />}
+      {kind}
+    </span>
   );
 }
 
@@ -142,11 +102,13 @@ export function PlanView({
   const fmt = (iso: string) =>
     new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: timezone });
 
-  const open = (list: PlanItemView[]) => list.filter((i) => i.state === 'pending');
-  const openCalls = open(calls);
-  const openSends = open(sends);
-  const doneCount = [...calls, ...sends].filter((i) => i.state === 'done').length;
-  const minutes = [...openCalls, ...openSends].reduce((n, i) => n + i.estMinutes, 0);
+  // One queue. Calls lead because a conversation beats a message, but after
+  // that it is simply the order the ranking produced.
+  const all = [...calls, ...sends];
+  const queue = all.filter((i) => i.state === 'pending');
+  const doneCount = all.filter((i) => i.state === 'done').length;
+  const [up, ...rest] = queue;
+  const minutes = queue.reduce((n, i) => n + i.estMinutes, 0);
 
   function mark(id: string, state: 'done' | 'skipped') {
     setBusy(id);
@@ -162,107 +124,190 @@ export function PlanView({
     start(async () => {
       const res = await generatePlan();
       if (res.ok === false) toast.error(res.message);
-      else {
-        toast.success('Rebuilt');
-        router.refresh();
-      }
+      else router.refresh();
     });
   }
 
   if (!generatedAt) {
     return (
-      <div className="card-lit rounded-md border border-border/40 p-10 text-center">
-        <p className="text-sm text-muted-foreground">
-          No plan for today yet. It reads your own book - who raised their hand, what you
-          promised, and who has been sitting untouched.
+      <div className="card-lit rounded-md border border-border/40 px-6 py-14 text-center">
+        <p className="font-display text-2xl tracking-wider">NOTHING PLANNED YET</p>
+        <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
+          Reads your own book and puts it in order: who raised their hand, what you promised,
+          and who has been sitting untouched.
         </p>
         <button
           type="button"
           disabled={pending}
           onClick={replan}
-          className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary/90 px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary disabled:opacity-60"
+          className="btn-glow mt-6 inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 font-display tracking-widest text-primary-foreground disabled:opacity-60"
         >
-          <RefreshCw className={cn('h-4 w-4', pending && 'animate-spin')} />
-          {pending ? 'Building...' : 'Plan my day'}
+          <RefreshCw className={cn('h-4 w-4', pending && 'motion-safe:animate-spin')} />
+          {pending ? 'BUILDING' : 'PLAN MY DAY'}
         </button>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          {openCalls.length + openSends.length === 0 ? (
-            <span className="text-emerald-400">That is the morning done, {firstName}.</span>
-          ) : (
-            <>
-              <span className="text-foreground">{openCalls.length + openSends.length} left</span>
-              {' '}· about {minutes} minutes
-              {doneCount > 0 && <> · {doneCount} done</>}
-            </>
-          )}
-        </p>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={replan}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border/40 px-3 py-2 text-[11px] uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-60"
-        >
-          <RefreshCw className={cn('h-3.5 w-3.5', pending && 'animate-spin')} /> Replan
-        </button>
+    <div className="space-y-4">
+      {/* The shape of the morning, in one line. */}
+      <div className="card-lit rounded-md border border-border/40 px-5 py-4">
+        <div className="mb-3 flex items-end justify-between gap-4">
+          <div className="flex items-baseline gap-2">
+            <span className="font-display text-4xl leading-none tracking-wider text-primary text-glow-primary">
+              {queue.length}
+            </span>
+            <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              left{queue.length > 0 && <> · about {minutes} min</>}
+            </span>
+          </div>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={replan}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border/40 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-60"
+          >
+            <RefreshCw className={cn('h-3 w-3', pending && 'motion-safe:animate-spin')} /> Replan
+          </button>
+        </div>
+        <BurnDown total={all.length} done={doneCount} />
+        {doneCount > 0 && (
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            {doneCount} done{queue.length === 0 ? '. That is the morning.' : ''}
+          </p>
+        )}
       </div>
 
+      {/* Fixed points. Times in mono because they are data, not prose. */}
       {appointments.length > 0 && (
-        <Block
-          title="ON THE CALENDAR"
-          sub="Fixed points. Everything else works around these."
-        >
-          {appointments.map((a) => (
-            <div key={a.id} className="flex items-center gap-3 border-b border-border/25 py-3 last:border-0">
-              <div className="w-16 shrink-0 font-mono text-sm text-primary">{fmt(a.at)}</div>
-              <div className="min-w-0 flex-1">
-                {a.accountId ? (
-                  <Link href={`/accounts/${a.accountId}`} className="font-medium hover:text-primary">
-                    {a.accountName}
-                  </Link>
-                ) : (
-                  <span className="font-medium">{a.accountName}</span>
-                )}
-                <p className="text-[13px] text-muted-foreground">
-                  {a.subject}
-                  {a.city ? ` · ${a.city}` : ''}
-                </p>
+        <div className="rounded-md border border-border/40 bg-sidebar/40 px-5 py-4">
+          <div className="mb-2.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            Booked today
+          </div>
+          <div className="space-y-2">
+            {appointments.map((a) => (
+              <div key={a.id} className="flex items-baseline gap-3">
+                <span className="w-[4.5rem] shrink-0 font-mono text-sm text-primary">{fmt(a.at)}</span>
+                <span className="min-w-0 flex-1 truncate">
+                  {a.accountId ? (
+                    <Link href={`/accounts/${a.accountId}`} className="hover:text-primary">
+                      {a.accountName}
+                    </Link>
+                  ) : (
+                    a.accountName
+                  )}
+                  <span className="ml-2 text-xs text-muted-foreground">{a.subject}</span>
+                </span>
               </div>
-              <CalendarCheck className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </div>
-          ))}
-        </Block>
+            ))}
+          </div>
+        </div>
       )}
 
-      <Block
-        title="CALLS"
-        sub="Ranked. Whoever raised their hand comes first, then what you promised, then the book."
-      >
-        {openCalls.length === 0 ? (
-          <p className="py-2 text-sm text-muted-foreground">
-            Nothing left here. {doneCount > 0 ? 'Go get in the car.' : 'Hit Replan if that seems wrong.'}
+      {up ? (
+        <>
+          {/* The hero. Reason set large, name demoted to the eyebrow. */}
+          <div className="card-lit relative overflow-hidden rounded-md border border-primary/30 px-5 py-6">
+            <span className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
+
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <KindTag kind={up.kind === 'send' ? 'send' : 'call'} />
+              <span className="text-[10px] uppercase tracking-[0.18em] text-primary">Up next</span>
+            </div>
+
+            <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+              {up.accountId ? (
+                <Link href={`/accounts/${up.accountId}`} className="hover:text-foreground">
+                  {up.accountName}
+                </Link>
+              ) : (
+                up.accountName
+              )}
+              {up.city && <span className="text-muted-foreground/60"> · {up.city}</span>}
+            </div>
+
+            <p className="mt-2 text-[19px] leading-snug text-foreground sm:text-[21px]">{up.reason}</p>
+
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              {up.accountId && (
+                <Link
+                  href={
+                    up.kind === 'send'
+                      ? `/send/${up.accountId}${up.contactId ? `?contact=${up.contactId}` : ''}`
+                      : `/call/${up.accountId}`
+                  }
+                  className="btn-glow inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 font-display tracking-widest text-primary-foreground"
+                >
+                  {up.kind === 'send' ? <Send className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
+                  {up.kind === 'send' ? 'SEND IT' : 'CALL'}
+                </Link>
+              )}
+              <button
+                type="button"
+                disabled={pending && busy === up.id}
+                onClick={() => mark(up.id, 'done')}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border/40 px-3.5 py-2.5 text-xs text-emerald-400 transition-colors hover:bg-emerald-500/10 disabled:opacity-50"
+              >
+                <Check className="h-3.5 w-3.5" /> Done
+              </button>
+              <button
+                type="button"
+                disabled={pending && busy === up.id}
+                onClick={() => mark(up.id, 'skipped')}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border/40 px-3.5 py-2.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+              >
+                <X className="h-3.5 w-3.5" /> Not today
+              </button>
+            </div>
+          </div>
+
+          {rest.length > 0 && (
+            <div className="rounded-md border border-border/40 bg-sidebar/40">
+              <div className="border-b border-border/25 px-5 py-3 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                Then
+              </div>
+              {rest.map((i) => (
+                <div
+                  key={i.id}
+                  className="flex items-start gap-3 border-b border-border/20 px-5 py-3.5 last:border-0"
+                >
+                  <CornerDownRight className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground/40" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-baseline gap-x-2">
+                      <span className="text-sm font-medium">{i.accountName}</span>
+                      <KindTag kind={i.kind === 'send' ? 'send' : 'call'} />
+                    </div>
+                    <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{i.reason}</p>
+                  </div>
+                  <button
+                    type="button"
+                    title="Not today"
+                    disabled={pending && busy === i.id}
+                    onClick={() => mark(i.id, 'skipped')}
+                    className="mt-0.5 shrink-0 rounded-md p-1.5 text-muted-foreground/50 transition-colors hover:text-foreground disabled:opacity-50"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="card-lit rounded-md border border-emerald-500/25 px-6 py-12 text-center">
+          <p className="font-display text-2xl tracking-wider text-emerald-400">
+            {doneCount > 0 ? `THAT IS THE MORNING, ${firstName.toUpperCase()}` : 'NOTHING QUEUED'}
           </p>
-        ) : (
-          openCalls.map((i) => <Row key={i.id} item={i} pending={pending} busy={busy} onMark={mark} />)
-        )}
-      </Block>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {doneCount > 0
+              ? 'Go get in the car. What you booked this morning is tomorrow you, sorted.'
+              : 'Nothing in your book came up. Replan if that seems wrong.'}
+          </p>
+        </div>
+      )}
 
-      <Block title="SENDS" sub="Follow-through on something that already happened.">
-        {openSends.length === 0 ? (
-          <p className="py-2 text-sm text-muted-foreground">Nothing to send this morning.</p>
-        ) : (
-          openSends.map((i) => <Row key={i.id} item={i} pending={pending} busy={busy} onMark={mark} />)
-        )}
-      </Block>
-
-      <p className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground">
-        <Clock className="h-3.5 w-3.5" />
+      <p className="px-1 text-[11px] text-muted-foreground">
         The point of the morning is tomorrow&apos;s calendar, not today&apos;s.
       </p>
     </div>

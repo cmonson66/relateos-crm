@@ -100,10 +100,10 @@ export default async function PlanPage() {
   return (
     <div className="p-4 md:p-8 max-w-[900px]">
       <PageHeader
-        kicker={`Sales · ${label}`}
-        title="Today's"
-        highlight="Plan"
-        description="Your own book, in the order worth working it. Mornings fill tomorrow's calendar."
+        kicker={`${label} · ${firstName}`}
+        title="The"
+        highlight="Morning"
+        description="Worked top to bottom. Every one says why it is there."
       />
       <div className="mt-6">
         <PlanView
