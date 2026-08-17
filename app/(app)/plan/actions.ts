@@ -56,11 +56,19 @@ export async function setItemState(
 ): Promise<ActionResult> {
   try {
     const supabase = await createClient();
-    const { error } = await supabase
+    // .select() so we can tell "updated" from "matched nothing". Without it a
+    // PostgREST update blocked by RLS or a missing grant returns no error and
+    // no rows, the action reports success, and the item just sits there -
+    // which is indistinguishable from a hung request.
+    const { data, error } = await supabase
       .from('day_plan_items')
       .update({ state, outcome: outcome ?? null, updated_at: new Date().toISOString() })
-      .eq('id', itemId);
+      .eq('id', itemId)
+      .select('id');
     if (error) return { ok: false, message: error.message };
+    if (!data || data.length === 0) {
+      return { ok: false, message: 'That item did not update. It may belong to another day.' };
+    }
     revalidatePath('/plan');
     return { ok: true };
   } catch (e) {

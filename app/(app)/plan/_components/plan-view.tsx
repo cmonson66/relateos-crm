@@ -96,8 +96,14 @@ export function PlanView({
   firstName: string;
 }) {
   const router = useRouter();
-  const [pending, start] = useTransition();
+  // Two transitions, not one. Sharing a single `pending` meant tapping Done
+  // spun the Replan icon, which reads as the wrong thing happening.
+  const [replanning, startReplan] = useTransition();
   const [busy, setBusy] = useState<string | null>(null);
+  // Marked in this session. The row disappears the moment it is tapped rather
+  // than after a server round-trip - a rep working down a list on a phone
+  // should never wait on the network to see their own tap land.
+  const [settled, setSettled] = useState<Set<string>>(new Set());
 
   const fmt = (iso: string) =>
     new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: timezone });
@@ -105,23 +111,35 @@ export function PlanView({
   // One queue. Calls lead because a conversation beats a message, but after
   // that it is simply the order the ranking produced.
   const all = [...calls, ...sends];
-  const queue = all.filter((i) => i.state === 'pending');
-  const doneCount = all.filter((i) => i.state === 'done').length;
+  const queue = all.filter((i) => i.state === 'pending' && !settled.has(i.id));
+  const doneCount = all.filter((i) => i.state === 'done').length + settled.size;
   const [up, ...rest] = queue;
   const minutes = queue.reduce((n, i) => n + i.estMinutes, 0);
 
-  function mark(id: string, state: 'done' | 'skipped') {
+  async function mark(id: string, state: 'done' | 'skipped') {
     setBusy(id);
-    start(async () => {
-      const res = await setItemState(id, state);
-      setBusy(null);
-      if (res.ok === false) toast.error(res.message);
-      else router.refresh();
-    });
+    setSettled((cur) => new Set(cur).add(id));
+    const res = await setItemState(id, state);
+    setBusy(null);
+    if (res.ok === false) {
+      // Put it back. An optimistic update that cannot fail visibly is a lie.
+      setSettled((cur) => {
+        const next = new Set(cur);
+        next.delete(id);
+        return next;
+      });
+      toast.error(res.message);
+      return;
+    }
+    // Outside any transition on purpose. Awaiting the refresh inside one keeps
+    // the pending flag true for the whole server round-trip, which is what
+    // made a completed action look stuck.
+    router.refresh();
   }
 
   function replan() {
-    start(async () => {
+    setSettled(new Set());
+    startReplan(async () => {
       const res = await generatePlan();
       if (res.ok === false) toast.error(res.message);
       else router.refresh();
@@ -138,12 +156,12 @@ export function PlanView({
         </p>
         <button
           type="button"
-          disabled={pending}
+          disabled={replanning}
           onClick={replan}
           className="btn-glow mt-6 inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 font-display tracking-widest text-primary-foreground disabled:opacity-60"
         >
-          <RefreshCw className={cn('h-4 w-4', pending && 'motion-safe:animate-spin')} />
-          {pending ? 'BUILDING' : 'PLAN MY DAY'}
+          <RefreshCw className={cn('h-4 w-4', replanning && 'motion-safe:animate-spin')} />
+          {replanning ? 'BUILDING' : 'PLAN MY DAY'}
         </button>
       </div>
     );
@@ -164,11 +182,11 @@ export function PlanView({
           </div>
           <button
             type="button"
-            disabled={pending}
+            disabled={replanning}
             onClick={replan}
             className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border/40 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-60"
           >
-            <RefreshCw className={cn('h-3 w-3', pending && 'motion-safe:animate-spin')} /> Replan
+            <RefreshCw className={cn('h-3 w-3', replanning && 'motion-safe:animate-spin')} /> Replan
           </button>
         </div>
         <BurnDown total={all.length} done={doneCount} />
@@ -245,7 +263,7 @@ export function PlanView({
               )}
               <button
                 type="button"
-                disabled={pending && busy === up.id}
+                disabled={busy === up.id}
                 onClick={() => mark(up.id, 'done')}
                 className="inline-flex items-center gap-1.5 rounded-md border border-border/40 px-3.5 py-2.5 text-xs text-emerald-400 transition-colors hover:bg-emerald-500/10 disabled:opacity-50"
               >
@@ -253,7 +271,7 @@ export function PlanView({
               </button>
               <button
                 type="button"
-                disabled={pending && busy === up.id}
+                disabled={busy === up.id}
                 onClick={() => mark(up.id, 'skipped')}
                 className="inline-flex items-center gap-1.5 rounded-md border border-border/40 px-3.5 py-2.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
               >
@@ -283,7 +301,7 @@ export function PlanView({
                   <button
                     type="button"
                     title="Not today"
-                    disabled={pending && busy === i.id}
+                    disabled={busy === i.id}
                     onClick={() => mark(i.id, 'skipped')}
                     className="mt-0.5 shrink-0 rounded-md p-1.5 text-muted-foreground/50 transition-colors hover:text-foreground disabled:opacity-50"
                   >
