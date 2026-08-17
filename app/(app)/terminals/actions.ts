@@ -60,7 +60,12 @@ async function trail(
 }
 
 /** Serials arrive in batches from NectarPay. One per line. */
-export async function receiveTerminals(input: { serials: string; model?: string | null }) {
+export async function receiveTerminals(input: {
+  serials: string;
+  model?: string | null;
+  /** Which market the shipment physically landed in. */
+  regionId?: string | null;
+}) {
   return guard(async () => {
     const { supabase, userId, org } = await orgId();
 
@@ -75,9 +80,29 @@ export async function receiveTerminals(input: { serials: string; model?: string 
     if (serials.length === 0) throw new Error("Paste at least one serial");
     if (serials.length > 200) throw new Error("That is more than 200 serials - split the batch");
 
+    // Stamped explicitly. Left to the 058/059 trigger it falls back to the
+    // RECEIVING PROFILE's region, which is null for anyone corporate - so an
+    // admin's shipment landed with no region and then vanished behind the
+    // page's own region filter. Inserted fine, invisible immediately.
+    let regionId = input.regionId ?? null;
+    if (!regionId) {
+      const { data: prof } = await supabase
+        .from("profiles").select("region_id").eq("id", userId).maybeSingle();
+      regionId = (prof?.region_id as string) ?? null;
+    }
+    if (!regionId) {
+      const { data: rs } = await supabase
+        .from("regions").select("id").eq("org_id", org).eq("is_active", true).order("created_at");
+      if ((rs ?? []).length === 1) regionId = rs![0].id as string;
+    }
+    if (!regionId) {
+      throw new Error("Pick which region this shipment landed in - hardware lives in one market.");
+    }
+
     const rows = serials.map((serial) => ({
       org_id: org,
       serial,
+      region_id: regionId,
       model: input.model?.trim() || "Nectar.Pay Terminal",
       status: "in_stock" as const,
     }));
@@ -99,7 +124,9 @@ export async function receiveTerminals(input: { serials: string; model?: string 
     }
 
     revalidatePath("/terminals");
-    return { ok: true, added: (data ?? []).length, submitted: serials.length };
+    // Report BOTH numbers. Duplicates are ignored on purpose, so "20 pasted,
+    // 0 added" is a real and useful answer rather than a silent no-op.
+    return { ok: true, added: (data ?? []).length, submitted: serials.length, regionId };
   });
 }
 

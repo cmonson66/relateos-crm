@@ -35,14 +35,23 @@ const daysSince = (iso: string | null) =>
 export function TerminalsView({
   terminals,
   people,
+  regions = [],
+  activeRegionId = null,
 }: {
   terminals: Row[];
   people: { id: string; name: string }[];
+  regions?: { id: string; code: string; name: string }[];
+  activeRegionId?: string | null;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [filter, setFilter] = useState<string | null>(null);
   const [serials, setSerials] = useState("");
+  // Where the shipment landed. Defaults to the region on screen; when looking
+  // at every region at once there is no honest default, so it has to be said.
+  const [intoRegion, setIntoRegion] = useState<string | null>(
+    activeRegionId ?? (regions.length === 1 ? regions[0].id : null),
+  );
   const [showReceive, setShowReceive] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
 
@@ -56,7 +65,10 @@ export function TerminalsView({
 
   // Actions RETURN their failure reason rather than throwing, because Next
   // strips thrown messages from server actions in production builds.
-  const run = (fn: () => Promise<{ ok: boolean; message?: string } | void>, ok: string) =>
+  const run = (
+    fn: () => Promise<{ ok: boolean; message?: string } | void>,
+    ok: string | ((res: unknown) => string),
+  ) =>
     start(async () => {
       try {
         const res = await fn();
@@ -64,7 +76,7 @@ export function TerminalsView({
           toast.error(res.message ?? "That did not work");
           return;
         }
-        toast.success(ok);
+        toast.success(typeof ok === "function" ? ok(res) : ok);
         router.refresh();
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "That did not work");
@@ -103,17 +115,57 @@ export function TerminalsView({
             placeholder={"2586462547\n2586462548"}
             className="w-full rounded-md border border-border/40 bg-background px-2.5 py-2 font-mono text-sm"
           />
+
+          {regions.length > 1 && (
+            <div className="mt-3">
+              <div className="mb-1.5 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+                Landed in
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {regions.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => setIntoRegion(r.id)}
+                    className={
+                      r.id === intoRegion
+                        ? "rounded-md border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs text-primary"
+                        : "rounded-md border border-border/40 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    }
+                  >
+                    {r.code}
+                  </button>
+                ))}
+              </div>
+              {!intoRegion && (
+                <p className="mt-1.5 text-[11px] text-amber-300/90">
+                  Pick one. A terminal sits in one market, and stock with no region is stock
+                  nobody can find.
+                </p>
+              )}
+            </div>
+          )}
           <div className="mt-2 flex gap-2">
             <Button
               size="sm"
-              disabled={pending || !serials.trim()}
+              disabled={pending || !serials.trim() || (regions.length > 1 && !intoRegion)}
               onClick={() =>
                 run(async () => {
-                  const res = await receiveTerminals({ serials });
+                  const res = await receiveTerminals({ serials, regionId: intoRegion });
                   setSerials("");
                   setShowReceive(false);
                   return res;
-                }, "Stock added")
+                }, (r) => {
+                  // Duplicates are ignored by design, so "20 pasted, 0 added"
+                  // is the honest answer and the one worth showing. A flat
+                  // "Stock added" on a no-op is how this looked broken.
+                  const d = r as { added?: number; submitted?: number } | undefined;
+                  const added = d?.added ?? 0;
+                  const sub = d?.submitted ?? 0;
+                  if (added === 0) return `${sub} serial${sub === 1 ? "" : "s"} pasted, none new - already in stock`;
+                  if (added < sub) return `${added} added, ${sub - added} already in stock`;
+                  return `${added} terminal${added === 1 ? "" : "s"} in stock`;
+                })
               }
               className="font-display tracking-wider"
             >

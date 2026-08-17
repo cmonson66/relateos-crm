@@ -92,6 +92,8 @@ export default async function TerminalsPage({
         accountId: (t.account_id as string | null) ?? null,
         deployedAt: (t.deployed_at as string | null) ?? null,
       }))}
+      regions={regions}
+      activeRegionId={activeRegionId}
       people={(people ?? [])
         .filter((p) => !activeRegionId || p.region_id === activeRegionId || p.region_id === null)
         .map((p) => ({
