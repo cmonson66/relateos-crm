@@ -74,7 +74,9 @@ export function CallMode({ account, contact, intel, recent, script, pulseRead }:
         scheduleLabel: null,
       });
       const to = contact?.id ? `&contact=${contact.id}` : '';
-      router.push(`/send/${account.id}?t=${template}${to}`);
+      // from=call so the send screen's back button returns to this script
+      // rather than the account page. They may still be on the phone.
+      router.push(`/send/${account.id}?t=${template}${to}&from=call`);
     });
   };
 
@@ -105,7 +107,7 @@ export function CallMode({ account, contact, intel, recent, script, pulseRead }:
       // picked and the recipient editable.
       if (outcome === 'sent_onepager') {
         const to = contact?.id ? `&contact=${contact.id}` : '';
-        router.push(`/send/${account.id}?t=one-pager${to}`);
+        router.push(`/send/${account.id}?t=one-pager${to}&from=call`);
       }
     });
   };
@@ -136,7 +138,7 @@ export function CallMode({ account, contact, intel, recent, script, pulseRead }:
             <span className={cn(CONTROL, 'border-emerald-500/50 bg-emerald-500/10 text-emerald-300')}>CRYPTO NATIVE</span>
           )}
           <Link
-            href={`/send/${account.id}${contact?.id ? `?contact=${contact.id}` : ''}`}
+            href={`/send/${account.id}?from=call${contact?.id ? `&contact=${contact.id}` : ''}`}
             className="rounded-lg border border-border/40 px-3 py-2 text-xs font-bold hover:bg-sidebar-accent/50"
             title="Send a message from a template"
           >

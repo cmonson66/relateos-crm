@@ -16,10 +16,10 @@ export default async function SendPage({
   searchParams,
 }: {
   params: Promise<{ accountId: string }>;
-  searchParams: Promise<{ contact?: string; t?: string }>;
+  searchParams: Promise<{ contact?: string; t?: string; from?: string }>;
 }) {
   const { accountId } = await params;
-  const { contact: contactParam, t: templateParam } = await searchParams;
+  const { contact: contactParam, t: templateParam, from } = await searchParams;
 
   const supabase = await createClient();
   const {
@@ -103,6 +103,7 @@ export default async function SendPage({
 
   return (
     <SendSheet
+      from={from ?? null}
       account={{ id: account.id, name: account.name, city: account.city }}
       contact={
         chosen

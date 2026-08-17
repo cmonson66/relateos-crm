@@ -42,6 +42,8 @@ type Props = {
   tokens: FieldTokens;
   initialMailApp: MailApp;
   initialTemplateId: string | null;
+  /** Where the rep came from. "call" returns them to the live script. */
+  from?: string | null;
 };
 
 const CHANNELS: { id: SendChannel; label: string; icon: typeof Mail }[] = [
@@ -59,7 +61,10 @@ export function SendSheet({
   tokens,
   initialMailApp,
   initialTemplateId,
+  from,
 }: Props) {
+  const fromCall = from === "call";
+  const backHref = fromCall ? `/call/${account.id}` : `/accounts/${account.id}`;
   const first =
     (initialTemplateId ? FIELD_TEMPLATES.find((t) => t.id === initialTemplateId) : null) ??
     FIELD_TEMPLATES[0];
@@ -205,9 +210,14 @@ export function SendSheet({
       {/* header */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/40 py-4">
         <div className="flex items-center gap-3">
+          {/* Back goes where they CAME FROM. A rep who tapped "send me
+              something" mid-call is still on that call - dropping them on the
+              account page means finding their way back to the script while
+              somebody is talking. */}
           <Link
-            href={`/accounts/${account.id}`}
+            href={backHref}
             className="text-muted-foreground hover:text-foreground"
+            title={fromCall ? "Back to the call" : "Back to the shop"}
           >
             <ChevronLeft className="h-5 w-5" />
           </Link>
@@ -524,8 +534,8 @@ export function SendSheet({
           {sent && (
             <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/[0.06] p-2.5 text-[12.5px] text-emerald-200">
               Logged to the timeline{followUp ? ", and a follow-up task is on your calendar for three days out" : ""}.{" "}
-              <Link href={`/accounts/${account.id}`} className="underline">
-                Back to {account.name}
+              <Link href={backHref} className="underline">
+                {fromCall ? "Back to the call" : `Back to ${account.name}`}
               </Link>
             </div>
           )}
