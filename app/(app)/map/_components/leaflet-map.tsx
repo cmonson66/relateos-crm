@@ -41,20 +41,39 @@ const TILES = {
   },
 };
 
-function FitBounds({ accounts, fitSignal, hasFocus }: { accounts: MapAccount[]; fitSignal: number; hasFocus: boolean }) {
+function FitBounds({
+  accounts,
+  fitSignal,
+  hasFocus,
+  regionKey,
+}: {
+  accounts: MapAccount[];
+  fitSignal: number;
+  hasFocus: boolean;
+  /** Changes when the viewer switches region. */
+  regionKey: string;
+}) {
   const map = useMap();
   const fittedOnce = useRef(false);
+  const lastRegion = useRef(regionKey);
   useEffect(() => {
     if (accounts.length === 0) return;
+
+    // A different market is a different map. Phoenix's viewport over Dallas
+    // is open desert, so a region switch always re-frames - it outranks both
+    // the focus rule and the fitted-once rule below.
+    const regionChanged = lastRegion.current !== regionKey;
+    lastRegion.current = regionKey;
+
     // A ?focus= arrival owns the initial view; auto-fit would fight it.
     // The Fit view button still works normally afterwards.
-    if (hasFocus && fitSignal === 0) {
+    if (hasFocus && fitSignal === 0 && !regionChanged) {
       fittedOnce.current = true;
       return;
     }
     // Fit on first load, then ONLY when the user asks (Fit view button).
     // Filter toggles keep the current viewport instead of re-zooming.
-    if (fittedOnce.current && fitSignal === 0) return;
+    if (fittedOnce.current && fitSignal === 0 && !regionChanged) return;
     fittedOnce.current = true;
     const lats = accounts.map(a => a.lat);
     const lngs = accounts.map(a => a.lng);
@@ -65,8 +84,10 @@ function FitBounds({ accounts, fitSignal, hasFocus }: { accounts: MapAccount[]; 
       ],
       { padding: [40, 40], maxZoom: 14 }
     );
+    // accounts is intentionally out of the deps: it changes on every filter
+    // toggle, and re-zooming when somebody taps a band chip is maddening.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fitSignal, map]);
+  }, [fitSignal, regionKey, map]);
   return null;
 }
 
@@ -95,6 +116,7 @@ export default function LeafletMap({
   accounts,
   focusId = null,
   fitSignal = 0,
+  regionKey = 'all',
   signals = [],
   showHeat = false,
   heatFilter = 'all',
@@ -106,6 +128,7 @@ export default function LeafletMap({
   accounts: MapAccount[];
   focusId?: string | null;
   fitSignal?: number;
+  regionKey?: string;
   signals?: CryptoSignal[];
   showHeat?: boolean;
   heatFilter?: 'all' | 'atm' | 'merchant';
@@ -145,7 +168,7 @@ export default function LeafletMap({
 
         <CryptoHeat signals={shownSignals} visible={showHeat} />
 
-        <FitBounds accounts={accounts} fitSignal={fitSignal} hasFocus={!!focusAccount || !!myFix} />
+        <FitBounds accounts={accounts} fitSignal={fitSignal} hasFocus={!!focusAccount || !!myFix} regionKey={regionKey} />
         <FollowMe fix={myFix} signal={followSignal} radiusMiles={radiusMiles} />
         <MyLocationMarker fix={myFix} />
         <FocusView account={focusAccount} markerRefs={markerRefs} />

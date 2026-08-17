@@ -204,7 +204,17 @@ export function MapView({
     else next.set('region', id);
     // focus belongs to a shop in the region being left behind
     next.delete('focus');
+
+    // You are not within three miles of Dallas while standing in Phoenix.
+    // Leaving the radius on would filter the new region down to nothing and
+    // read as "DFW has no shops".
+    setRadius(null);
     router.push(`/map${next.toString() ? `?${next.toString()}` : ''}`);
+    // Next's client router cache keys on the route, so a push that only
+    // changes a search param can serve the cached payload and never re-run
+    // the server component. This is what left the campaign page showing
+    // Phoenix's queue on the DFW tab.
+    router.refresh();
   }
 
   // An empty region used to return early and render nothing but a message,
@@ -343,6 +353,7 @@ export function MapView({
         showHeat={showHeat}
         heatFilter={heatFilter}
         cryptoStats={cryptoStats}
+        regionKey={activeRegionId ?? 'all'}
       />
       )}
 
