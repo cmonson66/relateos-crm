@@ -67,7 +67,7 @@ const TRUTHS: string[] = [
 
 export function FirstWeek() {
   return (
-    <div className="mx-auto max-w-3xl">
+    <div id="playbook" className="mx-auto max-w-3xl">
       <p className="mb-6 text-[15px] leading-relaxed text-muted-foreground">
         Five days to go from knowing nothing to working a book properly. Do them in order. The
         point of the early days is to get the awkward version out of your system somewhere it
