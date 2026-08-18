@@ -4,7 +4,7 @@ import { BREAK_EVEN_YEAR_ONE_MONTHLY, BREAK_EVEN_ONGOING_MONTHLY } from '@/lib/p
 
 import { useState, useTransition, useRef } from 'react';
 import Link from 'next/link';
-import { Printer, FileText, BookOpen, PackageCheck, ChevronLeft, Search, X, MapPin, Compass, BookMarked } from 'lucide-react';
+import { Printer, FileText, BookOpen, PackageCheck, ChevronLeft, Search, X, MapPin, Compass, BookMarked, Wrench } from 'lucide-react';
 import { OnePager } from './one-pager';
 import { searchAccounts } from '@/app/(app)/appointments/actions';
 
@@ -58,7 +58,7 @@ export function PlaybookView({
   rep?: { first: string; cell: string; email: string };
 }) {
   // Land on a menu, not inside the script
-  const [tab, setTab] = useState<'home' | 'week1' | 'script' | 'onepager' | 'kit'>('home');
+  const [tab, setTab] = useState<'home' | 'week1' | 'script' | 'onepager' | 'setup' | 'kit'>('home');
   const [picked, setPicked] = useState<Set<string>>(new Set());
   // Shops added by search rather than from the calendar - for the rep who
   // just walked past a promising restaurant
@@ -122,6 +122,7 @@ export function PlaybookView({
             {tab === 'home' ? <>THE <span className="text-primary">PLAYBOOK</span></>
               : tab === 'onepager' ? <>THE <span className="text-primary">ONE-PAGER</span></>
               : tab === 'week1' ? <>YOUR FIRST <span className="text-primary">WEEK</span></>
+              : tab === 'setup' ? <>SETTING <span className="text-primary">THEM UP</span></>
               : tab === 'kit' ? <>PRINT A <span className="text-primary">KIT</span></>
               : <>THE <span className="text-primary">WALK-IN</span></>}
           </h1>
@@ -142,6 +143,7 @@ export function PlaybookView({
             ['week1', 'Your first week', 'New here? Start with this. What to do each day and what good looks like.', Compass],
             ['script', 'The door script', 'Walking in. Be a customer first, diagnose before you present. Not the phone script.', BookOpen],
             ['onepager', 'The one-pager', 'Your leave-behind, with your name and cell on it.', FileText],
+            ['setup', 'Setting them up', 'The install, start to finish. Wallet, merchant account, coins, share link.', Wrench],
             ['kit', 'Print a kit', 'A packet per shop: their sheet plus a one-pager to leave.', PackageCheck],
           ] as const).map(([id, title, blurb, Icon]) => (
             <button
@@ -285,6 +287,137 @@ export function PlaybookView({
       )}
 
       {tab === 'week1' && <FirstWeek />}
+
+      {tab === 'setup' && (
+      <div className="rounded-md border border-border/40 bg-white p-6 text-black sm:p-8">
+        <div className="avoid-break mb-5">
+          <h2 className="mb-2 text-lg font-extrabold">Setting up a merchant</h2>
+          <p className="text-sm text-neutral-700">
+            Do this WITH them, on their phone and their computer, not for them. They own the
+            wallet and they need to have touched every step. Budget an afternoon the first few
+            times; it gets to about forty minutes once you know it.
+          </p>
+        </div>
+
+        {/* Pulled out of the sequence on purpose. In the original instructions
+            this sits as one bullet in the middle of a list, and it is the only
+            step in the whole process that cannot be undone. */}
+        <div className="avoid-break mb-5 border-2 border-black p-3">
+          <div className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.15em]">
+            Say this out loud before you start
+          </div>
+          <p className="text-sm">
+            <b>The coin IS the money.</b> It is not a receipt or a backup - the wallet key is
+            physically on it. Lose the coin and the written backup and the funds are gone, and
+            nobody, us included, can bring them back. That is the same thing that makes it
+            impossible for anyone to freeze or claw back. Both halves of that are true and they
+            should hear both from you.
+          </p>
+        </div>
+
+        <Step n="1" title="THEIR WALLET - THE COIN">
+          <p className="mb-2 text-sm">
+            Go to <b>blockchainmint.com/redeem</b> and follow it with the coin you brought.
+          </p>
+          <ul className="mb-2 ml-4 list-disc text-sm">
+            <li>A fingernail takes the sticker off. Rubbing alcohol or WD40 helps a stubborn one.</li>
+            <li><b>Get the whole sticker off.</b> Under it is tamper-evident glue in patches and the
+                laser-etched QR code.</li>
+            <li>Nothing abrasive. Scratch the etching and the coin is finished.</li>
+          </ul>
+          <p className="text-sm text-neutral-700">
+            Check the glue while you are there. Patchy is normal; disturbed means the coin was
+            opened before it reached you and you do not use it.
+          </p>
+        </Step>
+
+        <Step n="2" title="PAIR THE COIN TO THEIR PHONE">
+          <p className="mb-2 text-sm">On <b>their</b> phone, go to <b>beekeeper.money</b>.</p>
+          <ol className="mb-2 ml-4 list-decimal text-sm">
+            <li>Scan coin, then start camera, then approve the permission prompt.</li>
+            <li>Scan the <b>laser-etched</b> QR - the one under the sticker, not the sticker itself.</li>
+            <li>Agree to the four rules. Read them; do not tap through for them.</li>
+            <li>Choose a password and <b>back it up into a password manager</b>, right then, while
+                you are standing there.</li>
+          </ol>
+          <Say>&quot;Put that password somewhere you would still find it in two years. Not a note on the register.&quot;</Say>
+          <p className="text-sm text-neutral-700">
+            The wallet reads as ready in a couple of minutes. Then the coin goes somewhere safe -
+            a safe, not the drawer under the register.
+          </p>
+        </Step>
+
+        <Step n="3" title="THEIR MERCHANT ACCOUNT">
+          <p className="mb-2 text-sm">
+            On their computer, go to <b>nectar-pay.com</b> and hit <b>Start free</b> at the top right.
+          </p>
+          <ul className="mb-2 ml-4 list-disc text-sm">
+            <li>Email gets them a magic link, or they can use a Google account.</li>
+            <li>Enter the business name exactly as their customers know it. It shows up on receipts.</li>
+            <li>A QR code appears. <b>Stop here</b> and go back to beekeeper.money on their phone.</li>
+          </ul>
+        </Step>
+
+        <Step n="4" title="LINK THE WALLET TO THE ACCOUNT">
+          <p className="mb-2 text-sm">This is the step people fumble. In beekeeper.money:</p>
+          <ol className="mb-2 ml-4 list-decimal text-sm">
+            <li>Find <b>Link</b> at the top of the TOTAL BALANCE tile.</li>
+            <li>It opens the camera. Scan the QR on their computer screen.</li>
+            <li>On the beekeeper screen, a list of wallets appears - hit <b>approve</b>, then <b>link</b>,
+                at the bottom.</li>
+            <li>Back on the computer it now says linked. Click <b>enable standard stablecoins</b>.</li>
+          </ol>
+          <p className="mb-2 text-sm">
+            Take the defaults from there. <b>Uncheck the tipping option</b> unless they have asked
+            for it - it adds a screen the customer has to get past.
+          </p>
+          <p className="text-sm text-neutral-700">
+            Standard stablecoins is the safe starting point: dollar-pegged, so nothing they take
+            in moves overnight.
+          </p>
+        </Step>
+
+        <Step n="5" title="WHICH COINS THEY ACCEPT">
+          <p className="mb-2 text-sm">
+            Go to <b>app.nectar-pay.com/dashboard</b>, then <b>Store &gt; Wallets &amp; Chains</b>.
+          </p>
+          <ul className="mb-2 ml-4 list-disc text-sm">
+            <li>BTC, ETH, LTC, Bitcoin Cash, DOGE and the rest are <b>off by default</b>, deliberately -
+                their value moves.</li>
+            <li>Turning one on only gives the customer the option to pay with it. The shop still
+                chooses what they hold.</li>
+            <li><b>Toggle enable, then SAVE - one coin at a time.</b> It does not save them together
+                and this is where people lose ten minutes.</li>
+          </ul>
+          <Say>&quot;Stablecoins cover you either way. Switch the others on if your customers ask for them.&quot;</Say>
+        </Step>
+
+        <Step n="6" title="SHARE LINKS, THEN TEST IT">
+          <p className="mb-2 text-sm">
+            Still in Store settings, find <b>Share Links</b>. Create one, open it, and run a real
+            payment through it in front of them - a couple of dollars, start to settled.
+          </p>
+          <p className="text-sm">
+            That first live payment is what closes the install. NectarPay can also make them an
+            email banner off the same link, so it is worth asking whether they want one.
+          </p>
+        </Step>
+
+        <Step n="7" title="BEFORE YOU LEAVE">
+          <ul className="ml-4 list-disc text-sm">
+            <li>Every person who works the register has done one transaction themselves.</li>
+            <li>The password is in a password manager, not on paper by the till.</li>
+            <li>The coin is put away somewhere they would trust with cash.</li>
+            <li>Book the seven-day check-in before you walk out. Not after.</li>
+          </ul>
+        </Step>
+
+        <div className="avoid-break mt-5 border-t border-neutral-300 pt-3 text-[11px] text-neutral-600">
+          Set-up support is included. If something here does not match what is on their screen,
+          stop and ask rather than guessing - these steps change as the product does.
+        </div>
+      </div>
+      )}
 
       {tab === 'script' && (
       <>

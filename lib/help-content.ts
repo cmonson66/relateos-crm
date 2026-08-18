@@ -153,8 +153,13 @@ export const HELP: HelpTopic[] = [
     steps: [
       "Print a kit before you go out. Each shop gets its sheet and a one-pager.",
       "The blank kit is three one-pagers for cold walking.",
+      "Setting them up walks the whole install: the coin, the wallet, the merchant account, which coins they take.",
     ],
-    gotchas: ["The one-pager carries your own name, cell and email, so print your own."],
+    gotchas: [
+      "The one-pager carries your own name, cell and email, so print your own.",
+      "On an install: the coin IS the money. Lose it and the backup and nobody can recover the funds. Say that out loud before you start, not after.",
+      "Wallets and Chains saves ONE coin at a time. Toggle, save, repeat - it does not save them together.",
+    ],
   },
   {
     path: "/campaigns",
