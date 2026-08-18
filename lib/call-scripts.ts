@@ -1,3 +1,5 @@
+import { BREAK_EVEN_YEAR_ONE_MONTHLY, BREAK_EVEN_ONGOING_MONTHLY } from '@/lib/pricing';
+
 // Call Mode scripts - same five stories as the email cadences, spoken.
 // Assembled per lead: {owner}, {shop}, {city} interpolate at render, and
 // the math step computes on the lead's self-reported volume when Pulse
@@ -157,7 +159,15 @@ const SHARED_OBJECTIONS: Objection[] = [
   {
     q: `"What's this gonna run me?"`,
     heard: ['cost', 'price', 'how much', 'expensive', 'what do you charge'],
-    a: `"$499 once for the terminal, then $19 a month for the membership, paid annually. Never a percentage of your sales - that's the whole point. Year one all-in is about $727, which is less than what cards take from most shops every two months. And you don't have to decide today - I can put one in on a trial first and it costs you nothing while it runs."`,
+    a: `"$499 once for the terminal, then $19 a month for the membership, paid annually. Never a percentage of your sales - that's the whole point. And it doesn't take much to be worth it: about $${BREAK_EVEN_YEAR_ONE_MONTHLY.toLocaleString()} a month in crypto sales covers year one, and about $${BREAK_EVEN_ONGOING_MONTHLY.toLocaleString()} a month every year after that. You don't have to decide today either - I can put one in on a trial first and it costs you nothing while it runs."`,
+  },
+  {
+    q: `"How much of my business is even going to use this?"`,
+    heard: ['how many', 'worth it', 'pay for itself', 'break even', 'nobody uses', 'volume', 'roi'],
+    // The number to say instead of a savings figure. A savings claim assumes
+    // their whole card volume moves to crypto; break-even assumes almost none
+    // of it does, and still works.
+    a: `"Fair question, and here's the honest floor rather than a sales number. About $${BREAK_EVEN_YEAR_ONE_MONTHLY.toLocaleString()} a month in crypto sales pays for year one. After that it's about $${BREAK_EVEN_ONGOING_MONTHLY.toLocaleString()} a month - that's a handful of customers a week. Everything past that is margin you keep, and you never pay a percentage on any of it."`,
   },
   {
     q: `"Sounds complicated."`,

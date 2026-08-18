@@ -1,5 +1,7 @@
 'use client';
 
+import { BREAK_EVEN_YEAR_ONE_MONTHLY, BREAK_EVEN_ONGOING_MONTHLY } from '@/lib/pricing';
+
 import { useState, useTransition, useRef } from 'react';
 import Link from 'next/link';
 import { Printer, FileText, BookOpen, PackageCheck, ChevronLeft, Search, X, MapPin, Compass, BookMarked } from 'lucide-react';
@@ -36,7 +38,8 @@ const WALLS: { q: string; a: string }[] = [
   { q: '"My customers pay with cards."', a: 'Nothing changes about your card setup. Same reader, same flow. This adds a lane nobody can freeze.' },
   { q: '"I don\'t understand crypto."', a: 'You don\'t need to. Staff types the amount, customer scans, ten seconds, money is in your wallet.' },
   { q: '"Is this legal? Is it taxed?"', a: 'Completely legal - a payment method like cash or card. Recorded on the terminal, revenue like any other.' },
-  { q: '"What does it cost?"', a: '$499 once for the terminal, then $19 a month for the membership, billed annually. Never a percentage. Year one about $727. And they do not have to decide today - a trial costs them nothing while it runs.' },
+  { q: '"What does it cost?"', a: `$499 once for the terminal, then $19 a month for the membership, billed annually. Never a percentage. Year one about $727. Then give them the floor rather than a savings claim: about $${BREAK_EVEN_YEAR_ONE_MONTHLY.toLocaleString()} a month in crypto sales covers year one, about $${BREAK_EVEN_ONGOING_MONTHLY.toLocaleString()} a month after. And they do not have to decide today - a trial costs them nothing while it runs.` },
+  { q: '"How much of my business will even use this?"', a: `The honest floor, not a sales number. About $${BREAK_EVEN_YEAR_ONE_MONTHLY.toLocaleString()} a month in crypto sales pays for year one and about $${BREAK_EVEN_ONGOING_MONTHLY.toLocaleString()} a month every year after - a handful of customers a week. Never claim their whole card volume moves across. They will spot it, and then nothing else you said counts.` },
   { q: '"Crypto crashes."', a: 'Settles to a stablecoin if you want - a dollar in is a dollar out. You are not betting on anything.' },
   { q: '"I need to think about it."', a: 'Better than thinking about it cold: put one in on a trial. Free while it runs, real payments on it, you pick it up if it does not earn its place. They decide on what happened, not on your say-so.' },
   { q: '"It sounds complicated."', a: 'It is simpler than your card terminal. And if you do not even want hardware, the Nectar.Pay app runs on your phone - you just give up the receipt printer and the rugged handheld.' },

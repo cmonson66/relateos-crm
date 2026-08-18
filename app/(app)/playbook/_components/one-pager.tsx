@@ -1,5 +1,7 @@
 'use client';
 
+import { BREAK_EVEN_YEAR_ONE_MONTHLY, BREAK_EVEN_ONGOING_MONTHLY } from '@/lib/pricing';
+
 // The leave-behind, rendered in-app so it carries the rep's own name and
 // cell and never drifts from the PDF sitting in someone's texts.
 export function OnePager({ rep }: { rep: { first: string; cell: string; email: string } }) {
@@ -67,6 +69,16 @@ export function OnePager({ rep }: { rep: { first: string; cell: string; email: s
               <tr><td className="py-1 font-bold">Stays in the shop, year one</td><td className="py-1 text-right font-extrabold text-green-700">+$2,873</td></tr>
             </tbody>
           </table>
+          {/* The honest floor. The table above compares the whole card volume
+              against the cost, which assumes every dollar moves to crypto - an
+              owner spots that in about four seconds, and then the rest of the
+              sheet is suspect too. Break-even asks for far less and survives
+              the objection. */}
+          <div className="mt-2 border-t border-neutral-300 pt-2 text-[10.5px] leading-snug text-neutral-700">
+            <b>It does not take all of that to be worth it.</b> About
+            <b> ${BREAK_EVEN_YEAR_ONE_MONTHLY.toLocaleString()}/month</b> in crypto sales covers year
+            one, and about <b>${BREAK_EVEN_ONGOING_MONTHLY.toLocaleString()}/month</b> every year after.
+          </div>
         </div>
         <div className="rounded bg-neutral-900 p-3 text-white">
           <div className="flex gap-5">
@@ -98,7 +110,6 @@ export function OnePager({ rep }: { rep: { first: string; cell: string; email: s
           <div><b>Receipt printer built in.</b> You supply thermal paper - a few dollars anywhere.</div>
           <div><b>Your Wi-Fi.</b> There is a SIM slot too if you want it mobile.</div>
           <div><b>No hardware? No problem.</b> The Nectar.Pay app runs on your phone - you just skip the printer and handheld.</div>
-          <div className="sm:col-span-2"><b>There is a free software-only tier</b>, but it does not run the terminal. The $19 membership is what powers the hardware.</div>
         </div>
       </div>
 

@@ -38,14 +38,41 @@ export const PRICE_LINE =
 export const PRICE_SHORT = "$499 terminal · $19/mo membership · zero processing fee";
 
 /**
+ * BREAK-EVEN, which is the number to say out loud instead of a savings figure.
+ *
+ * The napkin math on the one-pager compares a shop's whole card volume against
+ * the cost of the terminal, which quietly assumes every dollar moves to
+ * crypto. It will not, and an owner spots that in about four seconds - at
+ * which point the rest of the sheet is suspect too.
+ *
+ * Break-even survives the objection because it asks for far less: how much
+ * crypto volume before this pays for itself. Year one is the harder number and
+ * every year after is the one that closes.
+ */
+export const CARD_FEE_PCT = 0.03;
+
+const monthlyBreakEven = (annualCost: number) =>
+  Math.round(annualCost / CARD_FEE_PCT / 12 / 10) * 10;
+
+export const BREAK_EVEN_YEAR_ONE_MONTHLY = monthlyBreakEven(YEAR_ONE_ROUNDED); // ~2,020
+export const BREAK_EVEN_ONGOING_MONTHLY = monthlyBreakEven(ONGOING_ROUNDED);   // ~630
+
+export const BREAK_EVEN_LINE =
+  `About $${BREAK_EVEN_YEAR_ONE_MONTHLY.toLocaleString()}/month in crypto sales pays for year one. ` +
+  `After that it is about $${BREAK_EVEN_ONGOING_MONTHLY.toLocaleString()}/month.`;
+
+/**
  * Facts a rep will get asked about and should not improvise.
  *
- * FREE_TIER_LINE is deliberately NOT in the objection lists or the
- * one-pager any more: volunteering a free software tier argues an owner out
- * of the hardware the whole pitch is about, and a trial answers the same
- * worry. Keep it here so a rep who is ASKED can answer straight.
+ * THE FREE SOFTWARE TIER IS NOT IN HERE, ON PURPOSE. It exists, and a rep who
+ * is asked outright can say so - it does not drive the terminal. But it is
+ * never volunteered, and it must never be printed: a leave-behind sits on the
+ * owner's desk after the rep has gone, with nobody there to reframe it, and it
+ * argues them out of the hardware the whole pitch is about. The trial is the
+ * answer to hesitation.
+ *
+ * It used to live here as an exported string and drifted onto the one-pager
+ * anyway. A constant nobody renders is just an invitation, so there isn't one.
  */
 export const WHITE_GLOVE_LINE =
   "Want us picking up the phone? White-glove support is $99 a month.";
-export const FREE_TIER_LINE =
-  "There is a free software-only tier, but it does not run the terminal hardware.";
