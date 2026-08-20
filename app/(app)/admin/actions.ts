@@ -128,6 +128,8 @@ export type DeletePreview = {
   contactsCount: number;
   dealsCount: number;
   activitiesCount: number;
+  /** Hardware they are holding. It moves to the successor too. */
+  terminalsCount: number;
   defaultSuccessorId: string | null;
   defaultSuccessorName: string | null;
 };
@@ -153,11 +155,13 @@ export async function previewDeleteUser(targetId: string): Promise<DeletePreview
     { count: contactsCount },
     { count: dealsCount },
     { count: activitiesCount },
+    { count: terminalsCount },
   ] = await Promise.all([
     supabase.from('accounts').select('*', { count: 'exact', head: true }).eq('owner_id', targetId),
     supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('owner_id', targetId),
     supabase.from('deals').select('*', { count: 'exact', head: true }).eq('owner_id', targetId),
     supabase.from('activities').select('*', { count: 'exact', head: true }).eq('owner_id', targetId),
+    supabase.from('terminals').select('*', { count: 'exact', head: true }).eq('held_by_profile_id', targetId),
   ]);
 
   // Default successor: their manager, if any
@@ -182,6 +186,7 @@ export async function previewDeleteUser(targetId: string): Promise<DeletePreview
     contactsCount: contactsCount ?? 0,
     dealsCount: dealsCount ?? 0,
     activitiesCount: activitiesCount ?? 0,
+    terminalsCount: terminalsCount ?? 0,
     defaultSuccessorId,
     defaultSuccessorName,
   };
@@ -217,6 +222,79 @@ export async function deleteUser(params: {
   if (!target) return { ok: false, message: 'User not found' };
   if (params.confirmEmail.trim().toLowerCase() !== target.email.toLowerCase()) {
     return { ok: false, message: 'Email confirmation does not match' };
+  }
+
+  // Everything the RPC does not know about, handled first.
+  //
+  // reassign_and_delete_user predates the terminals table (051), the reps
+  // table and the per-region campaign settings, so it reassigns accounts,
+  // contacts and deals and then hits a foreign key it has never heard of.
+  // Clearing these here beats editing a function whose body has drifted.
+
+  // Hardware follows the book. If Anthony leaves, Joe inherits the shops AND
+  // the terminals in Anthony's trunk - somebody has to be accountable for a
+  // $499 asset, and "nobody" is how one quietly stops existing.
+  const { data: heldTerminals } = await supabase
+    .from('terminals')
+    .select('id, serial')
+    .eq('held_by_profile_id', params.targetId);
+
+  if ((heldTerminals ?? []).length > 0) {
+    const { error: termErr } = await supabase
+      .from('terminals')
+      .update({ held_by_profile_id: params.successorId })
+      .eq('held_by_profile_id', params.targetId);
+    if (termErr) {
+      return { ok: false, message: `Could not hand over their terminals: ${termErr.message}` };
+    }
+    // A serial should never change hands without the trail saying so.
+    // Shape copied from the terminals actions: org_id is required and the
+    // actor column is by_profile_id.
+    const { data: me } = await supabase
+      .from('profiles').select('org_id').eq('id', currentUserId).single();
+    if (me?.org_id) {
+      await supabase.from('terminal_events').insert(
+        (heldTerminals ?? []).map((t) => ({
+          org_id: me.org_id as string,
+          terminal_id: t.id as string,
+          event: 'note',
+          note: `Handed over from ${target.email} on account deletion`,
+          by_profile_id: currentUserId,
+        })),
+      );
+    }
+  }
+
+  // A deleted person cannot be the campaign's sending identity. Null it and
+  // the engine falls back to the default rep.
+  const { data: sendingFor } = await supabase
+    .from('campaign_settings')
+    .select('region_id')
+    .eq('send_owner_id', params.targetId);
+  if ((sendingFor ?? []).length > 0) {
+    await supabase
+      .from('campaign_settings')
+      .update({ send_owner_id: null })
+      .eq('send_owner_id', params.targetId);
+  }
+
+  // Their rep record goes with them - but not if they are the default sender,
+  // because that would leave the campaign with no identity to send from.
+  const { data: repRow } = await supabase
+    .from('reps')
+    .select('profile_id, is_default')
+    .eq('profile_id', params.targetId)
+    .maybeSingle();
+  if (repRow) {
+    if (repRow.is_default) {
+      return {
+        ok: false,
+        message:
+          'They are the default sending rep. Make somebody else the default on the campaign settings first, then delete.',
+      };
+    }
+    const { error: repErr } = await supabase.from('reps').delete().eq('profile_id', params.targetId);
+    if (repErr) return { ok: false, message: `Could not remove their rep record: ${repErr.message}` };
   }
 
   // Call the SQL function — it does the authorization check, reassigns

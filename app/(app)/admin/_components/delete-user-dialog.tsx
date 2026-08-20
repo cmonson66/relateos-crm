@@ -65,7 +65,7 @@ export function DeleteUserDialog({
 
   const fullName = targetUser.full_name || targetUser.email.split('@')[0];
   const totalRecords = preview
-    ? preview.accountsCount + preview.contactsCount + preview.dealsCount + preview.activitiesCount
+    ? preview.accountsCount + preview.contactsCount + preview.dealsCount + preview.activitiesCount + preview.terminalsCount
     : 0;
 
   const successorCandidatesFiltered = successorCandidates.filter(p => p.id !== targetUser.id);
