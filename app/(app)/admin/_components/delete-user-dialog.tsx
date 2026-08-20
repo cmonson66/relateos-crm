@@ -86,6 +86,12 @@ export function DeleteUserDialog({
           successorId,
           confirmEmail,
         });
+        if (result.ok === false) {
+          // Real reason, on screen, for as long as it takes to read a
+          // constraint name.
+          toast.error(result.message, { duration: 12000 });
+          return;
+        }
         const { reassigned } = result;
         toast.success(
           `Deleted. Transferred ${reassigned.accounts} account${reassigned.accounts === 1 ? '' : 's'}, ${reassigned.contacts} contact${reassigned.contacts === 1 ? '' : 's'}, ${reassigned.deals} deal${reassigned.deals === 1 ? '' : 's'} to ${successorName}.`,
@@ -124,7 +130,7 @@ export function DeleteUserDialog({
             <DialogHeader>
               <DialogTitle className="font-display tracking-wider text-2xl">DELETE USER</DialogTitle>
               <DialogDescription>
-                You\'re about to permanently delete <strong className="text-foreground">{fullName}</strong> ({preview.targetEmail}). All their records will be transferred to a successor.
+                You&apos;re about to permanently delete <strong className="text-foreground">{fullName}</strong> ({preview.targetEmail}). All their records will be transferred to a successor.
               </DialogDescription>
             </DialogHeader>
 
@@ -193,7 +199,7 @@ export function DeleteUserDialog({
             <DialogHeader>
               <DialogTitle className="font-display tracking-wider text-2xl text-destructive">CONFIRM DELETE</DialogTitle>
               <DialogDescription>
-                This is permanent. {fullName}\'s account, login, and profile will be removed from Supabase entirely. {totalRecords} record{totalRecords === 1 ? ' goes' : 's go'} to {successorName}.
+                This is permanent. {fullName}&apos;s account, login, and profile will be removed from Supabase entirely. {totalRecords} record{totalRecords === 1 ? ' goes' : 's go'} to {successorName}.
               </DialogDescription>
             </DialogHeader>
 

@@ -191,14 +191,21 @@ export async function deleteUser(params: {
   targetId: string;
   successorId: string;
   confirmEmail: string;
-}): Promise<{ ok: true; reassigned: { accounts: number; contacts: number; deals: number; activities: number; comments: number } }> {
+}): Promise<
+  | { ok: true; reassigned: { accounts: number; contacts: number; deals: number; activities: number; comments: number } }
+  | { ok: false; message: string }
+> {
+  // Failures are RETURNED. Next replaces anything THROWN out of a server
+  // action with a generic "An error occurred in the Server Components render"
+  // in production, so a thrown reason reaches the user as no reason at all.
+  try {
   const { supabase, currentUserId } = await requireAdminOrManager();
 
   if (params.targetId === currentUserId) {
-    throw new Error("You can't delete yourself");
+    return { ok: false, message: "You can't delete yourself" };
   }
   if (params.targetId === params.successorId) {
-    throw new Error('Successor cannot be the user being deleted');
+    return { ok: false, message: 'Successor cannot be the user being deleted' };
   }
 
   // Verify the typed-confirmation matches the target's email
@@ -207,9 +214,9 @@ export async function deleteUser(params: {
     .select('email')
     .eq('id', params.targetId)
     .single();
-  if (!target) throw new Error('User not found');
+  if (!target) return { ok: false, message: 'User not found' };
   if (params.confirmEmail.trim().toLowerCase() !== target.email.toLowerCase()) {
-    throw new Error('Email confirmation does not match');
+    return { ok: false, message: 'Email confirmation does not match' };
   }
 
   // Call the SQL function — it does the authorization check, reassigns
@@ -219,7 +226,7 @@ export async function deleteUser(params: {
     successor_user_id: params.successorId,
   });
 
-  if (error) throw new Error(error.message);
+  if (error) return { ok: false, message: error.message };
 
   // Now remove the auth.users row using the service-role client
   const adminClient = createPlainClient(
@@ -231,11 +238,14 @@ export async function deleteUser(params: {
   if (authError) {
     // Profile is already deleted but auth.users remained — surface the error
     // so admin knows to check Supabase manually
-    throw new Error(`Profile removed, but auth user removal failed: ${authError.message}`);
+    return { ok: false, message: `Profile removed, but auth user removal failed: ${authError.message}` };
   }
 
   revalidatePath('/admin');
   revalidatePath('/dashboard');
 
   return data as { ok: true; reassigned: { accounts: number; contacts: number; deals: number; activities: number; comments: number } };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : 'Delete failed' };
+  }
 }
