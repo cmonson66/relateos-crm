@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Copy, Check, UserPlus, Mail } from 'lucide-react';
-import { generateInviteLink } from '../actions';
+import { generateInviteLink, setRepIdentity } from '../actions';
 
 const ROLE_LABELS: Record<string, string> = {
   super_admin: 'Super Admin',
@@ -39,6 +39,11 @@ export function InviteUserDialog({
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<'super_admin' | 'admin' | 'manager' | 'rep'>('rep');
   const [managerId, setManagerId] = useState<string>('');
+  // Captured here because this is the one moment somebody has the rep's
+  // details in front of them. The invite trigger creates them dormant with no
+  // alias; without these two fields that stays true until somebody notices.
+  const [fromEmail, setFromEmail] = useState('');
+  const [cell, setCell] = useState('');
   const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
   const [generatedEmail, setGeneratedEmail] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -47,6 +52,8 @@ export function InviteUserDialog({
 
   function reset() {
     setEmail('');
+    setFromEmail('');
+    setCell('');
     setFullName('');
     setRole('rep');
     setManagerId('');
@@ -76,7 +83,29 @@ export function InviteUserDialog({
         });
         setGeneratedUrl(res.inviteUrl);
         setGeneratedEmail(res.email);
-        toast.success('Invite link generated');
+
+        // Best effort, and after the link exists: a failure here should never
+        // cost you the invite you just generated.
+        if (res.userId && (fromEmail.trim() || cell.trim())) {
+          const idRes = await setRepIdentity({
+            profileId: res.userId,
+            firstName: fullName.trim().split(' ')[0],
+            fromEmail: fromEmail.trim() || null,
+            cell: cell.trim() || null,
+          });
+          if (idRes.ok === false) {
+            toast.warning(`Invite ready, but the sending identity did not save: ${idRes.message}`, {
+              duration: 10000,
+            });
+          }
+        }
+
+        toast.success(
+          fromEmail.trim()
+            ? 'Invite link generated. They can send as themselves right away.'
+            : 'Invite link generated. Add a sending address later or the campaign will skip them.',
+          { duration: 8000 },
+        );
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Failed to generate link');
       }
@@ -133,7 +162,7 @@ export function InviteUserDialog({
             <DialogHeader>
               <DialogTitle className="font-display tracking-wider text-2xl">INVITE USER</DialogTitle>
               <DialogDescription>
-                Generates a one-time signup link. Send via email, Slack, or text - they\'ll click it once to set up their account.
+                Generates a one-time signup link. Send via email, Slack, or text - they&apos;ll click it once to set up their account.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -162,6 +191,42 @@ export function InviteUserDialog({
                   placeholder="anya@example.com"
                   required
                 />
+                <p className="text-[11px] text-muted-foreground">
+                  This is their LOGIN. The address merchants see is separate, below.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="invite-from" className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+                  Sends to merchants as
+                </Label>
+                <Input
+                  id="invite-from"
+                  type="email"
+                  value={fromEmail}
+                  onChange={e => setFromEmail(e.target.value)}
+                  placeholder="anya@nectarpayaz.com"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Leave blank and the campaign skips them until you add one. Set up the alias
+                  first, or their replies go nowhere.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="invite-cell" className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+                  Cell
+                </Label>
+                <Input
+                  id="invite-cell"
+                  type="tel"
+                  value={cell}
+                  onChange={e => setCell(e.target.value)}
+                  placeholder="602-555-0134"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Printed on their one-pager and used in their sign-offs.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Role</Label>

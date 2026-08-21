@@ -62,7 +62,7 @@ export async function generateInviteLink(params: {
   fullName: string;
   role: 'super_admin' | 'admin' | 'manager' | 'rep';
   managerId?: string | null;
-}): Promise<{ inviteUrl: string; email: string }> {
+}): Promise<{ inviteUrl: string; email: string; userId: string | null }> {
   const { orgId, currentRole } = await requireAdmin();
 
   if (params.role === 'super_admin' && currentRole !== 'super_admin') {
@@ -118,7 +118,9 @@ export async function generateInviteLink(params: {
   }
 
   revalidatePath('/admin');
-  return { inviteUrl: data.properties.action_link, email };
+  // The id is returned so the caller can finish the rep's sending identity -
+  // the invite trigger creates them dormant with no alias.
+  return { inviteUrl: data.properties.action_link, email, userId: newUser?.id ?? null };
 }
 
 /**
@@ -182,6 +184,68 @@ export async function resendAccessLink(params: {
     };
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : 'Could not generate a link.' };
+  }
+}
+
+/**
+ * The half create_rep_identity() deliberately leaves undone.
+ *
+ * That trigger makes a rep row on invite with from_email null and active
+ * false, on purpose - a rep with no working alias should be skipped by the
+ * sender rather than emailing merchants from an address that bounces. But
+ * nothing ever filled the alias in, so every rep sat dormant until somebody
+ * remembered to write SQL. This is that step, in the UI.
+ *
+ * Setting an alias activates them. Clearing it puts them back to dormant,
+ * which is the correct behaviour rather than an oversight.
+ */
+export async function setRepIdentity(params: {
+  profileId: string;
+  firstName?: string | null;
+  fromEmail?: string | null;
+  cell?: string | null;
+}): Promise<{ ok: true; active: boolean } | { ok: false; message: string }> {
+  try {
+    const { supabase } = await requireAdmin();
+
+    const fromEmail = params.fromEmail?.trim().toLowerCase() || null;
+    if (fromEmail && !fromEmail.match(/^[^@]+@[^@]+\.[^@]+$/)) {
+      return { ok: false, message: 'That sending address does not look like an email.' };
+    }
+
+    const { data: existing } = await supabase
+      .from('reps')
+      .select('profile_id, first_name, is_default')
+      .eq('profile_id', params.profileId)
+      .maybeSingle();
+
+    // Never quietly deactivate the default sender - the campaign would have
+    // no identity left to send from.
+    if (existing?.is_default && !fromEmail) {
+      return {
+        ok: false,
+        message: 'They are the default sender. Give somebody else that role before clearing their address.',
+      };
+    }
+
+    const patch = {
+      first_name: params.firstName?.trim() || existing?.first_name || null,
+      from_email: fromEmail,
+      cell: params.cell?.trim() || null,
+      active: !!fromEmail,
+    };
+
+    const { error } = existing
+      ? await supabase.from('reps').update(patch).eq('profile_id', params.profileId)
+      : await supabase.from('reps').insert({ profile_id: params.profileId, ...patch, is_default: false });
+
+    if (error) return { ok: false, message: error.message };
+
+    revalidatePath('/admin');
+    revalidatePath('/campaigns');
+    return { ok: true, active: !!fromEmail };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : 'Could not save that.' };
   }
 }
 
