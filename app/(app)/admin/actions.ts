@@ -121,6 +121,70 @@ export async function generateInviteLink(params: {
   return { inviteUrl: data.properties.action_link, email };
 }
 
+/**
+ * A fresh sign-in link for somebody who ALREADY has an account.
+ *
+ * Invite links are single use and short lived, and mail scanners eat them by
+ * prefetching. Without this the only way back in was deleting the person and
+ * recreating them, which churns their auth user, loses their id, and drags
+ * every foreign key pointing at it along for the ride.
+ *
+ * Nothing is emailed. The link is returned so it can be texted, which also
+ * means this keeps working when SMTP does not.
+ */
+export async function resendAccessLink(params: {
+  email: string;
+  kind?: 'magiclink' | 'recovery';
+}): Promise<{ ok: true; url: string; email: string; setsPassword: boolean } | { ok: false; message: string }> {
+  try {
+    await requireAdmin();
+
+    const email = params.email.trim().toLowerCase();
+
+    const adminClient = createPlainClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+
+    const { data: profile } = await adminClient
+      .from('profiles')
+      .select('id, password_set_at')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (!profile) {
+      return { ok: false, message: 'No account with that email. Use Invite instead.' };
+    }
+
+    // Somebody who has never set a password needs a magic link - a recovery
+    // link assumes there is a password to recover. Either way the callback
+    // sends them to /welcome while password_set_at is null.
+    const kind = params.kind ?? (profile.password_set_at ? 'recovery' : 'magiclink');
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+    const { data, error } = await adminClient.auth.admin.generateLink({
+      type: kind,
+      email,
+      options: { redirectTo: `${appUrl}/auth/callback` },
+    });
+
+    if (error) return { ok: false, message: error.message };
+    if (!data?.properties?.action_link) {
+      return { ok: false, message: 'Could not generate a link.' };
+    }
+
+    return {
+      ok: true,
+      url: data.properties.action_link,
+      email,
+      setsPassword: !profile.password_set_at,
+    };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : 'Could not generate a link.' };
+  }
+}
+
 export type DeletePreview = {
   targetEmail: string;
   targetName: string | null;

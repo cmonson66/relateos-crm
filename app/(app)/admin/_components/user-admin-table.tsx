@@ -7,9 +7,9 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Link2, Check } from 'lucide-react';
 import { initials, formatRelative } from '@/lib/utils/format';
-import { updateUser } from '../actions';
+import { updateUser, resendAccessLink } from '../actions';
 import { DeleteUserDialog } from './delete-user-dialog';
 
 type Profile = {
@@ -46,6 +46,33 @@ export function UserAdminTable({
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const [deleteTarget, setDeleteTarget] = useState<Profile | null>(null);
+  const [linking, setLinking] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  async function makeLink(email: string) {
+    setLinking(email);
+    const res = await resendAccessLink({ email });
+    setLinking(null);
+    if (res.ok === false) {
+      toast.error(res.message, { duration: 8000 });
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(res.url);
+      setCopied(email);
+      setTimeout(() => setCopied(null), 4000);
+      toast.success(
+        res.setsPassword
+          ? 'Link copied. They have no password yet, so it takes them straight to set one.'
+          : 'Link copied. Signs them in and lets them reset their password.',
+        { duration: 8000 },
+      );
+    } catch {
+      // Clipboard is blocked outside a secure context and on some mobile
+      // browsers. Showing the link beats silently doing nothing.
+      toast.message('Copy this link', { description: res.url, duration: 60000 });
+    }
+  }
 
   const filtered = useMemo(() => {
     if (!search.trim()) return profiles;
@@ -192,6 +219,24 @@ export function UserAdminTable({
                 {formatRelative(p.created_at)}
               </div>
 
+              <div className="flex items-center gap-1 justify-self-end">
+                {/* A fresh sign-in link for somebody who already exists.
+                    Without this the only way back in was deleting and
+                    recreating the person, which churns their auth user. */}
+                <button
+                  type="button"
+                  disabled={linking === p.email}
+                  onClick={() => makeLink(p.email)}
+                  className="h-8 w-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+                  aria-label={`Copy a sign-in link for ${p.full_name || p.email}`}
+                  title="Copy a fresh sign-in link"
+                >
+                  {copied === p.email ? (
+                    <Check className="h-3.5 w-3.5 text-emerald-400" />
+                  ) : (
+                    <Link2 className="h-3.5 w-3.5" />
+                  )}
+                </button>
               {deletable ? (
                 <button
                   type="button"
@@ -202,9 +247,8 @@ export function UserAdminTable({
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
-              ) : (
-                <div />
-              )}
+              ) : null}
+              </div>
             </div>
           );
         })}
@@ -246,6 +290,19 @@ export function UserAdminTable({
                   </button>
                 )}
               </div>
+
+              <button
+                type="button"
+                disabled={linking === p.email}
+                onClick={() => makeLink(p.email)}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-border/40 px-3 py-2.5 text-xs text-muted-foreground transition-colors hover:text-primary disabled:opacity-50"
+              >
+                {copied === p.email ? (
+                  <><Check className="h-3.5 w-3.5 text-emerald-400" /> Copied</>
+                ) : (
+                  <><Link2 className="h-3.5 w-3.5" /> {linking === p.email ? 'Making a link...' : 'Copy sign-in link'}</>
+                )}
+              </button>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
