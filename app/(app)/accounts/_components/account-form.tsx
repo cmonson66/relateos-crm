@@ -11,6 +11,8 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { createAccount, updateAccount, type AccountFormData } from '../actions';
+import { lookupPlace, checkForDuplicate, type PlaceHit, type NearbyWarning } from '../place-actions';
+import Link from 'next/link';
 import type { Account } from '@/lib/db/types';
 import { VERTICALS, DEFAULT_VERTICAL, verticalLabel } from '@/lib/verticals';
 import { errorMessage } from '@/lib/is-redirect-error';
@@ -28,7 +30,45 @@ export function AccountForm({ existing }: { existing?: Account }) {
     state: existing?.state || '',
     notes: existing?.notes || '',
     tags: existing?.tags || [],
+    address: existing?.address || null,
+    place_id: existing?.place_id || null,
+    latitude: existing?.latitude ?? null,
+    longitude: existing?.longitude ?? null,
   });
+  // The address lookup. Typing an address is not enough - it has to resolve
+  // to a point, or the account never shows on the map or in a canvas run.
+  const [lookup, setLookup] = useState(existing?.address || '');
+  const [hits, setHits] = useState<PlaceHit[] | null>(null);
+  const [warnings, setWarnings] = useState<NearbyWarning[] | null>(null);
+  const [looking, setLooking] = useState(false);
+
+  async function findAddress() {
+    const q = [data.name, lookup].filter(Boolean).join(' ');
+    setLooking(true);
+    const res = await lookupPlace(q);
+    setLooking(false);
+    if (res.ok === false) {
+      toast.error(res.message, { duration: 8000 });
+      return;
+    }
+    setHits(res.hits);
+  }
+
+  async function pick(hit: PlaceHit) {
+    setData((d) => ({
+      ...d,
+      address: hit.address,
+      place_id: hit.placeId,
+      latitude: hit.lat,
+      longitude: hit.lng,
+      city: d.city || hit.address.split(',')[1]?.trim() || '',
+    }));
+    setLookup(hit.address);
+    setHits(null);
+
+    const dup = await checkForDuplicate(hit);
+    setWarnings(dup.ok ? dup.warnings : null);
+  }
   const [tagInput, setTagInput] = useState((existing?.tags || []).join(', '));
 
   function set<K extends keyof AccountFormData>(key: K, value: AccountFormData[K]) {
@@ -98,6 +138,75 @@ export function AccountForm({ existing }: { existing?: Account }) {
           <Label htmlFor="employees" className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Employees</Label>
           <Input id="employees" type="number" value={data.employee_count ?? ''} onChange={e => set('employee_count', e.target.value ? Number(e.target.value) : null)} />
         </div>
+        <div className="md:col-span-2 space-y-2">
+          <Label htmlFor="addr" className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+            Street address
+          </Label>
+          <div className="flex gap-2">
+            <Input
+              id="addr"
+              value={lookup}
+              onChange={(e) => setLookup(e.target.value)}
+              placeholder="1421 W Bell Rd, Phoenix AZ"
+            />
+            <button
+              type="button"
+              disabled={looking || lookup.trim().length < 4}
+              onClick={findAddress}
+              className="shrink-0 rounded-md border border-border/40 px-4 text-xs uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+            >
+              {looking ? 'Looking' : 'Find it'}
+            </button>
+          </div>
+
+          {data.latitude ? (
+            <p className="text-[11px] text-emerald-400">
+              Pinned. It will show on the map and can turn up in a canvas run.
+            </p>
+          ) : (
+            <p className="text-[11px] text-amber-300/90">
+              Not pinned yet. Without this the shop never appears on the map or in a run.
+            </p>
+          )}
+
+          {hits && (
+            <div className="mt-1 space-y-1">
+              {hits.map((h) => (
+                <button
+                  key={h.placeId}
+                  type="button"
+                  onClick={() => pick(h)}
+                  className="block w-full rounded-md border border-border/40 bg-background/40 px-3 py-2 text-left text-sm transition-colors hover:border-primary/50"
+                >
+                  <span className="font-medium">{h.name}</span>
+                  <span className="block text-xs text-muted-foreground">{h.address}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {warnings && warnings.length > 0 && (
+            <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/[0.07] p-3 text-[13px]">
+              <div className="mb-1 font-bold text-amber-300">
+                {warnings[0].samePlace ? 'This shop is already in the book' : 'Already something here'}
+              </div>
+              {warnings.map((w) => (
+                <div key={w.accountId} className="text-muted-foreground">
+                  <Link href={`/accounts/${w.accountId}`} className="underline hover:text-foreground">
+                    {w.name}
+                  </Link>
+                  {w.samePlace ? ' - same place' : ` - ${w.metres}m away`}
+                  {w.ownerName ? `, owned by ${w.ownerName}` : ', unassigned'}
+                </div>
+              ))}
+              <p className="mt-1.5 text-[12px] text-muted-foreground">
+                Two records for one shop split its history, so neither one tells you whether they
+                already said no. Open it instead unless this really is a separate business.
+              </p>
+            </div>
+          )}
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="city" className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">City</Label>
           <Input id="city" value={data.city || ''} onChange={e => set('city', e.target.value)} />

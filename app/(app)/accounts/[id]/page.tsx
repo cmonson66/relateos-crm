@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { siblingLocations } from '../place-actions';
 import { createClient } from '@/lib/supabase/server';
 import { SyncButton } from '../_components/sync-button';
 import { BackLink } from '@/components/app/back-link';
@@ -88,6 +89,11 @@ export default async function AccountDetailPage({
 
   if (!account) notFound();
 
+  // Same brand, other addresses. Advisory only, so a failure here must never
+  // take down the account page.
+  const sibRes = await siblingLocations(id);
+  const siblings = sibRes.ok ? sibRes.siblings : [];
+
   return (
     <div className="p-4 md:p-8 max-w-6xl">
       <BackLink fallbackHref="/accounts" fallbackLabel="All accounts" />
@@ -144,9 +150,34 @@ export default async function AccountDetailPage({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 pt-5 border-t border-border/30">
           <Stat label="Last activity" value={formatRelative(account.last_activity_at)} />
           <Stat label="Owner" value={account.owner?.full_name || account.owner?.email?.split('@')[0] || 'Unassigned'} />
-          <Stat label="Location" value={[account.city, account.state].filter(Boolean).join(', ') || '—'} icon={MapPin} />
+          <Stat label="Location" value={account.address || [account.city, account.state].filter(Boolean).join(', ') || '—'} icon={MapPin} />
           <Stat label="Employees" value={account.employee_count?.toLocaleString() || '—'} icon={UsersIcon} />
         </div>
+
+        {/* Other locations of the same brand. A franchisee is a separate
+            business with a separate owner, but "your Glendale location has
+            been running one since June" is the strongest thing a rep can say
+            in that conversation - and they can only say it if they can see
+            it. Grouped by the derived brand key, so no one has to link them. */}
+        {siblings.length > 0 && (
+          <div className="mt-5 border-t border-border/30 pt-5">
+            <div className="mb-2 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+              {siblings.length} other {siblings.length === 1 ? 'location' : 'locations'}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {siblings.map((sib) => (
+                <Link
+                  key={sib.id}
+                  href={`/accounts/${sib.id}`}
+                  className="inline-flex items-center gap-2 rounded-md border border-border/40 px-2.5 py-1.5 text-xs transition-colors hover:border-primary/50"
+                >
+                  <span>{sib.city || sib.name}</span>
+                  {sib.isCustomer && <span className="text-emerald-400">customer</span>}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {account.tags && account.tags.length > 0 && (
           <div className="flex items-center gap-2 mt-5 pt-5 border-t border-border/30 text-xs text-muted-foreground flex-wrap">

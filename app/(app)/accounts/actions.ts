@@ -16,6 +16,12 @@ export type AccountFormData = {
   state?: string | null;
   notes?: string | null;
   tags?: string[];
+  // Set by the address lookup on the form. Without coordinates a hand-added
+  // account is invisible to the map and can never appear in a canvas run.
+  address?: string | null;
+  place_id?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export async function createAccount(data: AccountFormData) {

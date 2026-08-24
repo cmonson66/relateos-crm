@@ -20,6 +20,13 @@ export type Account = {
   tags: string[];
   owner_id: string | null;
   last_activity_at: string | null;
+  // 071: street address, its Google place id, and the coordinates that come
+  // with it. Without coordinates an account cannot appear on the map or in a
+  // canvas run, so a hand-added shop is invisible to both.
+  address: string | null;
+  place_id: string | null;
+  // Derived from the name so chains group without anyone linking them.
+  brand_key: string | null;
   // crypto density, synced from nectarpay_leads by sync_crypto_to_accounts()
   crypto_score: number | null;
   crypto_atm_count: number | null;
