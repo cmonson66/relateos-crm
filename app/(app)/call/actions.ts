@@ -12,6 +12,7 @@ export type CallOutcome =
   | 'sent_pulse'
   | 'callback'
   | 'no_answer'
+  | 'voicemail'
   | 'not_interested'
   | 'dnc';
 
@@ -21,6 +22,7 @@ const OUTCOME_LABEL: Record<CallOutcome, string> = {
   sent_pulse: 'Call: sent Pulse link',
   callback: 'Call: callback requested',
   no_answer: 'Call: no answer',
+  voicemail: 'Call: left a voicemail',
   not_interested: 'Call: not interested',
   dnc: 'Call: DNC - never contact',
 };
@@ -62,6 +64,26 @@ export async function logCallOutcome(input: {
       account_id: accountId,
       contact_id: contactId,
       scheduled_at: scheduledAt,
+    });
+  }
+
+  // A voicemail is a promise you made to yourself. Two business days is the
+  // window where calling back still reads as following up rather than
+  // pestering, and where they might still remember the message.
+  if (outcome === 'voicemail') {
+    const followUp = new Date(Date.now() + 2 * 86400000);
+    // Saturday and Sunday are not call days.
+    while (followUp.getUTCDay() === 0 || followUp.getUTCDay() === 6) {
+      followUp.setUTCDate(followUp.getUTCDate() + 1);
+    }
+    followUp.setUTCHours(16, 0, 0, 0); // ~9 AM Phoenix
+    await logActivity({
+      type: 'task',
+      subject: 'Call back: left a voicemail',
+      body: notes.trim() || null,
+      account_id: accountId,
+      contact_id: contactId,
+      scheduled_at: followUp.toISOString(),
     });
   }
 

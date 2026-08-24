@@ -5,7 +5,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Phone, Zap, CalendarCheck, MessageSquareText, Link2, PhoneMissed, XCircle, Ban, ChevronLeft, Copy, Check } from 'lucide-react';
+import { Phone, Zap, CalendarCheck, MessageSquareText, Link2, PhoneMissed, Voicemail, XCircle, Ban, ChevronLeft, Copy, Check } from 'lucide-react';
 import { logCallOutcome, type CallOutcome } from '../../actions';
 import { DaySlotPicker } from '@/components/day-slot-picker';
 import type { CallScript } from '@/lib/call-scripts';
@@ -421,6 +421,7 @@ export function CallMode({ account, contact, intel, recent, script, pulseRead }:
                 <DispoBtn good icon={<Link2 className="h-4 w-4" />} label="Sent Pulse link" onClick={() => dispo('sent_pulse')} pending={pending} />
                 <DispoBtn warn icon={<Phone className="h-4 w-4" />} label={scheduling === 'callback' ? 'Callback ▴' : 'Callback later'} onClick={() => dispo('callback')} pending={pending} />
                 <DispoBtn warn icon={<PhoneMissed className="h-4 w-4" />} label="No answer" onClick={() => dispo('no_answer')} pending={pending} />
+                <DispoBtn warn icon={<Voicemail className="h-4 w-4" />} label="Left a voicemail" onClick={() => dispo('voicemail')} pending={pending} />
                 <DispoBtn bad icon={<XCircle className="h-4 w-4" />} label="Not interested" onClick={() => dispo('not_interested')} pending={pending} />
                 <DispoBtn bad wide icon={<Ban className="h-4 w-4" />} label="DNC - never contact" onClick={() => dispo('dnc')} pending={pending} />
               </div>
