@@ -3,6 +3,7 @@ import { getUser } from '@/lib/auth/get-user';
 import { PageHeader } from '@/components/app/page-header';
 import { todayIn, dayBoundsUtc, DEFAULT_TZ, type TimeZone } from '@/lib/db/tz';
 import { PlanView, type PlanItemView, type Appointment } from './_components/plan-view';
+import { RunsPanel, type ActiveRun, type ActiveStop } from './_components/runs-panel';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,6 +90,48 @@ export default async function PlanPage() {
     };
   });
 
+  // A run in progress replaces the offers - a rep walking 83rd Ave does not
+  // want three more suggestions.
+  const { data: runRow } = await supabase
+    .from('day_runs')
+    .select('id, label, est_minutes, day_run_stops(id, account_id, sequence, state, account:accounts(id, name, city, tags, vertical, latitude, longitude))')
+    .eq('profile_id', profile.id)
+    .eq('plan_date', planDate)
+    .eq('state', 'active')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let activeRun: ActiveRun | null = null;
+  if (runRow) {
+    const raw = runRow as unknown as Record<string, unknown>;
+    const stops = ((raw.day_run_stops ?? []) as Record<string, unknown>[])
+      .sort((a, b) => (a.sequence as number) - (b.sequence as number))
+      .map((s): ActiveStop => {
+        const a = (Array.isArray(s.account) ? s.account[0] : s.account) as
+          | { id: string; name: string; city: string | null; tags: string[]; vertical: string; latitude: number | null; longitude: number | null }
+          | undefined;
+        const tags = a?.tags ?? [];
+        return {
+          id: s.id as string,
+          accountId: s.account_id as string,
+          name: a?.name ?? 'Shop',
+          city: a?.city ?? null,
+          band: tags.find((t) => t === 'HOT' || t === 'WARM' || t === 'COOL') ?? 'COOL',
+          vertical: a?.vertical ?? '',
+          lat: a?.latitude ?? null,
+          lng: a?.longitude ?? null,
+          state: s.state as ActiveStop['state'],
+        };
+      });
+    activeRun = {
+      id: raw.id as string,
+      label: raw.label as string,
+      estMinutes: (raw.est_minutes as number) ?? 0,
+      stops,
+    };
+  }
+
   const firstName = (profile.full_name ?? 'there').split(' ')[0];
   const label = new Date(`${planDate}T12:00:00Z`).toLocaleDateString('en-US', {
     weekday: 'long',
@@ -114,6 +157,10 @@ export default async function PlanPage() {
           timezone={tz}
           firstName={firstName}
         />
+
+        <div className="mt-4">
+          <RunsPanel active={activeRun} />
+        </div>
       </div>
     </div>
   );
