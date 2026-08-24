@@ -141,14 +141,18 @@ export default async function PlanPage() {
   });
 
   return (
-    <div className="p-4 md:p-8 max-w-[900px]">
+    <div className="p-4 md:p-8 max-w-[1500px]">
       <PageHeader
         kicker={`${label} · ${firstName}`}
         title="The"
         highlight="Morning"
         description="Worked top to bottom. Every one says why it is there."
       />
-      <div className="mt-6">
+      {/* Side by side on a laptop, stacked on a phone. The queue is the wider
+          column because its rows carry a reason line; the runs column only has
+          to hold three offers or one walk, so it reads fine narrow.
+          items-start stops the short column stretching to match the tall one. */}
+      <div className="mt-6 grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(340px,1fr)] xl:gap-6">
         <PlanView
           calls={calls}
           sends={sends}
@@ -158,7 +162,9 @@ export default async function PlanPage() {
           firstName={firstName}
         />
 
-        <div className="mt-4">
+        {/* On a phone this sits under the morning list, which is the right
+            order: work the queue first, then decide whether to go out. */}
+        <div className="lg:sticky lg:top-6">
           <RunsPanel active={activeRun} />
         </div>
       </div>

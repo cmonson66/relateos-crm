@@ -126,38 +126,38 @@ export function RunsPanel({ active }: { active: ActiveRun | null }) {
             </Link>
             {next.city && <span className="ml-2 text-xs text-muted-foreground">{next.city}</span>}
 
-            <div className="mt-4 flex flex-wrap items-center gap-2">
+            <div className="mt-4 grid grid-cols-2 gap-2">
               {next.lat && next.lng && (
                 <a
                   href={`https://www.google.com/maps/dir/?api=1&destination=${next.lat},${next.lng}`}
                   target="_blank"
                   rel="noopener"
-                  className="btn-glow inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 font-display tracking-widest text-primary-foreground"
+                  className="btn-glow col-span-2 inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 font-display tracking-widest text-primary-foreground"
                 >
-                  <Navigation className="h-4 w-4" /> WALK
+                  <Navigation className="h-4 w-4" /> WALK THERE
                 </a>
               )}
               <Link
                 href={`/call/${next.accountId}`}
-                className="inline-flex items-center gap-1.5 rounded-md border border-border/40 px-3.5 py-2.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                className="col-span-2 inline-flex items-center justify-center gap-1.5 rounded-md border border-border/40 px-3 py-2.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
               >
-                <Phone className="h-3.5 w-3.5" /> Script
+                <Phone className="h-3.5 w-3.5" /> Open the script
               </Link>
               <button
                 type="button"
                 disabled={busy === next.id}
                 onClick={() => mark(next.id, 'done')}
-                className="inline-flex items-center gap-1.5 rounded-md border border-border/40 px-3.5 py-2.5 text-xs text-emerald-400 transition-colors hover:bg-emerald-500/10 disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-1.5 rounded-md border border-border/40 px-3 py-2.5 text-xs text-emerald-400 transition-colors hover:bg-emerald-500/10 disabled:opacity-50"
               >
-                <Check className="h-3.5 w-3.5" /> Talked to them
+                <Check className="h-3.5 w-3.5" /> Talked
               </button>
               <button
                 type="button"
                 disabled={busy === next.id}
                 onClick={() => mark(next.id, 'skipped')}
-                className="inline-flex items-center gap-1.5 rounded-md border border-border/40 px-3.5 py-2.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-1.5 rounded-md border border-border/40 px-3 py-2.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
               >
-                <X className="h-3.5 w-3.5" /> Closed / skip
+                <X className="h-3.5 w-3.5" /> Skip
               </button>
             </div>
           </div>
@@ -222,9 +222,9 @@ export function RunsPanel({ active }: { active: ActiveRun | null }) {
           type="button"
           disabled={pending}
           onClick={look}
-          className="inline-flex items-center gap-2 rounded-md border border-border/40 px-4 py-2.5 text-xs uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-60"
+          className="btn-glow w-full rounded-md bg-primary px-4 py-3 font-display tracking-widest text-primary-foreground disabled:opacity-60"
         >
-          {pending ? 'Looking...' : 'Find me a run'}
+          {pending ? 'LOOKING...' : 'FIND ME A RUN'}
         </button>
       ) : offers.length === 0 ? (
         <p className="text-sm text-muted-foreground">
@@ -236,21 +236,22 @@ export function RunsPanel({ active }: { active: ActiveRun | null }) {
           {offers.map((o) => (
             <div
               key={o.label}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border/40 bg-background/40 p-3.5"
+              className="rounded-md border border-border/40 bg-background/40 p-3.5"
             >
-              <div className="min-w-0">
-                <div className="font-medium">{o.label}</div>
-                <div className="text-[13px] text-muted-foreground">
-                  {o.doors} doors · about {o.estMinutes} min
-                  {o.reason ? ` · ${o.reason}` : ''}
-                </div>
+              <div className="font-medium">{o.label}</div>
+              <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-[13px]">
+                <span className="font-mono text-primary">{o.doors} doors</span>
+                <span className="text-muted-foreground">about {o.estMinutes} min</span>
               </div>
+              {o.reason && (
+                <p className="mt-1 text-[12.5px] leading-snug text-muted-foreground">{o.reason}</p>
+              )}
               <button
                 type="button"
                 disabled={busy === o.label}
                 onClick={() => go(o)}
                 className={cn(
-                  'btn-glow shrink-0 rounded-md bg-primary px-4 py-2 font-display tracking-widest text-primary-foreground',
+                  'btn-glow mt-3 w-full rounded-md bg-primary px-4 py-2.5 font-display tracking-widest text-primary-foreground',
                   busy === o.label && 'opacity-60',
                 )}
               >
