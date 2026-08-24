@@ -64,16 +64,46 @@ export async function createAccount(data: AccountFormData) {
   redirect(`/accounts/${created.id}`);
 }
 
-export async function updateAccount(id: string, data: Partial<AccountFormData>) {
+/**
+ * Failures are RETURNED, not thrown. Next replaces anything thrown out of a
+ * server action with a generic "error occurred in the Server Components
+ * render" in production, so a thrown reason reaches the user as no reason.
+ */
+export async function updateAccount(
+  id: string,
+  data: Partial<AccountFormData>,
+): Promise<{ ok: true } | { ok: false; message: string }> {
   const supabase = await createClient();
   const { error } = await supabase
     .from('accounts')
     .update(data)
     .eq('id', id);
-  if (error) throw new Error(error.message);
+
+  if (error) {
+    // 071 made (org_id, place_id) unique, so re-pinning one shop to an
+    // address another account already holds lands here. Say which one, so it
+    // is obvious this is a duplicate rather than a broken save.
+    if (error.code === '23505' && error.message.includes('place_id')) {
+      const { data: other } = await supabase
+        .from('accounts')
+        .select('id, name')
+        .eq('place_id', data.place_id ?? '')
+        .neq('id', id)
+        .maybeSingle();
+      return {
+        ok: false,
+        message: other
+          ? `That address is already on "${other.name}". One shop, one account - open that one instead.`
+          : 'That address is already on another account.',
+      };
+    }
+    return { ok: false, message: error.message };
+  }
+
   await logAudit({ entityType: 'account', entityId: id, action: 'updated' });
   revalidatePath(`/accounts/${id}`);
   revalidatePath('/accounts');
+  return { ok: true };
 }
 
 export async function deleteAccount(id: string) {

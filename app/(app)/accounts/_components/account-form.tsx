@@ -41,6 +41,9 @@ export function AccountForm({ existing }: { existing?: Account }) {
   const [hits, setHits] = useState<PlaceHit[] | null>(null);
   const [warnings, setWarnings] = useState<NearbyWarning[] | null>(null);
   const [looking, setLooking] = useState(false);
+  // The address the CURRENT coordinates belong to, so a retyped address can
+  // be told apart from a pinned one.
+  const [pinnedAddress, setPinnedAddress] = useState<string | null>(existing?.address || null);
 
   async function findAddress() {
     const q = [data.name, lookup].filter(Boolean).join(' ');
@@ -64,6 +67,7 @@ export function AccountForm({ existing }: { existing?: Account }) {
       city: d.city || hit.address.split(',')[1]?.trim() || '',
     }));
     setLookup(hit.address);
+    setPinnedAddress(hit.address);
     setHits(null);
 
     const dup = await checkForDuplicate(hit);
@@ -87,7 +91,11 @@ export function AccountForm({ existing }: { existing?: Account }) {
     startTransition(async () => {
       try {
         if (existing) {
-          await updateAccount(existing.id, { ...data, tags });
+          const res = await updateAccount(existing.id, { ...data, tags });
+          if (res.ok === false) {
+            toast.error(res.message, { duration: 10000 });
+            return;
+          }
           toast.success('Account updated');
           router.refresh();
         } else {
@@ -146,7 +154,13 @@ export function AccountForm({ existing }: { existing?: Account }) {
             <Input
               id="addr"
               value={lookup}
-              onChange={(e) => setLookup(e.target.value)}
+              onChange={(e) => {
+                setLookup(e.target.value);
+                // Typed text is the address. Find it is what supplies the
+                // COORDINATES. Without this the box looked editable and
+                // silently discarded whatever you typed.
+                set('address', e.target.value || null);
+              }}
               placeholder="1421 W Bell Rd, Phoenix AZ"
             />
             <button
@@ -159,9 +173,14 @@ export function AccountForm({ existing }: { existing?: Account }) {
             </button>
           </div>
 
-          {data.latitude ? (
+          {data.latitude && pinnedAddress && lookup.trim() === pinnedAddress.trim() ? (
             <p className="text-[11px] text-emerald-400">
               Pinned. It will show on the map and can turn up in a canvas run.
+            </p>
+          ) : data.latitude ? (
+            <p className="text-[11px] text-amber-300/90">
+              The pin still points at the old address. Tap Find it, or the map and any canvas run
+              will send somebody to the wrong door.
             </p>
           ) : (
             <p className="text-[11px] text-amber-300/90">
