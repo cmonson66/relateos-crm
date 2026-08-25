@@ -1,66 +1,36 @@
-# Adding the XIT21 tab to the Playbook
+# XIT21 in the Playbook
 
-One new file, three small edits to `app/(app)/playbook/_components/playbook-view.tsx`.
-The tab id is `xit21`, matching the existing `home` / `script` / `setup` / `onepager` / `kit`.
+Everything is in the zip - no hand-editing this time.
 
----
+Unzipping overwrites `playbook-view.tsx` with the same file you sent me plus
+the XIT21 tab wired in, and adds:
 
-## 1. The import
+- `app/(app)/playbook/_components/xit21-guide.tsx` — the tab
+- `public/xit21-onepager.pdf` — the printable sheet, at `/xit21-onepager.pdf`
 
-Find the other component imports near the top and add:
+## What changed in playbook-view.tsx
 
-```tsx
-import { Xit21Guide } from './xit21-guide';
+1. `import { Xit21Guide } from './xit21-guide';`
+2. `Signpost` added to the lucide import
+3. `'xit21'` added to the tab union type
+4. Menu entry between "Setting them up" and "Print a kit"
+5. Heading case: GET THEM ON **THE MAP**
+6. `{tab === 'xit21' && <Xit21Guide />}`
+7. The Print button is hidden on this tab, the same way it is on the kit tab —
+   its printable version is the PDF it links to, and printing the dark
+   on-screen cards would burn a cartridge for a worse sheet.
+
+Nothing else was touched. Everything else in the file is byte-identical to
+what you sent.
+
+## Then
+
+```
+npx tsc --noEmit
+git add -A
+git commit -m "XIT21 tab in the Playbook"
+git push
 ```
 
-The icon is already available from lucide-react. Add `MapPin` to the existing
-lucide import if it is not there:
-
-```tsx
-import { ..., MapPin } from 'lucide-react';
-```
-
----
-
-## 2. The menu entry
-
-Find the menu array - the one containing this line:
-
-```tsx
-['setup', 'Setting them up', 'The install, start to finish. Wallet, merchant account, coins, share link.', Wrench],
-```
-
-Add directly beneath it:
-
-```tsx
-            ['xit21', 'XIT21', 'Get them on the crypto map, and the register on their terminal.', MapPin],
-```
-
----
-
-## 3. The panel
-
-Find where the other tabs render, e.g.:
-
-```tsx
-{tab === 'setup' && ( ... )}
-```
-
-Add alongside them:
-
-```tsx
-      {tab === 'xit21' && <Xit21Guide />}
-```
-
----
-
-## Print
-
-The guide carries `id="xit21"` on its root, which is what the Playbook's print
-support keys on - the same fix that was needed for the setup and First Week
-tabs. Nothing further to do.
-
-## Check
-
-`npx tsc --noEmit`, then open the Playbook and confirm the tab appears, renders,
-and prints.
+Open the Playbook: XIT21 sits fifth in the menu, opens with a
+"Print the one-pager" button, and the PDF link works.

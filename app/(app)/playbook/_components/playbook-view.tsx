@@ -4,8 +4,9 @@ import { BREAK_EVEN_YEAR_ONE_MONTHLY, BREAK_EVEN_ONGOING_MONTHLY } from '@/lib/p
 
 import { useState, useTransition, useRef } from 'react';
 import Link from 'next/link';
-import { Printer, FileText, BookOpen, PackageCheck, ChevronLeft, Search, X, MapPin, Compass, BookMarked, Wrench } from 'lucide-react';
+import { Printer, FileText, BookOpen, PackageCheck, ChevronLeft, Search, X, MapPin, Compass, BookMarked, Wrench, Signpost } from 'lucide-react';
 import { OnePager } from './one-pager';
+import { Xit21Guide } from './xit21-guide';
 import { searchAccounts } from '@/app/(app)/appointments/actions';
 
 type Visit = { id: string; accountId: string | null; name: string; city: string; at: string; subject: string };
@@ -58,7 +59,7 @@ export function PlaybookView({
   rep?: { first: string; cell: string; email: string };
 }) {
   // Land on a menu, not inside the script
-  const [tab, setTab] = useState<'home' | 'week1' | 'script' | 'onepager' | 'setup' | 'kit'>('home');
+  const [tab, setTab] = useState<'home' | 'week1' | 'script' | 'onepager' | 'setup' | 'xit21' | 'kit'>('home');
   const [picked, setPicked] = useState<Set<string>>(new Set());
   // Shops added by search rather than from the calendar - for the rep who
   // just walked past a promising restaurant
@@ -135,11 +136,15 @@ export function PlaybookView({
               : tab === 'onepager' ? <>THE <span className="text-primary">ONE-PAGER</span></>
               : tab === 'week1' ? <>YOUR FIRST <span className="text-primary">WEEK</span></>
               : tab === 'setup' ? <>SETTING <span className="text-primary">THEM UP</span></>
+              : tab === 'xit21' ? <>GET THEM ON <span className="text-primary">THE MAP</span></>
               : tab === 'kit' ? <>PRINT A <span className="text-primary">KIT</span></>
               : <>THE <span className="text-primary">WALK-IN</span></>}
           </h1>
         </div>
-        {tab !== 'kit' && (
+        {/* XIT21 is excluded alongside the kit: its printable version is the
+            PDF it links to, and printing the dark on-screen cards would burn
+            a cartridge for a worse sheet. */}
+        {tab !== 'kit' && tab !== 'xit21' && (
           <button
             onClick={() => window.print()}
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-extrabold text-primary-foreground"
@@ -156,6 +161,7 @@ export function PlaybookView({
             ['script', 'The door script', 'Walking in. Be a customer first, diagnose before you present. Not the phone script.', BookOpen],
             ['onepager', 'The one-pager', 'Your leave-behind, with your name and cell on it.', FileText],
             ['setup', 'Setting them up', 'The install, start to finish. Wallet, merchant account, coins, share link.', Wrench],
+            ['xit21', 'XIT21', 'Get them on the crypto map, and the register on their terminal.', Signpost],
             ['kit', 'Print a kit', 'A packet per shop: their sheet plus a one-pager to leave.', PackageCheck],
           ] as const).map(([id, title, blurb, Icon]) => (
             <button
@@ -192,6 +198,8 @@ export function PlaybookView({
       {tab === 'onepager' && (
         <div id="playbook"><OnePager rep={rep} /></div>
       )}
+
+      {tab === 'xit21' && <Xit21Guide />}
 
       {tab === 'kit' && (
         <div className="rounded-md border border-border/40 bg-sidebar/60 p-5">

@@ -1,6 +1,6 @@
 'use client';
 
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Printer } from 'lucide-react';
 
 /**
  * XIT21 in the Playbook.
@@ -76,6 +76,23 @@ const LINKS: [string, string, string][] = [
 export function Xit21Guide() {
   return (
     <div id="xit21" className="space-y-6">
+      {/* The printable version, first, because a rep heading out the door wants
+          the sheet rather than the screen. */}
+      <a
+        href="/xit21-onepager.pdf"
+        target="_blank"
+        rel="noopener"
+        className="flex items-center gap-3 rounded-lg border border-emerald-700/50 bg-emerald-700/5 p-4 transition-colors hover:border-emerald-600"
+      >
+        <Printer className="h-5 w-5 flex-none text-emerald-500" />
+        <div className="min-w-0">
+          <div className="text-sm font-bold">Print the one-pager</div>
+          <div className="text-[12.5px] text-muted-foreground">
+            The whole thing on one sheet, with QR codes. Keep one in the car.
+          </div>
+        </div>
+      </a>
+
       <div className="rounded-lg border border-border/40 bg-card p-5">
         <h2 className="text-lg font-bold">What XIT21 is</h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
