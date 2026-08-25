@@ -1,36 +1,38 @@
-# Playbook update
+# Playbook update - v5
 
-Unzip and commit. No hand-editing.
+Unzip, commit, push. Nothing to hand-edit.
 
-## Files
+## What is in here
 
-- `app/(app)/playbook/_components/playbook-view.tsx` — the setup tab now renders
-  a component instead of ~150 lines of inline markup, and the XIT21 tab is wired in
-- `app/(app)/playbook/_components/setup-guide.tsx` — NEW, the rewritten install guide
+- `app/(app)/playbook/_components/setup-guide.tsx` — the rewritten install guide
+- `app/(app)/playbook/_components/qr-codes.tsx` — NEW, the five QR codes
+- `app/(app)/playbook/_components/playbook-view.tsx` — setup renders the component,
+  XIT21 tab wired in
 - `app/(app)/playbook/_components/xit21-guide.tsx` — the XIT21 tab
-- `public/xit21-onepager.pdf` — the XIT21 sheet
+- `public/xit21-onepager.pdf`
 
-## What is new in the install guide
+## The QR codes
 
-- **Before you knock** checklist, including creating an empty wallet in the wallet
-  app *in the car* — the import will not work otherwise
-- The **hot wallet trap** as the first thing in step 1, before the coin is touched
-- **Step 6, pairing the terminal**: /pos/pair on the device FIRST, then generate the
-  code, because it expires in five minutes. Then Add to Home screen.
-- Revoking a device is a bin icon, not a support call — the answer to
-  "what if a phone walks off"
-- A **when it goes wrong** table with eight real failures
-- Traps sit BEFORE the step they ruin rather than after it
-- Sites are tappable links here rather than QR codes; the printable sheet has the QRs
+Back on the page, beside each step - blockchainmint, beekeeper, nectar-pay,
+the dashboard, and /pos/pair. The URLs remain tappable links too, so it works
+whether a rep is on a laptop setting up the merchant's phone or on their own.
 
-## Check
+They are baked in as SVG rather than generated, so there is **no new dependency**.
+Two things that were wrong on the first attempt and got caught by decoding the
+rendered output rather than trusting the generator:
+
+- the modules are a STROKED path, not filled — rendering with `fill` gives a
+  blank square that looks fine and scans nothing
+- the QUIET ZONE is inside the viewBox, so a code does not rely on whatever
+  surrounds it being white
+
+Verified: all five decode to the correct URL, on a grey field, at the size they
+actually render.
+
+## After deploying
+
+If you use `nectarpay-crm.vercel.app`, point the alias at the new build:
 
 ```
-npx tsc --noEmit
-git add -A
-git commit -m "Rewrite the merchant install guide; XIT21 tab"
-git push
+npx vercel alias set <new-deployment-url> nectarpay-crm.vercel.app
 ```
-
-Open the Playbook, then "Setting them up". The Print button still works — the
-component keeps `id="playbook"` and the `print-pad` wrapper.

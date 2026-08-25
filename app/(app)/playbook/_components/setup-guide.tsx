@@ -1,5 +1,7 @@
 'use client';
 
+import { QrBlock } from './qr-codes';
+
 /**
  * The merchant install, in the Playbook.
  *
@@ -38,8 +40,10 @@ function Trap({ title, children }: { title: string; children: React.ReactNode })
   );
 }
 
-function Step({ n, title, sub, children }: {
-  n: string; title: string; sub?: string; children: React.ReactNode;
+function Step({ n, title, sub, qr, children }: {
+  n: string; title: string; sub?: string;
+  qr?: { code: 'mint' | 'bee' | 'np' | 'dash' | 'pair'; label: string };
+  children: React.ReactNode;
 }) {
   return (
     <div className="avoid-break mb-4">
@@ -54,7 +58,14 @@ function Step({ n, title, sub, children }: {
           {sub && <div className="text-[11.5px] italic text-neutral-500">{sub}</div>}
         </div>
       </div>
-      <div className="ml-7 text-[13px]">{children}</div>
+      {/* The code sits beside the step, the way it does on the printed sheet -
+          a rep on a laptop is setting up the merchant's phone, so scanning off
+          the screen is the normal case. The link stays too, for a rep already
+          on their phone. */}
+      <div className="ml-7 flex items-start gap-4">
+        {qr && <QrBlock code={qr.code} label={qr.label} />}
+        <div className="min-w-0 flex-1 text-[13px]">{children}</div>
+      </div>
     </div>
   );
 }
@@ -141,7 +152,7 @@ export function SetupGuide() {
           </p>
         </div>
 
-        <Step n="1" title="Open the coin" sub="On the table in front of them">
+        <Step n="1" title="Open the coin" sub="On the table in front of them" qr={{ code: 'mint', label: 'Start here' }}>
           <Trap title="Do this first, before you touch the coin.">
             The redeem flow asks for a hot wallet to import into, and <b>most wallet apps will
             not accept a private key until a wallet already exists inside them</b>. Install the
@@ -164,7 +175,7 @@ export function SetupGuide() {
           </Trap>
         </Step>
 
-        <Step n="2" title="Pair the coin to their phone" sub="Their phone, not yours">
+        <Step n="2" title="Pair the coin to their phone" sub="Their phone, not yours" qr={{ code: 'bee', label: 'Their wallet' }}>
           <ol className="ml-4 list-decimal space-y-0.5">
             <li>On their phone, open <A href="https://beekeeper.money">beekeeper.money</A>.</li>
             <li>Tap <K>Scan coin</K>, then <K>Start camera</K>, then <b>Allow</b> when the phone
@@ -184,7 +195,7 @@ export function SetupGuide() {
           </Trap>
         </Step>
 
-        <Step n="3" title="Create their merchant account" sub="Their computer">
+        <Step n="3" title="Create their merchant account" sub="Their computer" qr={{ code: 'np', label: 'Merchant account' }}>
           <ol className="ml-4 list-decimal space-y-0.5">
             <li>Go to <A href="https://nectar-pay.com">nectar-pay.com</A> and click <K>Start free</K>,
                 top right.</li>
@@ -215,7 +226,7 @@ export function SetupGuide() {
           </p>
         </Step>
 
-        <Step n="5" title="Choose which coins they accept" sub="Optional - stablecoins alone is a complete setup">
+        <Step n="5" title="Choose which coins they accept" sub="Optional - stablecoins alone is a complete setup" qr={{ code: 'dash', label: 'Dashboard' }}>
           <ol className="ml-4 list-decimal space-y-0.5">
             <li>Go to <A href="https://app.nectar-pay.com/dashboard">app.nectar-pay.com/dashboard</A>.</li>
             <li>Open <K>Store</K>, then <K>Wallets &amp; Chains</K>.</li>
@@ -229,7 +240,7 @@ export function SetupGuide() {
           </Trap>
         </Step>
 
-        <Step n="6" title="Pair the terminal" sub="Order matters here - read the trap first">
+        <Step n="6" title="Pair the terminal" sub="Order matters here - read the trap first" qr={{ code: 'pair', label: 'On the terminal' }}>
           <p className="mb-1">
             The POS is a <b>web app</b>. Nothing to download, no app store. It runs on a Senraise
             H10P or on any Android phone.
