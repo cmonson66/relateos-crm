@@ -1,36 +1,36 @@
-# XIT21 in the Playbook
+# Playbook update
 
-Everything is in the zip - no hand-editing this time.
+Unzip and commit. No hand-editing.
 
-Unzipping overwrites `playbook-view.tsx` with the same file you sent me plus
-the XIT21 tab wired in, and adds:
+## Files
 
-- `app/(app)/playbook/_components/xit21-guide.tsx` — the tab
-- `public/xit21-onepager.pdf` — the printable sheet, at `/xit21-onepager.pdf`
+- `app/(app)/playbook/_components/playbook-view.tsx` — the setup tab now renders
+  a component instead of ~150 lines of inline markup, and the XIT21 tab is wired in
+- `app/(app)/playbook/_components/setup-guide.tsx` — NEW, the rewritten install guide
+- `app/(app)/playbook/_components/xit21-guide.tsx` — the XIT21 tab
+- `public/xit21-onepager.pdf` — the XIT21 sheet
 
-## What changed in playbook-view.tsx
+## What is new in the install guide
 
-1. `import { Xit21Guide } from './xit21-guide';`
-2. `Signpost` added to the lucide import
-3. `'xit21'` added to the tab union type
-4. Menu entry between "Setting them up" and "Print a kit"
-5. Heading case: GET THEM ON **THE MAP**
-6. `{tab === 'xit21' && <Xit21Guide />}`
-7. The Print button is hidden on this tab, the same way it is on the kit tab —
-   its printable version is the PDF it links to, and printing the dark
-   on-screen cards would burn a cartridge for a worse sheet.
+- **Before you knock** checklist, including creating an empty wallet in the wallet
+  app *in the car* — the import will not work otherwise
+- The **hot wallet trap** as the first thing in step 1, before the coin is touched
+- **Step 6, pairing the terminal**: /pos/pair on the device FIRST, then generate the
+  code, because it expires in five minutes. Then Add to Home screen.
+- Revoking a device is a bin icon, not a support call — the answer to
+  "what if a phone walks off"
+- A **when it goes wrong** table with eight real failures
+- Traps sit BEFORE the step they ruin rather than after it
+- Sites are tappable links here rather than QR codes; the printable sheet has the QRs
 
-Nothing else was touched. Everything else in the file is byte-identical to
-what you sent.
-
-## Then
+## Check
 
 ```
 npx tsc --noEmit
 git add -A
-git commit -m "XIT21 tab in the Playbook"
+git commit -m "Rewrite the merchant install guide; XIT21 tab"
 git push
 ```
 
-Open the Playbook: XIT21 sits fifth in the menu, opens with a
-"Print the one-pager" button, and the PDF link works.
+Open the Playbook, then "Setting them up". The Print button still works — the
+component keeps `id="playbook"` and the `print-pad` wrapper.
