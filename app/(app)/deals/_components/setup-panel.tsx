@@ -63,9 +63,9 @@ export function SetupPanel({
         <ClipboardList className="h-4 w-4 text-amber-400" /> BEFORE THE INSTALL
       </h2>
       <p className="mb-4 text-sm text-muted-foreground">
-        Sends them the two things you cannot do for them - an exchange account, which takes days
-        to clear, and their NectarPay account. Send it when you book the install, not the night
-        before.
+        Sends them what you cannot do for them - an exchange account, which takes days to clear,
+        their NectarPay account, and what to have ready on the day. Send it when you book the
+        install, not the night before.
       </p>
 
       <div className="mb-4 space-y-1.5">

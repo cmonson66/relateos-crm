@@ -74,7 +74,10 @@ declare
   v_first text;
   v_steps jsonb;
 begin
-  select id, account_id, owner_id, primary_contact_id, trial_start, trial_end
+  -- Base table only. trial_end is COMPUTED BY deals_with_stage, not stored on
+  -- deals, so selecting it here fails at runtime rather than at deploy. Nothing
+  -- needs it: is_trial is simply whether a trial was ever started.
+  select id, account_id, owner_id, primary_contact_id, trial_start
     into v_deal
     from deals
    where welcome_token = p_token;

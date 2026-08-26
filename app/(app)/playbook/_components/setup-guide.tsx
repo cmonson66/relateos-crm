@@ -90,6 +90,9 @@ const FAILURES: [string, React.ReactNode][] = [
      half-paired.</>],
   ['The terminal shows a login instead of the pairing screen',
    <>Wrong address. It is <b>/pos/pair</b>, not /pos and not the dashboard.</>],
+  ['They ask where the money is if their phone breaks',
+   <>The coin, not the phone. A new phone, the app, import the key from the coin again - which is
+     also why the coin lives in a safe and the password is in a password manager.</>],
   ['The seal looks disturbed',
    <>Stop. Do not use it. A coin that may have been opened is a coin whose key someone else
      may hold.</>],
@@ -118,8 +121,8 @@ export function SetupGuide() {
 
         <p className="avoid-break mb-4 text-sm text-neutral-700">
           Do this <b>with</b> them - their phone, their computer, their hands on it. They own the
-          wallet and need to have touched every step. Budget an afternoon the first couple of
-          times; about forty minutes once you have done a few.
+          wallet and need to have touched every step. If you sent the setup link when you booked
+          and they did their part, budget half an hour; an hour if they did not.
         </p>
 
         <div className="avoid-break mb-4 rounded-sm border border-neutral-300 p-3">
@@ -134,8 +137,11 @@ export function SetupGuide() {
             <div><b>Two dollars.</b> <span className="text-neutral-600">For the live test payment at the end.</span></div>
             <div><b>An hour they are not busy.</b> <span className="text-neutral-600">Never during a rush.</span></div>
             <div className="sm:col-span-2">
-              <b>A wallet app with an empty wallet already created in it.</b>{' '}
-              <span className="text-neutral-600">Do this in the car - see step 1.</span>
+              <b>Know which wallet app they are installing.</b>{' '}
+              <span className="text-neutral-600">
+                Bitcoin.com Wallet is the one we have set up on. It installs on THEIR phone at the
+                counter, never yours - see step 1.
+              </span>
             </div>
             <div className="sm:col-span-2">
               <b>The setup link sent when you booked.</b>{' '}
@@ -160,12 +166,20 @@ export function SetupGuide() {
           </p>
         </div>
 
-        <Step n="1" title="Open the coin" sub="On the table in front of them" qr={{ code: 'mint', label: 'Start here' }}>
-          <Trap title="Do this first, before you touch the coin.">
-            The redeem flow asks for a hot wallet to import into, and <b>most wallet apps will
-            not accept a private key until a wallet already exists inside them</b>. Install the
-            wallet app, <b>create a new empty wallet</b>, and only then start redeeming. Backwards
-            and the import silently refuses, mid-install, with the owner watching.
+        <Step n="1" title="Open the coin" sub="Their phone, on the table in front of them" qr={{ code: 'mint', label: 'Start here' }}>
+          <Trap title="Every step here happens on THEIR phone. Never yours.">
+            The redeem flow imports the coin&apos;s private key into a wallet app. That key is the
+            money. Put it on your own phone - even &quot;just to save time in the car&quot; - and
+            you are holding a merchant&apos;s funds, which is the one thing we tell every owner
+            never happens. Hand them the phone or stand beside them; do not take shortcuts on
+            this one.
+          </Trap>
+          <Trap title="Install the app and create an empty wallet BEFORE you touch the coin.">
+            <b>Bitcoin.com Wallet</b> is what we have set up on. Most wallet apps{' '}
+            <b>will not accept a private key until a wallet already exists inside them</b>, so:
+            install it on their phone, <b>create a new empty wallet</b>, and only then start
+            redeeming. Backwards and the import silently refuses, mid-install, with the owner
+            watching.
           </Trap>
           <p className="mb-1.5">
             Go to <A href="https://blockchainmint.com/redeem">blockchainmint.com/redeem</A> and
@@ -197,6 +211,13 @@ export function SetupGuide() {
             &quot;Put that password somewhere you would still find it in two years. Not a note by
             the register.&quot;
           </p>
+          <div className="my-2 rounded-sm border border-neutral-300 bg-neutral-50 px-2.5 py-1.5 text-[12.5px] leading-snug">
+            <b>&quot;So which app is my money in?&quot;</b> They will ask, and the answer is that
+            it is not in an app at all - it is on the coin. The coin holds one key, and any app
+            holding that key sees the same funds. Two apps is not two pots of money.{' '}
+            <b>Beekeeper is the one they open day to day</b>, because it is the one linked to
+            their NectarPay account in step 4.
+          </div>
           <Trap title="Wait for it.">
             The wallet takes a couple of minutes to read as ready. Do not start step 3 until it
             does, or the link in step 4 will not find it.
@@ -246,6 +267,12 @@ export function SetupGuide() {
             It does not save several together, and this is where people lose ten minutes wondering
             why nothing stuck.
           </Trap>
+          <p className="mt-1.5 text-neutral-600">
+            <b>Volatility is only half the reason they are off.</b> Moving Bitcoin costs a network
+            fee of a few dollars <b>per transfer, whatever the amount</b> - so on a shop taking
+            $6 tickets it can eat a third of a sale. Stablecoins on a cheap network do not have
+            that problem. A shop with small tickets should leave the rest off.
+          </p>
         </Step>
 
         <Step n="6" title="Pair the terminal" sub="Order matters here - read the trap first" qr={{ code: 'pair', label: 'On the terminal' }}>
@@ -300,9 +327,24 @@ export function SetupGuide() {
         </Step>
 
         <Step n="8" title="Before you walk out">
+          <Trap title="Their exchange account is the one that gets forgotten.">
+            Without it a shop can take payments and cannot reach a dollar of it. It is step 1 on
+            the setup link you sent when you booked - <b>check it is actually open</b>, not
+            started. If it is not, that is the seven-day check-in call, not a nice-to-have.
+          </Trap>
+          <div className="my-2 rounded-sm border border-neutral-300 bg-neutral-50 px-2.5 py-1.5 text-[12.5px] leading-snug">
+            <b>Tell them how cashing out actually works, or they will do it wrong once and
+            stop.</b> The network fee is charged <b>per transfer, not per dollar</b>, so moving
+            $10 costs about what moving $800 costs. They let payments build up in the wallet and
+            move them across <b>once a week or once a month</b> - never after each sale. A shop
+            that transfers one $6 ticket watches a third of it disappear and decides the whole
+            thing is a scam.
+          </div>
           <ul className="ml-4 list-disc space-y-0.5">
             <li><b>Everyone who works the register has done one transaction themselves.</b> Not
                 watched one - done one.</li>
+            <li><b>Their exchange account is open and their bank is linked to it.</b> Ask to see
+                it. &quot;I signed up&quot; is not the same as approved.</li>
             <li>The password is in a password manager, not on paper by the till.</li>
             <li>The coin is somewhere they would keep cash. A safe, not the drawer.</li>
             <li>The seven-day check-in is on the calendar <b>before</b> you leave, not after.</li>
@@ -344,7 +386,7 @@ export function SetupGuide() {
             just sold them.
           </p>
           <div className="shrink-0 text-[9px] font-extrabold uppercase tracking-[0.18em] text-neutral-400">
-            v3
+            v4
           </div>
         </div>
 
