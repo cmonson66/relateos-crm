@@ -37,6 +37,9 @@ export function CallMode({ account, contact, intel, recent, script, pulseRead }:
   const [notes, setNotes] = useState('');
   const [logged, setLogged] = useState<CallOutcome | null>(null);
   const [scheduling, setScheduling] = useState<'booked' | 'callback' | null>(null);
+  // Armed by the gatekeeper button so the rep can name who answered.
+  const [askingWho, setAskingWho] = useState(false);
+  const [spokeTo, setSpokeTo] = useState('');
   const [copied, setCopied] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -80,11 +83,17 @@ export function CallMode({ account, contact, intel, recent, script, pulseRead }:
     });
   };
 
-  const dispo = (outcome: CallOutcome, scheduledAt?: string, scheduleLabel?: string) => {
+  const dispo = (outcome: CallOutcome, scheduledAt?: string, scheduleLabel?: string, who?: string) => {
     // Booked + callback expand into the scheduler first - the appointment
     // gets locked while they're still on the line
     if ((outcome === 'booked' || outcome === 'callback') && !scheduledAt) {
       setScheduling((s) => (s === outcome ? null : outcome));
+      return;
+    }
+    // Ask who answered first. The name is optional - a second tap logs it
+    // without one rather than blocking a rep who did not catch it.
+    if (outcome === 'gatekeeper' && who === undefined) {
+      setAskingWho((a) => !a);
       return;
     }
     startTransition(async () => {
@@ -97,6 +106,7 @@ export function CallMode({ account, contact, intel, recent, script, pulseRead }:
         volume: volTouched || intel.monthlyVolume ? vol : null,
         scheduledAt: scheduledAt ?? null,
         scheduleLabel: scheduleLabel ?? null,
+        spokeTo: who ?? null,
       });
       setLogged(outcome);
 
@@ -426,10 +436,39 @@ export function CallMode({ account, contact, intel, recent, script, pulseRead }:
                     rep logs "no answer" and the call looks like nothing
                     happened, when in fact they now know who the owner is and
                     when to ring back. */}
-                <DispoBtn warn icon={<UserRoundX className="h-4 w-4" />} label="Talked to someone" onClick={() => dispo('gatekeeper')} pending={pending} />
+                <DispoBtn warn icon={<UserRoundX className="h-4 w-4" />} label={askingWho ? 'Talked to someone ▴' : 'Talked to someone'} onClick={() => dispo('gatekeeper')} pending={pending} />
                 <DispoBtn bad icon={<XCircle className="h-4 w-4" />} label="Not interested" onClick={() => dispo('not_interested')} pending={pending} />
                 <DispoBtn bad wide icon={<Ban className="h-4 w-4" />} label="DNC - never contact" onClick={() => dispo('dnc')} pending={pending} />
               </div>
+              {askingWho && (
+                <div className="mt-2 rounded-xl border border-border/40 bg-background/40 p-3">
+                  <label className="mb-1.5 block text-[11px] font-bold tracking-[0.12em] text-muted-foreground">
+                    WHO ANSWERED?
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      value={spokeTo}
+                      onChange={(e) => setSpokeTo(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') dispo('gatekeeper', undefined, undefined, spokeTo);
+                      }}
+                      autoFocus
+                      placeholder="Maria at the counter"
+                      className="w-full rounded-lg border border-border/40 bg-background px-3 py-2 text-sm"
+                    />
+                    <button
+                      onClick={() => dispo('gatekeeper', undefined, undefined, spokeTo)}
+                      disabled={pending}
+                      className="flex-none rounded-lg bg-primary px-4 py-2 text-sm font-extrabold text-primary-foreground disabled:opacity-50"
+                    >
+                      Log
+                    </button>
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-muted-foreground">
+                    A name means you can ask for them next time. Skip it if you did not catch it.
+                  </p>
+                </div>
+              )}
               {scheduling && (
                 <DaySlotPicker
                   busy={pending}

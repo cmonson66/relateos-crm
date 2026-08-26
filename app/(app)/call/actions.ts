@@ -38,13 +38,22 @@ export async function logCallOutcome(input: {
   volume: number | null;
   scheduledAt?: string | null;   // ISO - booked visit / callback time
   scheduleLabel?: string | null; // human label for the timeline
+  spokeTo?: string | null;       // who answered, when it was not the owner
 }) {
-  const { accountId, contactId, legacyId, outcome, notes, volume, scheduledAt, scheduleLabel } = input;
+  const { accountId, contactId, legacyId, outcome, notes, volume, scheduledAt, scheduleLabel, spokeTo } = input;
+
+  // A name turns "talked to someone" into somebody a rep can ask for next
+  // time, which is most of the value of the call.
+  const who = (spokeTo ?? '').trim();
+  const subject =
+    outcome === 'gatekeeper' && who
+      ? `Call: talked to ${who}, not the owner`
+      : OUTCOME_LABEL[outcome];
 
   // Timeline entry via the existing activity rails (org, audit, revalidate)
   await logActivity({
     type: 'call',
-    subject: OUTCOME_LABEL[outcome],
+    subject,
     body: [notes.trim(), volume ? `Self-reported volume: $${volume.toLocaleString()}/mo` : '']
       .filter(Boolean)
       .join('\n'),
@@ -100,7 +109,7 @@ export async function logCallOutcome(input: {
     followUp.setUTCHours(16, 0, 0, 0); // ~9 AM Phoenix
     await logActivity({
       type: 'task',
-      subject: 'Call back: talked to someone, not the owner',
+      subject: who ? `Call back: ask for the owner (${who} answered)` : 'Call back: talked to someone, not the owner',
       body: notes.trim() || null,
       account_id: accountId,
       contact_id: contactId,

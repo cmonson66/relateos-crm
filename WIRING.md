@@ -2,26 +2,29 @@
 
 Two files. Unzip, commit, push. No migration.
 
-- `app/(app)/call/actions.ts` — new `gatekeeper` outcome, its timeline label,
-  and a follow-up task
-- `app/(app)/call/[accountId]/_components/call-mode.tsx` — the button
+## What happens
 
-## What it does
+Tap **Talked to someone** and a field opens: **who answered?** Type a name and
+tap Log, or press Enter.
 
-Logs **"Call: talked to someone, not the owner"** to the timeline and
-schedules a callback task for **the next business day** — sooner than the
-voicemail rule's two days, because a gatekeeper usually knows the owner's
-rhythm and the rep just heard it. Friday and Saturday both roll to Monday.
+- With a name: the timeline reads **"Call: talked to Maria, not the owner"**,
+  and the follow-up task reads **"Call back: ask for the owner (Maria answered)"**
+- Without one: **"Call: talked to someone, not the owner"** — the name is
+  optional, so a rep who did not catch it is not blocked
 
-The notes placeholder now prompts for what the gatekeeper actually said —
-the owner's name and when they are in — since that is the thing worth keeping
-from this kind of call.
+Either way a callback task lands on **the next business day**. Friday and
+Saturday both roll to Monday.
+
+## Why the name matters
+
+It is most of what a first dial produces. "Ask for Maria" on the second call
+is a different conversation from starting cold again — and without somewhere to
+put it, that detail lives in a notes box nobody reads, or nowhere.
 
 ## Note
 
-If the gatekeeper gave a specific time, **use "Callback later"** instead: that
-opens the slot picker and puts the real time on the calendar. "Talked to someone"
-is for when you learned who and roughly when, but not a firm slot.
+If you got a specific time, use **Callback later** instead — that opens the
+slot picker and puts a real appointment on the calendar.
 
 ## Check
 
