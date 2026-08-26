@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { startTrial, updateTrial, endTrial } from "../trial-actions";
 import {
   TRIAL_LENGTH_OPTIONS,
+  TRIAL_DEFAULT_DAYS,
   addDays,
   trialStatus,
   type TrialFields,
@@ -30,7 +31,7 @@ export function TrialPanel({
   const [pending, startPending] = useTransition();
   const [editing, setEditing] = useState(false);
   const [startDate, setStartDate] = useState(trial.trial_start ?? today);
-  const [days, setDays] = useState(trial.trial_days ?? 14);
+  const [days, setDays] = useState(trial.trial_days ?? TRIAL_DEFAULT_DAYS);
   const [serial, setSerial] = useState(trial.terminal_serial ?? "");
 
   const status = trialStatus(trial, today);

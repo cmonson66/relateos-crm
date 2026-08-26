@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { pickPerson } from "@/lib/pick-contact";
-import { phxToday } from "@/lib/db/trials";
+import { phxToday, TRIAL_DEFAULT_DAYS } from "@/lib/db/trials";
 import { AgreementForm } from "@/app/(app)/deals/_components/agreement-form";
 
 export const dynamic = "force-dynamic";
@@ -89,7 +89,7 @@ export default async function AgreementPage({
       signerEmail={chosen?.email ?? ""}
       serial={deal.terminal_serial ?? ""}
       startDate={deal.trial_start ?? phxToday()}
-      days={deal.trial_days ?? 14}
+      days={deal.trial_days ?? TRIAL_DEFAULT_DAYS}
       repName={profile?.full_name ?? "your rep"}
       kind={kind}
       lines={lines}

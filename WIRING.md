@@ -1,30 +1,28 @@
-# Call outcome: "Talked to someone"
+# Trials default to 30 days
 
-Two files. Unzip, commit, push. No migration.
+Three files. Unzip, commit, push. No migration.
 
-## What happens
+- `lib/db/trials.ts` — new `TRIAL_DEFAULT_DAYS = 30`
+- `app/(app)/deals/_components/trial-panel.tsx` — uses it
+- `app/(app)/deals/[id]/agreement/page.tsx` — uses it
 
-Tap **Talked to someone** and a field opens: **who answered?** Type a name and
-tap Log, or press Enter.
+Both places had `?? 14` written inline. It is now one constant, so the two
+cannot drift apart again.
 
-- With a name: the timeline reads **"Call: talked to Maria, not the owner"**,
-  and the follow-up task reads **"Call back: ask for the owner (Maria answered)"**
-- Without one: **"Call: talked to someone, not the owner"** — the name is
-  optional, so a rep who did not catch it is not blocked
+## What changes
 
-Either way a callback task lands on **the next business day**. Friday and
-Saturday both roll to Monday.
+A trial with no length set opens at **30 days** instead of 14. The 14 / 21 / 30
+shortcut buttons and the free-entry box are untouched — length is still the
+rep's call.
 
-## Why the name matters
+Everything derived follows automatically: a 30 day trial checks in on **day 15**
+and the conversion conversation lands **two days before the end**.
 
-It is most of what a first dial produces. "Ask for Maria" on the second call
-is a different conversation from starting cold again — and without somewhere to
-put it, that detail lives in a notes box nobody reads, or nowhere.
+## What does not change
 
-## Note
-
-If you got a specific time, use **Callback later** instead — that opens the
-slot picker and puts a real appointment on the calendar.
+**Trials already running keep their length.** The default only applies where
+`trial_days` is null, so nothing in flight moves and no signed agreement is
+contradicted.
 
 ## Check
 

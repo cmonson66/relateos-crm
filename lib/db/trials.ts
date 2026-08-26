@@ -16,6 +16,15 @@ export const TRIAL_STAGE_SLUG = "trial-running";
 /** The lengths a rep picks from. Length is the rep's call - these are shortcuts. */
 export const TRIAL_LENGTH_OPTIONS = [14, 21, 30];
 
+/**
+ * What a trial is unless the rep says otherwise.
+ *
+ * Thirty days rather than fourteen: a shop needs to see crypto customers turn
+ * up at all before the terminal has proved anything, and two weeks in a slow
+ * month can pass with nothing happening through no fault of the product.
+ */
+export const TRIAL_DEFAULT_DAYS = 30;
+
 export type TrialFields = {
   trial_start?: string | null;
   trial_days?: number | null;
@@ -65,7 +74,7 @@ export function trialStatus(t: TrialFields, today: string = phxToday()): TrialSt
   };
 }
 
-/** Halfway point, rounded down, so a 14 day trial checks in on day 7. */
+/** Halfway point, rounded down, so a 30 day trial checks in on day 15. */
 export function midpointDate(start: string, days: number): string {
   return addDays(start, Math.max(1, Math.floor(days / 2)));
 }
