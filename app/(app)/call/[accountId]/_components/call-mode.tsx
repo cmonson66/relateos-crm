@@ -5,7 +5,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Phone, Zap, CalendarCheck, MessageSquareText, Link2, PhoneMissed, Voicemail, XCircle, Ban, ChevronLeft, Copy, Check } from 'lucide-react';
+import { Phone, Zap, CalendarCheck, MessageSquareText, Link2, PhoneMissed, Voicemail, UserRoundX, XCircle, Ban, ChevronLeft, Copy, Check } from 'lucide-react';
 import { logCallOutcome, type CallOutcome } from '../../actions';
 import { DaySlotPicker } from '@/components/day-slot-picker';
 import type { CallScript } from '@/lib/call-scripts';
@@ -402,7 +402,7 @@ export function CallMode({ account, contact, intel, recent, script, pulseRead }:
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Square user, ~$12K/mo, gets crypto asks weekly, callback Thu AM before open..."
+              placeholder="Square user, ~$12K/mo, gets crypto asks weekly. Owner is Maria, in before 10 most days..."
               className="min-h-[110px] w-full resize-y rounded-xl border border-border/40 bg-background/40 p-3 text-sm"
             />
             <h3 className="mb-2 mt-4 text-[11px] font-extrabold tracking-[0.14em] text-muted-foreground">
@@ -422,6 +422,11 @@ export function CallMode({ account, contact, intel, recent, script, pulseRead }:
                 <DispoBtn warn icon={<Phone className="h-4 w-4" />} label={scheduling === 'callback' ? 'Callback ▴' : 'Callback later'} onClick={() => dispo('callback')} pending={pending} />
                 <DispoBtn warn icon={<PhoneMissed className="h-4 w-4" />} label="No answer" onClick={() => dispo('no_answer')} pending={pending} />
                 <DispoBtn warn icon={<Voicemail className="h-4 w-4" />} label="Left a voicemail" onClick={() => dispo('voicemail')} pending={pending} />
+                {/* The most common real outcome on a first dial. Without it a
+                    rep logs "no answer" and the call looks like nothing
+                    happened, when in fact they now know who the owner is and
+                    when to ring back. */}
+                <DispoBtn warn icon={<UserRoundX className="h-4 w-4" />} label="Owner wasn't in" onClick={() => dispo('gatekeeper')} pending={pending} />
                 <DispoBtn bad icon={<XCircle className="h-4 w-4" />} label="Not interested" onClick={() => dispo('not_interested')} pending={pending} />
                 <DispoBtn bad wide icon={<Ban className="h-4 w-4" />} label="DNC - never contact" onClick={() => dispo('dnc')} pending={pending} />
               </div>

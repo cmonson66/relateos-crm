@@ -13,6 +13,7 @@ export type CallOutcome =
   | 'callback'
   | 'no_answer'
   | 'voicemail'
+  | 'gatekeeper'
   | 'not_interested'
   | 'dnc';
 
@@ -23,6 +24,7 @@ const OUTCOME_LABEL: Record<CallOutcome, string> = {
   callback: 'Call: callback requested',
   no_answer: 'Call: no answer',
   voicemail: 'Call: left a voicemail',
+  gatekeeper: 'Call: spoke to someone other than the owner',
   not_interested: 'Call: not interested',
   dnc: 'Call: DNC - never contact',
 };
@@ -80,6 +82,25 @@ export async function logCallOutcome(input: {
     await logActivity({
       type: 'task',
       subject: 'Call back: left a voicemail',
+      body: notes.trim() || null,
+      account_id: accountId,
+      contact_id: contactId,
+      scheduled_at: followUp.toISOString(),
+    });
+  }
+
+  // Reaching staff is not a dead call - it is a call where you learned when to
+  // call back. Next business day rather than the voicemail's two, because a
+  // gatekeeper usually knows the owner's rhythm and the rep just heard it.
+  if (outcome === 'gatekeeper') {
+    const followUp = new Date(Date.now() + 86400000);
+    while (followUp.getUTCDay() === 0 || followUp.getUTCDay() === 6) {
+      followUp.setUTCDate(followUp.getUTCDate() + 1);
+    }
+    followUp.setUTCHours(16, 0, 0, 0); // ~9 AM Phoenix
+    await logActivity({
+      type: 'task',
+      subject: 'Call back: owner was not in',
       body: notes.trim() || null,
       account_id: accountId,
       contact_id: contactId,

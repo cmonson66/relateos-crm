@@ -1,38 +1,30 @@
-# Playbook update - v5
+# Call outcome: "Owner wasn't in"
 
-Unzip, commit, push. Nothing to hand-edit.
+Two files. Unzip, commit, push. No migration.
 
-## What is in here
+- `app/(app)/call/actions.ts` — new `gatekeeper` outcome, its timeline label,
+  and a follow-up task
+- `app/(app)/call/[accountId]/_components/call-mode.tsx` — the button
 
-- `app/(app)/playbook/_components/setup-guide.tsx` — the rewritten install guide
-- `app/(app)/playbook/_components/qr-codes.tsx` — NEW, the five QR codes
-- `app/(app)/playbook/_components/playbook-view.tsx` — setup renders the component,
-  XIT21 tab wired in
-- `app/(app)/playbook/_components/xit21-guide.tsx` — the XIT21 tab
-- `public/xit21-onepager.pdf`
+## What it does
 
-## The QR codes
+Logs **"Call: spoke to someone other than the owner"** to the timeline and
+schedules a callback task for **the next business day** — sooner than the
+voicemail rule's two days, because a gatekeeper usually knows the owner's
+rhythm and the rep just heard it. Friday and Saturday both roll to Monday.
 
-Back on the page, beside each step - blockchainmint, beekeeper, nectar-pay,
-the dashboard, and /pos/pair. The URLs remain tappable links too, so it works
-whether a rep is on a laptop setting up the merchant's phone or on their own.
+The notes placeholder now prompts for what the gatekeeper actually said —
+the owner's name and when they are in — since that is the thing worth keeping
+from this kind of call.
 
-They are baked in as SVG rather than generated, so there is **no new dependency**.
-Two things that were wrong on the first attempt and got caught by decoding the
-rendered output rather than trusting the generator:
+## Note
 
-- the modules are a STROKED path, not filled — rendering with `fill` gives a
-  blank square that looks fine and scans nothing
-- the QUIET ZONE is inside the viewBox, so a code does not rely on whatever
-  surrounds it being white
+If the gatekeeper gave a specific time, **use "Callback later"** instead: that
+opens the slot picker and puts the real time on the calendar. "Owner wasn't in"
+is for when you learned who and roughly when, but not a firm slot.
 
-Verified: all five decode to the correct URL, on a grey field, at the size they
-actually render.
-
-## After deploying
-
-If you use `nectarpay-crm.vercel.app`, point the alias at the new build:
+## Check
 
 ```
-npx vercel alias set <new-deployment-url> nectarpay-crm.vercel.app
+npx tsc --noEmit
 ```
