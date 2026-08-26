@@ -1,6 +1,7 @@
 'use client';
 
 import { BREAK_EVEN_YEAR_ONE_MONTHLY, BREAK_EVEN_ONGOING_MONTHLY } from '@/lib/pricing';
+import { MoneyFlowStrip } from '@/components/marketing/money-flow';
 
 // The leave-behind, rendered in-app so it carries the rep's own name and
 // cell and never drifts from the PDF sitting in someone's texts.
@@ -40,21 +41,13 @@ export function OnePager({ rep }: { rep: { first: string; cell: string; email: s
         />
       </div>
 
-      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4 print:grid-cols-4">
-        {[
-          ['1', 'Enter the amount', 'Type the sale into the terminal'],
-          ['2', 'Customer scans', 'QR appears, they scan with their wallet'],
-          ['3', 'Confirm & pay', 'Network verifies in seconds'],
-          ['4', 'Funds settle', 'Lands in YOUR wallet. No reversal'],
-        ].map(([n, t, d]) => (
-          <div key={n} className="rounded border border-neutral-300 p-2">
-            <div className="mb-1 flex items-center gap-1.5">
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-black">{n}</span>
-              <span className="text-[10px] font-bold">{t}</span>
-            </div>
-            <div className="text-[9px] leading-tight text-neutral-600">{d}</div>
-          </div>
-        ))}
+      {/* Was four tiles that stopped at "lands in YOUR wallet" - which is the
+          exact moment an owner starts wondering how it becomes dollars. Now
+          five, carrying it all the way to their bank, and marking which single
+          step NectarPay runs. Replacing rather than adding keeps this on one
+          printed page. */}
+      <div className="mb-4">
+        <MoneyFlowStrip />
       </div>
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2">

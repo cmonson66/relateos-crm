@@ -43,6 +43,10 @@ export async function updateSession(request: NextRequest) {
     path.startsWith('/invoice/') ||
     path.startsWith('/cryptopop') ||
     path.startsWith('/one-pager/') ||
+    // The merchant's pre-visit checklist. Same rule as /agreement: no login
+    // exists for them, the token is the credential, and every read and write
+    // goes through a security-definer RPC.
+    path.startsWith('/setup/') ||
     path === '/locked';
 
   // Not signed in + private path -> /login

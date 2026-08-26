@@ -1,6 +1,7 @@
 'use client';
 
 import { QrBlock } from './qr-codes';
+import { MoneyFlow } from '@/components/marketing/money-flow';
 
 /**
  * The merchant install, in the Playbook.
@@ -135,6 +136,13 @@ export function SetupGuide() {
             <div className="sm:col-span-2">
               <b>A wallet app with an empty wallet already created in it.</b>{' '}
               <span className="text-neutral-600">Do this in the car - see step 1.</span>
+            </div>
+            <div className="sm:col-span-2">
+              <b>The setup link sent when you booked.</b>{' '}
+              <span className="text-neutral-600">
+                Deal page, BEFORE THE INSTALL. Their exchange account takes days to clear, so if
+                nothing is ticked off, phone them before you drive out.
+              </span>
             </div>
           </div>
         </div>
@@ -303,6 +311,17 @@ export function SetupGuide() {
           </ul>
         </Step>
 
+        {/* They ask this at the end of every install, and a rep who answers it
+            badly undoes the whole visit. Turn the screen around rather than
+            improvising - and never let them think NectarPay moves the money to
+            their bank, because it does not. */}
+        <div className="avoid-break mt-5 border-t-2 border-[#0c1a2c] pt-3">
+          <h2 className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.13em] text-[#0c1a2c]">
+            &quot;So how do I actually get paid?&quot;
+          </h2>
+          <MoneyFlow />
+        </div>
+
         <div className="avoid-break mt-5 border-t-2 border-[#0c1a2c] pt-3">
           <h2 className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.13em] text-[#0c1a2c]">
             When it goes wrong
@@ -325,7 +344,7 @@ export function SetupGuide() {
             just sold them.
           </p>
           <div className="shrink-0 text-[9px] font-extrabold uppercase tracking-[0.18em] text-neutral-400">
-            v2
+            v3
           </div>
         </div>
 

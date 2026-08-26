@@ -17,6 +17,7 @@ import { formatDealValue } from '@/lib/db/deals';
 import { StageSelector } from '../_components/stage-selector';
 import { TrialPanel } from '../_components/trial-panel';
 import { WelcomePanel } from '../_components/welcome-panel';
+import { SetupPanel } from '../_components/setup-panel';
 import { DealItemsPanel } from '../_components/deal-items-panel';
 import { PaperworkPanel } from '../_components/paperwork-panel';
 import { phxToday } from '@/lib/db/trials';
@@ -118,6 +119,18 @@ export default async function DealDetailPage({
   }));
   const hasPurchaseAgreement = (purchaseAgreements ?? []).length > 0;
 
+  // Merchant setup progress (072). Its own query rather than a join: the rows
+  // are written by an unauthenticated merchant through a security-definer RPC,
+  // so they arrive independently of anything else on this page, and a shop
+  // that has never opened the link simply has none.
+  const { data: setupRows } = await supabase
+    .from('merchant_setup_steps')
+    .select('step, done_at')
+    .eq('deal_id', id);
+  const setupSteps: Record<string, string | null> = Object.fromEntries(
+    (setupRows ?? []).map((r) => [r.step as string, (r.done_at as string | null) ?? null]),
+  );
+
   const products = (productRows ?? []).map((p) => ({
     id: p.id as string,
     sku: p.sku as string,
@@ -207,6 +220,16 @@ export default async function DealDetailPage({
         hasPurchaseAgreement={hasPurchaseAgreement}
         invoices={invoiceRows}
         siteUrl={(process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '')}
+      />
+
+      <SetupPanel
+        dealId={deal.id}
+        steps={setupSteps}
+        existingUrl={
+          deal.welcome_token
+            ? `${(process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "")}/setup/${deal.welcome_token}`
+            : null
+        }
       />
 
       <WelcomePanel
