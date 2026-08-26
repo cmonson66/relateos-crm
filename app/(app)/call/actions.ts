@@ -24,7 +24,7 @@ const OUTCOME_LABEL: Record<CallOutcome, string> = {
   callback: 'Call: callback requested',
   no_answer: 'Call: no answer',
   voicemail: 'Call: left a voicemail',
-  gatekeeper: 'Call: spoke to someone other than the owner',
+  gatekeeper: 'Call: talked to someone, not the owner',
   not_interested: 'Call: not interested',
   dnc: 'Call: DNC - never contact',
 };
@@ -100,7 +100,7 @@ export async function logCallOutcome(input: {
     followUp.setUTCHours(16, 0, 0, 0); // ~9 AM Phoenix
     await logActivity({
       type: 'task',
-      subject: 'Call back: owner was not in',
+      subject: 'Call back: talked to someone, not the owner',
       body: notes.trim() || null,
       account_id: accountId,
       contact_id: contactId,

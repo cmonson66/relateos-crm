@@ -426,7 +426,7 @@ export function CallMode({ account, contact, intel, recent, script, pulseRead }:
                     rep logs "no answer" and the call looks like nothing
                     happened, when in fact they now know who the owner is and
                     when to ring back. */}
-                <DispoBtn warn icon={<UserRoundX className="h-4 w-4" />} label="Owner wasn't in" onClick={() => dispo('gatekeeper')} pending={pending} />
+                <DispoBtn warn icon={<UserRoundX className="h-4 w-4" />} label="Talked to someone" onClick={() => dispo('gatekeeper')} pending={pending} />
                 <DispoBtn bad icon={<XCircle className="h-4 w-4" />} label="Not interested" onClick={() => dispo('not_interested')} pending={pending} />
                 <DispoBtn bad wide icon={<Ban className="h-4 w-4" />} label="DNC - never contact" onClick={() => dispo('dnc')} pending={pending} />
               </div>
