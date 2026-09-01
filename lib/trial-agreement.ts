@@ -1,4 +1,4 @@
-import { TERMINAL_ONCE, MEMBERSHIP_MONTHLY } from '@/lib/pricing';
+import { TERMINAL_LABEL, MONTHLY_LABEL } from '@/lib/pricing';
 
 // The trial agreement, as text.
 //
@@ -56,10 +56,10 @@ Payments settle directly to a cryptocurrency wallet the Merchant owns and contro
 The Merchant agrees to keep the terminal powered and reasonably secure, not to open or modify it, and to tell ${COMPANY.name} promptly if it is lost, stolen, or damaged.
 
 7. WARRANTY, AND IF IT IS NOT RETURNED
-The terminal carries a one-year warranty. If it stops working on its own, ${COMPANY.name} replaces it at no cost to the Merchant. The warranty does not cover damage the Merchant causes. If the terminal is not returned at the end of the trial, or comes back damaged beyond normal use, the Merchant agrees to pay the ${TERMINAL_ONCE} replacement cost.
+The terminal carries a one-year warranty. If it stops working on its own, ${COMPANY.name} replaces it at no cost to the Merchant. The warranty does not cover damage the Merchant causes. If the terminal is not returned at the end of the trial, or comes back damaged beyond normal use, the Merchant agrees to pay the ${TERMINAL_LABEL} replacement cost.
 
 8. WHEN THE TRIAL ENDS
-The Merchant either continues on the standard terms (${TERMINAL_ONCE} for the terminal, plus ${MEMBERSHIP_MONTHLY.toFixed(2)} per month for the membership paid up front for the year, flat, with no percentage of sales) or returns the terminal within five business days.
+The Merchant either continues on the standard terms (${TERMINAL_LABEL} for the terminal, plus ${MONTHLY_LABEL} per month for the membership paid up front for the year, flat, with no percentage of sales) or returns the terminal within five business days.
 
 9. NO ADVICE
 ${COMPANY.name} does not provide tax, legal, or investment advice. The value of cryptocurrency can change. The Merchant decides what to hold and what to convert.
