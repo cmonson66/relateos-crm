@@ -3,6 +3,7 @@
 import { Printer, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import type { CallScript } from '@/lib/call-scripts';
+import { TERMINAL_LABEL, MONTHLY_LABEL, YEAR_ONE_LABEL } from '@/lib/pricing';
 
 const money = (n: number) => '$' + Math.round(n).toLocaleString();
 
@@ -116,7 +117,7 @@ export function WalkInSheet({
             <tbody>
               <tr className="border-b border-neutral-300"><td className="py-1">Their card volume / month</td><td className="py-1 text-right font-bold">{money(vol)}</td></tr>
               <tr className="border-b border-neutral-300"><td className="py-1">Lost to card fees / year (~3%)</td><td className="py-1 text-right font-bold">-{money(loss)}</td></tr>
-              <tr className="border-b border-neutral-300"><td className="py-1">NectarPay year one, all in</td><td className="py-1 text-right">$727</td></tr>
+              <tr className="border-b border-neutral-300"><td className="py-1">NectarPay year one, all in</td><td className="py-1 text-right">{YEAR_ONE_LABEL}</td></tr>
               <tr><td className="py-1 font-bold">Stays in the shop, year one</td><td className="py-1 text-right font-extrabold">+{money(Math.max(0, loss - 727))}</td></tr>
             </tbody>
           </table>
@@ -150,7 +151,7 @@ export function WalkInSheet({
           {pulseUrl && <span className="font-mono">{pulseUrl}</span>}
         </div>
         <div className="mt-1 text-[10px] text-neutral-500">
-          $499 terminal · $19/mo membership · zero processing fee · non-custodial · no chargebacks
+          {TERMINAL_LABEL} terminal · {MONTHLY_LABEL}/mo membership · zero processing fee · non-custodial · no chargebacks
         </div>
       </div>
     </div>

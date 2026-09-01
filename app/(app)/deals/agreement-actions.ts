@@ -8,6 +8,7 @@ import { startTrial } from "./trial-actions";
 import { buildTerms, COMPANY, TERMS_VERSION } from "@/lib/trial-agreement";
 import { buildPurchaseTerms, PURCHASE_TERMS_VERSION } from "@/lib/purchase-agreement";
 import { addDays } from "@/lib/db/trials";
+import { TERMINAL_LABEL, MONTHLY_LABEL } from '@/lib/pricing';
 
 function token(): string {
   return (
@@ -238,7 +239,7 @@ Thanks for taking a terminal for a run. Your signed agreement is here, and it st
 
 ${copyUrl}
 
-The short version: the trial runs ${input.startDate} through ${end}, it costs nothing while it runs, and at the end you either continue at $499 for the terminal plus $19 a month for the membership, or hand the equipment back.
+The short version: the trial runs ${input.startDate} through ${end}, it costs nothing while it runs, and at the end you either continue at ${TERMINAL_LABEL} for the terminal plus ${MONTHLY_LABEL} a month for the membership, or hand the equipment back.
 
 Anything at all, call me.
 

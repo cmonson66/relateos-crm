@@ -1,6 +1,13 @@
 'use client';
 
-import { BREAK_EVEN_YEAR_ONE_MONTHLY, BREAK_EVEN_ONGOING_MONTHLY } from '@/lib/pricing';
+import {
+  BREAK_EVEN_YEAR_ONE_MONTHLY,
+  BREAK_EVEN_ONGOING_MONTHLY,
+  TERMINAL_LABEL,
+  MONTHLY_LABEL,
+  YEAR_ONE_LABEL,
+  ONGOING_LABEL,
+} from '@/lib/pricing';
 
 import { useState, useTransition, useRef } from 'react';
 import Link from 'next/link';
@@ -40,14 +47,14 @@ const WALLS: { q: string; a: string }[] = [
   { q: '"My customers pay with cards."', a: 'Nothing changes about your card setup. Same reader, same flow. This adds a lane nobody can freeze.' },
   { q: '"I don\'t understand crypto."', a: 'You don\'t need to. Staff types the amount, customer scans, ten seconds, money is in your wallet.' },
   { q: '"Is this legal? Is it taxed?"', a: 'Completely legal - a payment method like cash or card. Recorded on the terminal, revenue like any other.' },
-  { q: '"What does it cost?"', a: `$499 once for the terminal, then $19 a month for the membership, billed annually. Never a percentage. Year one about $727. Then give them the floor rather than a savings claim: about $${BREAK_EVEN_YEAR_ONE_MONTHLY.toLocaleString()} a month in crypto sales covers year one, about $${BREAK_EVEN_ONGOING_MONTHLY.toLocaleString()} a month after. And they do not have to decide today - a trial costs them nothing while it runs.` },
+  { q: '"What does it cost?"', a: `${TERMINAL_LABEL} once for the terminal, then ${MONTHLY_LABEL} a month for the membership, billed annually. Never a percentage. Year one about ${YEAR_ONE_LABEL}. Then give them the floor rather than a savings claim: about $${BREAK_EVEN_YEAR_ONE_MONTHLY.toLocaleString()} a month in crypto sales covers year one, about $${BREAK_EVEN_ONGOING_MONTHLY.toLocaleString()} a month after. And they do not have to decide today - a trial costs them nothing while it runs.` },
   { q: '"How much of my business will even use this?"', a: `The honest floor, not a sales number. About $${BREAK_EVEN_YEAR_ONE_MONTHLY.toLocaleString()} a month in crypto sales pays for year one and about $${BREAK_EVEN_ONGOING_MONTHLY.toLocaleString()} a month every year after - a handful of customers a week. Never claim their whole card volume moves across. They will spot it, and then nothing else you said counts.` },
   { q: '"Crypto crashes."', a: 'Settles to a stablecoin if you want - a dollar in is a dollar out. You are not betting on anything.' },
   { q: '"I need to think about it."', a: 'Better than thinking about it cold: put one in on a trial. Free while it runs, real payments on it, you pick it up if it does not earn its place. They decide on what happened, not on your say-so.' },
   { q: '"It sounds complicated."', a: 'It is simpler than your card terminal. And if you do not even want hardware, the Nectar.Pay app runs on your phone - you just give up the receipt printer and the rugged handheld.' },
   { q: '"What if it breaks?"', a: 'One-year warranty. Fails on its own, we replace it, full stop. Drop it off the roof and you buy another - fair is fair.' },
-  { q: '"Can I try it first?"', a: 'Yes. Put a terminal in on a trial - free while it runs, no $499, no monthly. They take real payments on it. Keep it or hand it back, their call.' },
-  { q: '"What if I need real support?"', a: 'Standard is $19. White-glove is $99 a month and that means we pick up the phone. Most shops start standard and never move.' },
+  { q: '"Can I try it first?"', a: `Yes. Put a terminal in on a trial - free while it runs, no ${TERMINAL_LABEL}, no monthly. They take real payments on it. Keep it or hand it back, their call.` },
+  { q: '"What if I need real support?"', a: `Standard is ${MONTHLY_LABEL}. White-glove is $99 a month and that means we pick up the phone. Most shops start standard and never move.` },
 ];
 
 import { FirstWeek } from './first-week';
@@ -362,8 +369,8 @@ export function PlaybookView({
           <table className="mb-2 w-full table-fixed text-sm">
             <tbody>
               <tr className="border-b border-neutral-300"><td className="py-1">Lost to card fees / year (~3% of $10K/mo)</td><td className="py-1 text-right font-bold">-$3,600</td></tr>
-              <tr className="border-b border-neutral-300"><td className="py-1">NectarPay year one, all in</td><td className="py-1 text-right">$727</td></tr>
-              <tr className="border-b border-neutral-300"><td className="py-1">Every year after</td><td className="py-1 text-right">$228</td></tr>
+              <tr className="border-b border-neutral-300"><td className="py-1">NectarPay year one, all in</td><td className="py-1 text-right">{YEAR_ONE_LABEL}</td></tr>
+              <tr className="border-b border-neutral-300"><td className="py-1">Every year after</td><td className="py-1 text-right">{ONGOING_LABEL}</td></tr>
               <tr><td className="py-1 font-bold">Stays in the shop, year one</td><td className="py-1 text-right font-extrabold">+$2,873</td></tr>
             </tbody>
           </table>
@@ -391,7 +398,7 @@ export function PlaybookView({
         </div>
 
         <div className="mt-4 border-t border-neutral-300 pt-2 text-xs">
-          <span className="font-bold">PRICING, MEMORIZED:</span> $499 terminal · $19/mo membership · zero processing
+          <span className="font-bold">PRICING, MEMORIZED:</span> {TERMINAL_LABEL} terminal · {MONTHLY_LABEL}/mo membership · zero processing
           fee · non-custodial · no chargebacks
         </div>
         <div className="mt-1 text-[11px] italic text-neutral-500">

@@ -1,6 +1,12 @@
 'use client';
 
-import { BREAK_EVEN_YEAR_ONE_MONTHLY, BREAK_EVEN_ONGOING_MONTHLY } from '@/lib/pricing';
+import {
+  BREAK_EVEN_YEAR_ONE_MONTHLY,
+  BREAK_EVEN_ONGOING_MONTHLY,
+  MONTHLY_LABEL,
+  YEAR_ONE_LABEL,
+  ONGOING_LABEL,
+} from '@/lib/pricing';
 import { MoneyFlowStrip } from '@/components/marketing/money-flow';
 
 // The leave-behind, rendered in-app so it carries the rep's own name and
@@ -57,8 +63,8 @@ export function OnePager({ rep }: { rep: { first: string; cell: string; email: s
           <table className="w-full text-xs">
             <tbody>
               <tr className="border-b border-dashed border-neutral-300"><td className="py-1">Lost to card fees / year (~3%)</td><td className="py-1 text-right font-bold text-red-700">-$3,600</td></tr>
-              <tr className="border-b border-dashed border-neutral-300"><td className="py-1">NectarPay year one, all in</td><td className="py-1 text-right">$727</td></tr>
-              <tr className="border-b border-dashed border-neutral-300"><td className="py-1">Every year after</td><td className="py-1 text-right">$228</td></tr>
+              <tr className="border-b border-dashed border-neutral-300"><td className="py-1">NectarPay year one, all in</td><td className="py-1 text-right">{YEAR_ONE_LABEL}</td></tr>
+              <tr className="border-b border-dashed border-neutral-300"><td className="py-1">Every year after</td><td className="py-1 text-right">{ONGOING_LABEL}</td></tr>
               <tr><td className="py-1 font-bold">Stays in the shop, year one</td><td className="py-1 text-right font-extrabold text-green-700">+$2,873</td></tr>
             </tbody>
           </table>
@@ -80,12 +86,12 @@ export function OnePager({ rep }: { rep: { first: string; cell: string; email: s
               <div className="text-[10px]">terminal, one-time</div>
             </div>
             <div>
-              <div className="text-2xl font-extrabold text-amber-400">$19</div>
+              <div className="text-2xl font-extrabold text-amber-400">{MONTHLY_LABEL}</div>
               <div className="text-[10px]">/month, billed annually</div>
             </div>
           </div>
           <div className="mt-2 border-t border-neutral-700 pt-2 text-xs">
-            Year one, all in: <b>~$727</b> · then ~$228/year
+            Year one, all in: <b>~{YEAR_ONE_LABEL}</b> · then ~{ONGOING_LABEL}/year
           </div>
           <div className="mt-1.5 text-[11px] font-bold text-amber-400">
             No percentage of your sales. Ever.

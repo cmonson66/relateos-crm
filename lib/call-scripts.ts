@@ -1,4 +1,10 @@
-import { BREAK_EVEN_YEAR_ONE_MONTHLY, BREAK_EVEN_ONGOING_MONTHLY } from '@/lib/pricing';
+import {
+  BREAK_EVEN_YEAR_ONE_MONTHLY,
+  BREAK_EVEN_ONGOING_MONTHLY,
+  TERMINAL_LABEL,
+  MONTHLY_LABEL,
+  YEAR_ONE_LABEL,
+} from '@/lib/pricing';
 
 // Call Mode scripts - same five stories as the email cadences, spoken.
 // Assembled per lead: {owner}, {shop}, {city} interpolate at render, and
@@ -159,7 +165,7 @@ const SHARED_OBJECTIONS: Objection[] = [
   {
     q: `"What's this gonna run me?"`,
     heard: ['cost', 'price', 'how much', 'expensive', 'what do you charge'],
-    a: `"$499 once for the terminal, then $19 a month for the membership, paid annually. Never a percentage of your sales - that's the whole point. And it doesn't take much to be worth it: about $${BREAK_EVEN_YEAR_ONE_MONTHLY.toLocaleString()} a month in crypto sales covers year one, and about $${BREAK_EVEN_ONGOING_MONTHLY.toLocaleString()} a month every year after that. You don't have to decide today either - I can put one in on a trial first and it costs you nothing while it runs."`,
+    a: `"${TERMINAL_LABEL} once for the terminal, then ${MONTHLY_LABEL} a month for the membership, paid annually. Never a percentage of your sales - that's the whole point. And it doesn't take much to be worth it: about $${BREAK_EVEN_YEAR_ONE_MONTHLY.toLocaleString()} a month in crypto sales covers year one, and about $${BREAK_EVEN_ONGOING_MONTHLY.toLocaleString()} a month every year after that. You don't have to decide today either - I can put one in on a trial first and it costs you nothing while it runs."`,
   },
   {
     q: `"How much of my business is even going to use this?"`,
@@ -182,12 +188,12 @@ const SHARED_OBJECTIONS: Objection[] = [
   {
     q: `"What if something goes wrong and I need somebody?"`,
     heard: ['support', 'help', 'someone to call', 'service', 'who do i call'],
-    a: `"Standard membership is $19 and you've got me. If you want NectarPay picking up the phone directly, white-glove is $99 a month. Most shops start standard - you can move up any time."`,
+    a: `"Standard membership is ${MONTHLY_LABEL} and you've got me. If you want NectarPay picking up the phone directly, white-glove is $99 a month. Most shops start standard - you can move up any time."`,
   },
   {
     q: `"Can I try it first?"`,
     heard: ['try', 'trial', 'test', 'demo', 'see it work', 'trial run'],
-    a: `"Yes, and I'd rather you did. I can put a terminal in for a trial and it costs you nothing while it runs - no $499, no monthly, nothing. You take real payments on it. If it earns its place you keep it, and if it doesn't I come get it and we shake hands. That's the whole risk."`,
+    a: `"Yes, and I'd rather you did. I can put a terminal in for a trial and it costs you nothing while it runs - no ${TERMINAL_LABEL}, no monthly, nothing. You take real payments on it. If it earns its place you keep it, and if it doesn't I come get it and we shake hands. That's the whole risk."`,
   },
   {
     q: `"Let me think about it."`,
@@ -212,7 +218,7 @@ const SHARED_CLOSES = (ctx: CallCtx): ClosePath[] => [
   },
   {
     title: '④ The trial',
-    script: `"Here's what I'd rather do. Let me put one in for a trial - costs you nothing while it runs, no $499, no monthly. Take real payments on it. If it earns its place you keep it, if it doesn't I come get it. Fair?"`,
+    script: `"Here's what I'd rather do. Let me put one in for a trial - costs you nothing while it runs, no ${TERMINAL_LABEL}, no monthly. Take real payments on it. If it earns its place you keep it, if it doesn't I come get it. Fair?"`,
     note: 'Trial length is your call. A signed agreement goes in before the terminal does.',
   },
   {
@@ -262,10 +268,10 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
         clusterLabel: 'Napkin-math story',
         hook: [
           `"On your ticket sizes, card processing is real money - roughly 3% comes off the top of every sale, and a delivered sale can still get reversed weeks later."`,
-          `"We put a small terminal by the register that takes crypto - zero processing fee, settles to your own wallet in seconds, can't be charged back. $499 for the terminal, then $19 a month for the membership - never a percentage."`,
+          `"We put a small terminal by the register that takes crypto - zero processing fee, settles to your own wallet in seconds, can't be charged back. ${TERMINAL_LABEL} for the terminal, then ${MONTHLY_LABEL} a month for the membership - never a percentage."`,
         ],
         hookHint: `This cluster buys on arithmetic - get to Discovery fast and let the numbers pitch.`,
-        mathLine: `"So at {vol} a month, that's about {loss} a year going to the card networks. Our whole first year costs $727. That's the entire pitch - you can do that math without me."`,
+        mathLine: `"So at {vol} a month, that's about {loss} a year going to the card networks. Our whole first year costs ${YEAR_ONE_LABEL}. That's the entire pitch - you can do that math without me."`,
       };
     case 'crowd':
       return {
@@ -300,7 +306,7 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
           `"We're the third option: a real terminal - staff types the amount, customer scans, ten seconds - zero processing fee, settlement straight to a wallet you control, instantly. Processor-grade checkout, DIY-grade economics."`,
         ],
         hookHint: `NEVER pitch "have you considered crypto" - open with respect, then the third option.`,
-        mathLine: `"If you're on a processor rail today, run the comparison: their cut on {vol} a month against our flat $19. If you're on a bare QR, you're already at zero - so the pitch is the terminal experience and the directory listing, not the fee."`,
+        mathLine: `"If you're on a processor rail today, run the comparison: their cut on {vol} a month against our flat ${MONTHLY_LABEL}. If you're on a bare QR, you're already at zero - so the pitch is the terminal experience and the directory listing, not the fee."`,
         discovery: [
           { q: `"What are you running today - BitPay-style processor, or your own wallet QR?"`, placeholder: 'BitPay / QR / other' },
           { q: `"Roughly how much crypto volume a month?"`, placeholder: '$2,000' },
