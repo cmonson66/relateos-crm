@@ -92,12 +92,12 @@ export const FIELD_TEMPLATES: FieldTemplate[] = [
 
 {{onePagerUrl}}{{/sheet}}
 
-Short version: it sits by the register and takes crypto with no processing fee, and the money lands in a wallet you own the second they pay. Your card reader keeps doing what it does.
+Short version: it opens a payment lane your register cannot take today, and the money lands in a wallet you own the second they pay, with nothing taken out of it. Your card reader keeps doing what it does.
 
 Any questions, call or text me at {{repCell}}.
 
 {{rep}}`,
-    text: `{{#owner}}{{owner}}, {{/owner}}{{rep}} with NectarPay.{{#sheet}} Here is that one page on the terminal: {{onePagerUrl}}{{/sheet}} No processing fee, money straight to a wallet you own the second they pay. Call or text me with anything.`,
+    text: `{{#owner}}{{owner}}, {{/owner}}{{rep}} with NectarPay.{{#sheet}} Here is that one page on the terminal: {{onePagerUrl}}{{/sheet}} It opens a lane your register cannot take today - money straight to a wallet you own the second they pay, nothing taken out. Call or text me with anything.`,
     wantsSheet: true,
   },
   {
@@ -106,14 +106,14 @@ Any questions, call or text me at {{repCell}}.
     when: "Nobody has contacted them yet and you want to start it yourself.",
     group: "first-touch",
     wantsPulse: true,
-    subject: "Quick question about card fees at {{shop}}",
+    subject: "Somebody already asked at {{shop}}",
     email: `{{#owner}}{{owner}},{{/owner}}{{^owner}}Hi there,{{/owner}}
 
-I work with NectarPay here in {{#city}}{{city}}{{/city}}{{^city}}the Valley{{/city}}, and I am reaching out to a handful of shops directly rather than blasting anyone.
+Somebody has probably already stood at your register and asked whether they could pay another way, and whoever was working said no. Those customers are holding crypto and looking for somewhere in {{#city}}{{city}}{{/city}}{{^city}}the Valley{{/city}} to spend it.
 
-Short version: we make a terminal that sits by the register and lets you take crypto payments with no percentage fee. The money lands in a wallet you own, in seconds, and it cannot be charged back. Whatever you use for cards now keeps working exactly as it does. This is a lane beside it, not a replacement.
+I work with NectarPay. We make a small terminal that sits by the register and opens that lane, about ten seconds a sale. The money lands in a wallet you own before the customer reaches the door, nothing is taken out of it, and it cannot be charged back.
 
-Most owners I talk to are paying two to four percent on every card sale. If that sounds like you, the math is worth two minutes.
+Whatever you use for cards now keeps working exactly as it does. This sits beside it.
 
 {{#pulse}}I put the numbers for {{shop}} on one page: {{pulseUrl}}
 
@@ -121,7 +121,7 @@ Most owners I talk to are paying two to four percent on every card sale. If that
 
 {{rep}}
 {{repCell}}`,
-    text: `{{#owner}}{{owner}}, {{/owner}}this is {{rep}} with NectarPay. We make a terminal that takes crypto with no percentage fee, money straight to a wallet you own, no chargebacks. Cards keep working the same.{{#pulse}} Your numbers: {{pulseUrl}}{{/pulse}} Worth two minutes at a slow hour this week?`,
+    text: `{{#owner}}{{owner}}, {{/owner}}this is {{rep}} with NectarPay. Somebody has probably already asked to pay another way at your register and got told no. We make a small terminal that opens that lane - money in a wallet you own in seconds, nothing taken out. Cards keep working the same.{{#pulse}} Your numbers: {{pulseUrl}}{{/pulse}} Worth two minutes at a slow hour this week?`,
   },
   {
     id: "cold-meeting-ask",
@@ -136,9 +136,9 @@ I am {{rep}} with NectarPay. I am setting up a few short meetings with owners ar
 
 What I would cover, and nothing else:
 
-What you are paying now on card processing, in your own numbers.
-What comes out of a crypto sale instead, which is nothing.
-A live payment on the terminal so you can see it settle rather than take my word for it.
+The customer you are turning away right now, and how often it happens.
+A live payment on the terminal, so you watch the money land rather than take my word for it.
+What you are paying on card processing today, and what comes out of one of these instead, which is nothing.
 
 If it is not a fit after fifteen minutes, I will say so myself and leave you alone.
 
@@ -149,7 +149,7 @@ If it is not a fit after fifteen minutes, I will say so myself and leave you alo
 {{rep}}
 {{repCell}}
 {{repEmail}}`,
-    text: `{{#owner}}{{owner}}, {{/owner}}{{rep}} with NectarPay. Setting up a few 15 minute meetings with owners around {{#city}}{{city}}{{/city}}{{^city}}the area{{/city}} this week. I show you your card fees, what a crypto sale costs instead, and one live payment. What day is quietest for you?`,
+    text: `{{#owner}}{{owner}}, {{/owner}}{{rep}} with NectarPay. Setting up a few 15 minute meetings with owners around {{#city}}{{city}}{{/city}}{{^city}}the area{{/city}} this week. I show you the customer you are turning away, one live payment settling, and what your card fees look like next to it. What day is quietest for you?`,
   },
   {
     id: "cold-neighbor",
@@ -157,14 +157,14 @@ If it is not a fit after fifteen minutes, I will say so myself and leave you alo
     when: "You have a shop live or trialling close by. The strongest cold opener you have.",
     group: "first-touch",
     wantsPulse: true,
-    subject: "A shop near you started taking crypto",
+    subject: "A shop near {{shop}} stopped turning that customer away",
     email: `{{#owner}}{{owner}},{{/owner}}{{^owner}}Hi there,{{/owner}}
 
 A business a few blocks from {{shop}} put in a NectarPay terminal, and I am working my way around the same area.
 
-It takes crypto payments with no percentage fee, and the money lands in a wallet the owner controls within seconds. No chargebacks on those sales, ever. Their card processing did not change at all.
+The reason they did it: they were tired of being the shop that had to say no when somebody asked to pay another way. Now that customer gets served, the money is in a wallet the owner controls within seconds, and nothing is taken out of it. No chargebacks on those sales, ever. Their card processing did not change at all.
 
-I am not going to pretend crypto is most of anyone's business yet. The reason owners do it is that the sales which do move over cost them nothing, and they stop being the shop that has to say no when somebody asks.
+I am not going to pretend crypto is most of anyone's business yet. It is a lane that is closed at your shop today and open at theirs.
 
 {{#pulse}}Here is the same math run on {{shop}}: {{pulseUrl}}
 
@@ -172,7 +172,7 @@ I am not going to pretend crypto is most of anyone's business yet. The reason ow
 
 {{rep}}
 {{repCell}}`,
-    text: `{{#owner}}{{owner}}, {{/owner}}{{rep}} with NectarPay. A shop a few blocks from {{shop}} just started taking crypto with no percentage fee, money straight to their own wallet. I am working the same area this week.{{#pulse}} Your numbers: {{pulseUrl}}{{/pulse}} Two minutes when you are slow?`,
+    text: `{{#owner}}{{owner}}, {{/owner}}{{rep}} with NectarPay. A shop a few blocks from {{shop}} stopped having to say no when somebody asks to pay another way - money in their own wallet in seconds, nothing taken out. I am working the same area this week.{{#pulse}} Your numbers: {{pulseUrl}}{{/pulse}} Two minutes when you are slow?`,
   },
 
   /* ------------------------------------------------------------------ *
@@ -189,7 +189,7 @@ I am not going to pretend crypto is most of anyone's business yet. The reason ow
 
 I came by {{shop}} today and you were out, so I left a one-page rundown with your team.
 
-The short version: NectarPay is a small terminal that sits by the register and lets you take crypto payments with no percentage fee. The money lands in a wallet you own, in seconds. Whatever you use for cards now, Square or Stripe or anything else, keeps working exactly as it does. This just adds a lane beside it.
+The short version: there is a customer who wants to pay you another way and right now your register cannot take it. NectarPay is a small terminal that opens that lane, and the money lands in a wallet you own within seconds with nothing taken out of it. Whatever you use for cards now, Square or Stripe or anything else, keeps working exactly as it does. This just sits beside it.
 
 {{#pulse}}I put a page together for {{shop}} specifically, with the math on your own numbers: {{pulseUrl}}
 
@@ -197,7 +197,7 @@ The short version: NectarPay is a small terminal that sits by the register and l
 
 {{rep}}
 {{repCell}}`,
-    text: `{{#owner}}{{owner}}, {{/owner}}this is {{rep}} with NectarPay. I stopped by {{shop}} today and left a one-pager with your team. It is a terminal that takes crypto with no processing fee, money straight to a wallet you own.{{#pulse}} Details here: {{pulseUrl}}{{/pulse}} What is a slow hour for you?`,
+    text: `{{#owner}}{{owner}}, {{/owner}}this is {{rep}} with NectarPay. I stopped by {{shop}} today and left a one-pager with your team. Short version: a customer wants to pay you a way your register cannot take, and this opens that lane - money in a wallet you own in seconds.{{#pulse}} Details here: {{pulseUrl}}{{/pulse}} What is a slow hour for you?`,
   },
   {
     id: "talked-no-decision",
@@ -210,7 +210,7 @@ The short version: NectarPay is a small terminal that sits by the register and l
 
 Thanks for the few minutes today. I know you did not plan on a sales conversation while you were working.
 
-I am not going to chase you on this. I will say the one thing worth remembering: there is no percentage taken out of a crypto sale, and the money is in your wallet before the customer walks out. That is it. The terminal is ${TERMINAL_LABEL} once, and the membership is ${MONTHLY_LABEL} a month billed annually. No percentage of your sales, ever.
+I am not going to chase you on this. I will say the one thing worth remembering: the money is in your wallet before the customer walks out, and nothing is taken out of it on the way. That is it. The terminal is ${TERMINAL_LABEL} once, and the membership is ${MONTHLY_LABEL} a month billed annually. No percentage of your sales, ever.
 
 {{#pulse}}Everything we talked about is on this page, including the math on your own volume: {{pulseUrl}}
 
@@ -231,7 +231,7 @@ I am not going to chase you on this. I will say the one thing worth remembering:
 
 I came into {{shop}} today and spoke with someone on your team. They were great, and they pointed me here.
 
-I work with NectarPay. We make a small terminal that lets a business take crypto payments with no percentage fee, with the money landing instantly in a wallet the business owns. It sits beside whatever card system you already use rather than replacing it.
+I work with NectarPay. There is a customer who walks in wanting to pay a way your register cannot take, and we make a small terminal that opens that lane - the money lands in a wallet the business owns within seconds, with nothing taken out of it. It sits beside whatever card system you already use rather than replacing it.
 
 I am not asking for a decision by email. I am asking for two minutes with whoever handles payments, at a time that is not the middle of your rush.
 
@@ -380,7 +380,7 @@ If the timing is better now, I need about two minutes and a slow hour. If it is 
 
 We talked a while back about NectarPay and then life happened on both ends.
 
-One thing has changed worth mentioning: CryptoPop is coming, a directory and deals map that points nearby crypto customers toward the shops that take it. Merchants who are already set up get listed. That turns the terminal from something that saves you fees into something that can also bring somebody through the door.
+One thing worth saying that I probably buried last time: the reason owners put this in is not the fee saving. It is that somebody walks in wanting to pay a way the register cannot take, and right now that person gets turned away. This opens that lane, and the money is in a wallet you own before they reach the door.
 
 The rest is the same. ${TERMINAL_LABEL} once, ${MONTHLY_LABEL} a month, no percentage, money straight to a wallet you own, no chargebacks.
 
@@ -390,7 +390,7 @@ The rest is the same. ${TERMINAL_LABEL} once, ${MONTHLY_LABEL} a month, no perce
 
 {{rep}}
 {{repCell}}`,
-    text: `{{#owner}}{{owner}}, {{/owner}}{{rep}} with NectarPay. We talked a while back. New thing: CryptoPop is coming, a directory that points crypto customers to shops that take it, and merchants who are set up get listed.{{#pulse}} {{pulseUrl}}{{/pulse}} Still worth two minutes, or should I close it out?`,
+    text: `{{#owner}}{{owner}}, {{/owner}}{{rep}} with NectarPay. We talked a while back. The part I probably buried: this is about the customer who walks in wanting to pay a way your register cannot take. Money lands in a wallet you own before they reach the door.{{#pulse}} {{pulseUrl}}{{/pulse}} Still worth two minutes, or should I close it out?`,
   },
 
   /* ------------------------------------------------------------------ *

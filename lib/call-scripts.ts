@@ -108,10 +108,15 @@ export type CallScript = {
   objections: Objection[];
 };
 
+// Order matters. The first question sets what the call is about, and the
+// campaign now opens on the customer nobody could serve - so the rep asks
+// about that customer before asking about money. Leading with volume tells an
+// owner this is a processor pitch and re-frames everything the email just did.
 const SHARED_DISCOVERY = [
+  { q: `"Anybody ever ask to pay with crypto at the register?"`, placeholder: 'yes / no / weekly' },
+  { q: `"When they do, what happens - do they pay another way, or do they leave?"`, placeholder: 'pays cash / leaves' },
   { q: `"Roughly what's going through the card reader a month?"`, placeholder: '$12,000' },
   { q: `"Who's your processor now - Square, Clover... ?"`, placeholder: 'Square' },
-  { q: `"Anybody ever ask to pay with crypto at the register?"`, placeholder: 'yes / no / weekly' },
 ];
 
 const SHARED_OBJECTIONS: Objection[] = [
@@ -234,7 +239,7 @@ function opener(ctx: CallCtx): string {
 }
 
 const OPENER_HINTS = [
-  `If "who is this?" - "${'${rep}'} with NectarPay, we set up zero-fee payment lanes for shops like yours. Thirty seconds and you can hang up on me."`,
+  `If "who is this?" - "${'${rep}'} with NectarPay. There's a customer walking into shops like yours who can't pay the way they want. Thirty seconds and you can hang up on me."`,
   `Why "is now terrible": "no" is easier to say than "yes" - let them say no and keep the floor.`,
 ];
 
@@ -255,11 +260,11 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
         ...base,
         clusterLabel: 'Processor-pain story (control)',
         hook: [
-          `"You've probably seen it - a card processor like Square or Stripe decides your industry is 'high risk' and some shop down the street is begging a new processor to take their money at a worse rate."`,
-          `"What we do is simple: a small terminal by your register that takes crypto - zero processing fee, money lands in a wallet you own the second they pay. Nobody can hold it, reverse it, or fire you from it."`,
-          `"Your card reader keeps doing its job. This is the no-fee lane next to it."`,
+          `"You've had customers who couldn't pay you the way they wanted - because Square or Stripe decided your industry was too risky and set the rules on your behalf. Some of those people are holding crypto and would hand it over at the register."`,
+          `"A small terminal opens that lane, and the money goes into a wallet you own the second they pay. Not a processor's account. Yours. Nobody can freeze it, reverse it, or fire you from it."`,
+          `"Your card reader keeps doing its job. This sits beside it."`,
         ],
-        hookHint: `Lead with sovereignty; switch to money if they engage on fees.`,
+        hookHint: `Open on the customer they couldn't serve, then sovereignty. Fees are the third beat, never the first.`,
         mathLine: `"So at {vol} a month, cards are taking about {loss} a year off your top line - and that's before a processor ever gets twitchy about your industry. If even part of that moves to the no-fee lane, the terminal pays for itself the first month."`,
       };
     case 'math':
@@ -267,10 +272,11 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
         ...base,
         clusterLabel: 'Napkin-math story',
         hook: [
-          `"On your ticket sizes, card processing is real money - roughly 3% comes off the top of every sale, and a delivered sale can still get reversed weeks later."`,
-          `"We put a small terminal by the register that takes crypto - zero processing fee, settles to your own wallet in seconds, can't be charged back. ${TERMINAL_LABEL} for the terminal, then ${MONTHLY_LABEL} a month for the membership - never a percentage."`,
+          `"On tickets your size there's a buyer holding crypto who'd rather spend it directly than move it into a bank first and wait. Today that person either pays another way or drives to a shop that takes it."`,
+          `"A small terminal by the register opens that lane, and the money lands in a wallet you own within seconds with nothing taken out of it."`,
+          `"${TERMINAL_LABEL} for the terminal, then ${MONTHLY_LABEL} a month. Never a percentage."`,
         ],
-        hookHint: `This cluster buys on arithmetic - get to Discovery fast and let the numbers pitch.`,
+        hookHint: `Open on the sale they're losing, not on the 3%. This cluster still buys on arithmetic - get to Discovery fast and let the numbers close it.`,
         mathLine: `"So at {vol} a month, that's about {loss} a year going to the card networks. Our whole first year costs ${YEAR_ONE_LABEL}. That's the entire pitch - you can do that math without me."`,
       };
     case 'crowd':
@@ -278,11 +284,11 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
         ...base,
         clusterLabel: 'Young-crowd story',
         hook: [
-          `"Somebody's probably already asked at the register - your crowd skews young, and that's exactly who holds crypto and picks the shops that take it."`,
-          `"We put a small terminal next to your register - crypto payments, zero processing fee, money hits your own wallet instantly. Cards keep working exactly like today."`,
-          `"Being the first spot on the block that takes it is worth more than the fees it saves - and it saves those too."`,
+          `"Somebody's already asked at your register and whoever was working said no. Your crowd skews young, and that's exactly who's holding crypto and looking for somewhere to spend it."`,
+          `"Those customers pick the shops that take it, and they tell each other which ones do. Right now on your block that's nobody."`,
+          `"Small terminal by the register, about ten seconds a sale, and the money's in a wallet you own before they reach the door. Cards keep working exactly like today."`,
         ],
-        hookHint: `Lead with the customers, not the fees - this cluster buys relevance.`,
+        hookHint: `Lead with the customer who got told no. Fees are a bonus here, never the opener - this cluster buys relevance.`,
         mathLine: `"And the fee side isn't nothing either - at {vol} a month, cards take about {loss} a year. The crowd angle gets you customers, the zero-fee side keeps more of what they spend."`,
       };
     case 'simple':
@@ -290,10 +296,11 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
         ...base,
         clusterLabel: 'Final-payment story',
         hook: [
-          `"You know the worst invoice in this business - the one that comes back. Work's finished, service delivered, and weeks later a dispute claws the money back with a fee stacked on top."`,
-          `"We put a terminal by your register that takes crypto - zero fee, and a settled payment is final. No dispute window, no clawbacks. Work done means paid."`,
+          `"There's a customer who'd rather pay you out of what they're already holding than move money into a bank first - and right now you've got no way to take it."`,
+          `"A terminal by the register opens that lane, and the money settles into a wallet you own in seconds."`,
+          `"And once it settles it's final. No dispute window, no clawbacks. You know the worst invoice in this business - the one that comes back weeks later with a fee stacked on top. Not on this lane. Work done means paid."`,
         ],
-        hookHint: `Chargebacks are the wound here - press gently and let them tell you a story.`,
+        hookHint: `Open on the customer, land on the clawback. Chargebacks are the wound here - press gently and let them tell you a story.`,
         mathLine: `"On the fee side, at {vol} a month you're giving the networks about {loss} a year - and every reversed job on top of that. This lane closes both doors."`,
       };
     case 'native':
@@ -306,7 +313,7 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
           `"We're the third option: a real terminal - staff types the amount, customer scans, ten seconds - zero processing fee, settlement straight to a wallet you control, instantly. Processor-grade checkout, DIY-grade economics."`,
         ],
         hookHint: `NEVER pitch "have you considered crypto" - open with respect, then the third option.`,
-        mathLine: `"If you're on a processor rail today, run the comparison: their cut on {vol} a month against our flat ${MONTHLY_LABEL}. If you're on a bare QR, you're already at zero - so the pitch is the terminal experience and the directory listing, not the fee."`,
+        mathLine: `"If you're on a processor rail today, run the comparison: their cut on {vol} a month against our flat ${MONTHLY_LABEL}. If you're on a bare QR you're already at zero - so the pitch is the terminal experience and how fast it settles, not the fee."`,
         discovery: [
           { q: `"What are you running today - BitPay-style processor, or your own wallet QR?"`, placeholder: 'BitPay / QR / other' },
           { q: `"Roughly how much crypto volume a month?"`, placeholder: '$2,000' },
@@ -318,8 +325,8 @@ export function buildScript(vertical: string, cryptoNative: boolean, ctx: CallCt
             script: `"Keep whatever you run today exactly as is - put our terminal beside it for a month and compare the tape. If ours doesn't win on your own numbers, I'll carry it back out myself."`,
           },
           {
-            title: '② The directory anchor',
-            script: `"Either way, we're building the merchant map crypto holders will use to find shops - early listings anchor their neighborhood. Worth being pinned first."`,
+            title: '② Time to money',
+            script: `"Pull one number off whatever you run today: how long between the customer paying and the money being yours to spend. Processor rail, that's a day or two into a bank after their cut. Ours is seconds, into a wallet you hold. Same checkout either way - the difference is all on your side."`,
           },
           ...SHARED_CLOSES(ctx).slice(1, 2),
           SHARED_CLOSES(ctx)[3],

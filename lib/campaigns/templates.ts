@@ -60,8 +60,6 @@ export const CLUSTER_MAP: Record<string, Cluster> = {
   "nail-beauty": "crowd",
   "gaming": "crowd",
   "thrift-vintage": "crowd",
-  "dental-vet": "simple",
-  "event-venue": "simple",
   "crypto-native": "native",
 };
 
