@@ -50,6 +50,8 @@ export async function updateSession(request: NextRequest) {
     // Call-script review. Same rule again: the reviewer is outside the company,
     // has no CRM account, and the token is the credential.
     path.startsWith('/review/') ||
+    // A rep's pitch deck, left behind with a merchant who has no account.
+    path.startsWith('/pitch/') ||
     path === '/locked';
 
   // Not signed in + private path -> /login
