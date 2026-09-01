@@ -47,6 +47,9 @@ export async function updateSession(request: NextRequest) {
     // exists for them, the token is the credential, and every read and write
     // goes through a security-definer RPC.
     path.startsWith('/setup/') ||
+    // Call-script review. Same rule again: the reviewer is outside the company,
+    // has no CRM account, and the token is the credential.
+    path.startsWith('/review/') ||
     path === '/locked';
 
   // Not signed in + private path -> /login
