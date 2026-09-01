@@ -3,7 +3,7 @@
 import { Printer, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import type { CallScript } from '@/lib/call-scripts';
-import { TERMINAL_LABEL, MONTHLY_LABEL, YEAR_ONE_LABEL } from '@/lib/pricing';
+import { TERMINAL_LABEL, MONTHLY_LABEL, YEAR_ONE_LABEL, YEAR_ONE_ROUNDED } from '@/lib/pricing';
 
 const money = (n: number) => '$' + Math.round(n).toLocaleString();
 
@@ -118,7 +118,7 @@ export function WalkInSheet({
               <tr className="border-b border-neutral-300"><td className="py-1">Their card volume / month</td><td className="py-1 text-right font-bold">{money(vol)}</td></tr>
               <tr className="border-b border-neutral-300"><td className="py-1">Lost to card fees / year (~3%)</td><td className="py-1 text-right font-bold">-{money(loss)}</td></tr>
               <tr className="border-b border-neutral-300"><td className="py-1">NectarPay year one, all in</td><td className="py-1 text-right">{YEAR_ONE_LABEL}</td></tr>
-              <tr><td className="py-1 font-bold">Stays in the shop, year one</td><td className="py-1 text-right font-extrabold">+{money(Math.max(0, loss - 727))}</td></tr>
+              <tr><td className="py-1 font-bold">Stays in the shop, year one</td><td className="py-1 text-right font-extrabold">+{money(Math.max(0, loss - YEAR_ONE_ROUNDED))}</td></tr>
             </tbody>
           </table>
           <Say>{script.mathLine.replace('{vol}', money(vol) + ' a month').replace('{loss}', money(loss))}</Say>

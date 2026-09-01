@@ -10,7 +10,7 @@ import { logCallOutcome, type CallOutcome } from '../../actions';
 import { DaySlotPicker } from '@/components/day-slot-picker';
 import type { CallScript } from '@/lib/call-scripts';
 import type { PulseRead } from '@/lib/db/pulse-read';
-import { YEAR_ONE_LABEL, ONGOING_LABEL } from '@/lib/pricing';
+import { YEAR_ONE_LABEL, ONGOING_LABEL, YEAR_ONE_ROUNDED } from '@/lib/pricing';
 
 const STEPS = ['OPENER', 'HOOK', 'DISCOVERY', 'THE MATH', 'CLOSE'] as const;
 
@@ -305,7 +305,7 @@ export function CallMode({ account, contact, intel, recent, script, pulseRead }:
                     <Row k="Lost to card fees / yr (~3%)" v={'-' + money(lossYr)} vClass="text-red-400 font-bold" />
                     <Row k="NectarPay year one, all in" v={YEAR_ONE_LABEL} />
                     <Row k="Every year after" v={ONGOING_LABEL} />
-                    <Row k="Stays in the shop, year one" v={'+' + money(Math.max(0, lossYr - 727))} vClass="text-emerald-400 font-extrabold" last />
+                    <Row k="Stays in the shop, year one" v={'+' + money(Math.max(0, lossYr - YEAR_ONE_ROUNDED))} vClass="text-emerald-400 font-extrabold" last />
                   </div>
                 </div>
                 <Say text={script.mathLine.replace('{vol}', words(vol)).replace('{loss}', money(lossYr))} />
