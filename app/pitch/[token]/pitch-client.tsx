@@ -249,20 +249,21 @@ export function PitchClient({ deck }: { deck: Deck }) {
       {/* 2 more customers */}
       <Slide>
         <Eyebrow>Where this starts</Eyebrow>
-        <Big>A table you are not seating.</Big>
+        <Big>The guest you never hear about.</Big>
         <p className="mt-5 text-[17px] leading-relaxed text-slate-400">
-          Somebody has already stood at one of your registers and asked whether they could pay
-          another way. Whoever was working said no, and that guest ate somewhere else.
+          Somebody may well have asked at one of your registers whether they could pay another way.
+          Most never do. They see the card reader, work out the answer, and pay the way they always
+          have, or they pick somewhere else before they ever walk in.
         </p>
         <p className="mt-4 text-[17px] leading-relaxed text-slate-400">
-          Across {n} dining rooms that is not an odd night. It is a standing answer nobody
-          chose, and it is the one thing here you cannot get back by working harder.
+          That is what makes it hard to see. Nobody complains about a payment option you do not
+          offer. It shows up as a table that was never booked, in {n} rooms, and no shift report
+          will ever name it.
         </p>
         <div className="mt-8 rounded-2xl border border-white/10 p-5">
           <div className="text-[15px] leading-relaxed text-slate-300">
-            The people asking are not hobbyists. They are guests holding money in a form your
-            register cannot take. They pick where to eat partly on who can take it, and they tell
-            each other.
+            What can be counted is what is around you, and that is the next screen. Machines where
+            people turn cash into crypto, and businesses near your rooms already taking it.
           </div>
         </div>
       </Slide>
@@ -411,28 +412,40 @@ export function PitchClient({ deck }: { deck: Deck }) {
       </Slide>
 
       {/* 8 cryptopop */}
-      <Slide tone="light" wide>
+      <Slide wide>
         <Eyebrow>What is being built next</Eyebrow>
         <Big>Being findable, and owning a night.</Big>
-        <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-[#47566B]">
-          Two separate things. One puts you on a map people check before they leave the house. The
-          other puts your name on the event they came out for.
+        <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-slate-400">
+          CryptoPop is two separate things. One puts you on a map people check before they leave
+          the house. The other puts your name on the night they came out for.
         </p>
 
-        <div className="-mx-2 mt-8"><CryptoPopPreview shopName={deck.brand} /></div>
+        <div className="-mx-2 mt-8">
+          <CryptoPopPreview
+            shopName={deck.brand}
+            city={`${loc.city}, AZ`}
+            address={loc.addr}
+            dark
+          />
+        </div>
 
         <div className="mt-10 rounded-2xl bg-[#0C1A2C] p-6 text-slate-200">
           <div className="text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#F2A71B]">
-            Events, and sponsoring them
+            CryptoPop events, and sponsoring them together
           </div>
           <h3 className="mt-2 text-[24px] font-extrabold leading-tight text-white">
             The meetups already happen. Nobody feeds them.
           </h3>
+          <p className="mt-3 text-[15px] leading-relaxed text-slate-400">
+            This is the part we would do with you rather than sell to you. CryptoPop puts the night
+            together and brings the crowd; you put up the room and the food. We are looking for the
+            first restaurant partner in the valley to build that with.
+          </p>
           <div className="mt-5 grid gap-4 lg:grid-cols-3">
             {[
               ['Host it', `A crypto meetup in a private room on a Tuesday is a dead night turned into covers, and every attendee can pay the way they prefer.`],
               ['Sponsor it', `Your name on a night the crowd came out for anyway. You are already paying for the band four nights a week - this is the version where that spend also brings in people who hold the thing your register can now take.`],
-              ['Be on the map', `Post the special yourself and change it whenever you want. The listing is what brings someone in; the terminal takes the payment.`],
+              ['Be on the map', `Your CryptoPop listing, with the special posted by you and changed whenever you want. The listing is what brings someone in; the terminal takes the payment.`],
             ].map(([t, b]) => (
               <div key={t} className="rounded-xl bg-white/5 p-4">
                 <div className="text-[15px] font-extrabold text-[#F2A71B]">{t}</div>
@@ -441,9 +454,10 @@ export function PitchClient({ deck }: { deck: Deck }) {
             ))}
           </div>
           <p className="mt-5 border-t border-white/10 pt-4 text-[13px] leading-relaxed text-slate-500">
-            Straight with you: the events and the listing are in development and are not part of
-            what you would be buying. The terminal has to earn its place on the fee saving and the
-            guests it seats. Everything on this slide is upside on top of that.
+            Straight with you: CryptoPop is in development. The listing and the events are not part
+            of what you would be buying today and there is no launch date on them. The terminal has
+            to earn its place on the fee saving and the guests it seats. Everything on this slide is
+            upside on top of that, and a conversation we want to have with you first.
           </p>
         </div>
       </Slide>

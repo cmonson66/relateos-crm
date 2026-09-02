@@ -14,7 +14,17 @@ import { CRYPTOPOP_CSS } from "./cryptopop-css";
  * convincing screenshot is exactly how someone ends up believing they were
  * promised a listing. It ships with the mockup, always.
  */
-export function CryptoPopPreview({ shopName }: { shopName?: string | null }) {
+export function CryptoPopPreview({
+  shopName,
+  city,
+  address,
+  dark,
+}: {
+  shopName?: string | null;
+  city?: string | null;
+  address?: string | null;
+  dark?: boolean;
+}) {
   const label = shopName?.trim() || 'Your location';
   const initials = label
     .replace(/[^A-Za-z ]/g, '')
@@ -25,7 +35,7 @@ export function CryptoPopPreview({ shopName }: { shopName?: string | null }) {
     .join('') || 'YL';
 
   return (
-    <div className="cp">
+    <div className={dark ? 'cp cp-dark' : 'cp'}>
       <style dangerouslySetInnerHTML={{ __html: CRYPTOPOP_CSS }} />
 
       <div className="cp-head">
@@ -51,7 +61,7 @@ export function CryptoPopPreview({ shopName }: { shopName?: string | null }) {
 
         <div className="statusbar">
         <span>5:11</span>
-        <span className="right">Glendale, AZ</span>
+        <span className="right">{city || 'Glendale, AZ'}</span>
         </div>
 
         <div className="searchrow">
@@ -141,7 +151,7 @@ export function CryptoPopPreview({ shopName }: { shopName?: string | null }) {
         <div className="logo">{initials}</div>
         <div>
         <div className="oc-name">{label}</div>
-        <div className="oc-meta">0.0 mi &middot; 1850 W Happy Valley Rd</div>
+        <div className="oc-meta">0.0 mi &middot; {address || '1850 W Happy Valley Rd'}</div>
         <div className="oc-offer">10% back when you pay in crypto</div>
         </div>
         <div className="oc-right">

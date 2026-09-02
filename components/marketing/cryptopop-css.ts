@@ -112,4 +112,44 @@ export const CRYPTOPOP_CSS = `
 .cp-note{margin-top:28px;padding:15px 17px;border-radius:14px;border:1px solid rgba(242,167,27,.3);
   background:rgba(242,167,27,.07);font-size:13px;color:rgba(248,244,234,.82);line-height:1.6}
 .cp-note b{color:var(--honey)}
+
+/* ---------------- dark map ----------------
+   The phone mockup was built as a light maps app on a dark page. On a phone,
+   in a restaurant, that bright screen inside a dark deck is the one thing that
+   reads as a different website. These overrides invert the map surfaces only -
+   the pins, offers and brand colours are untouched, because those are the part
+   a merchant is meant to look at. */
+.cp.cp-dark{--land:#101b2b;--label:#8a94a3}
+.cp.cp-dark .screen{background:#0b1422}
+.cp.cp-dark .statusbar{background:#0f1a2a;color:#e5e9f0}
+.cp.cp-dark .statusbar .right{color:#94a3b8}
+.cp.cp-dark .searchrow{background:#0f1a2a}
+.cp.cp-dark .search{background:#16233a;border-color:#25344d;color:#7c8798}
+.cp.cp-dark .saved{background:#16233a;border-color:#25344d;color:#4ade80}
+.cp.cp-dark .avatar{background:#16233a;border-color:#25344d;color:#94a3b8}
+.cp.cp-dark .tabs{background:#0f1a2a;border-bottom-color:#1c2940}
+.cp.cp-dark .tab{color:#8a94a3}
+.cp.cp-dark .tab.on{color:var(--honey)}
+.cp.cp-dark .chip{background:#16233a;color:#cbd5e1;box-shadow:0 2px 7px rgba(0,0,0,.45)}
+.cp.cp-dark .pill{background:#1b2942;box-shadow:0 2px 9px rgba(0,0,0,.5)}
+.cp.cp-dark .pill .val{color:#f1f5f9}
+.cp.cp-dark .pin::after{background:#1b2942;box-shadow:none}
+.cp.cp-dark .pin.mine .pill{background:var(--honey)}
+.cp.cp-dark .pin.mine .val{color:var(--navy)}
+.cp.cp-dark .pin.mine .ic{background:var(--navy);color:var(--honey)}
+.cp.cp-dark .pin.mine::after{background:var(--honey)}
+.cp.cp-dark .offercard{background:#16233a;box-shadow:0 6px 26px rgba(0,0,0,.6)}
+.cp.cp-dark .oc-name{color:#f8fafc}
+.cp.cp-dark .oc-meta{color:#94a3b8}
+.cp.cp-dark .oc-offer{color:#4ade80}
+.cp.cp-dark .instore{background:rgba(74,222,128,.14);color:#4ade80}
+.cp.cp-dark .logo{background:var(--honey);color:var(--navy)}
+.cp.cp-dark .swipe{background:#16233a;box-shadow:0 -2px 12px rgba(0,0,0,.4)}
+.cp.cp-dark .swipe span{color:#cbd5e1}
+.cp.cp-dark .grab{background:#334155}
+.cp.cp-dark .nav{background:#0f1a2a;border-top-color:#1c2940}
+.cp.cp-dark .nav div{color:#64748b}
+.cp.cp-dark .nav div.on{color:var(--honey)}
+.cp.cp-dark .locate{background:#16233a;color:#60a5fa;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+.cp.cp-dark .youdot{border-color:#0b1422}
 `;
