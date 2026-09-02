@@ -15,6 +15,15 @@ import { CRYPTOPOP_CSS } from "./cryptopop-css";
  * promised a listing. It ships with the mockup, always.
  */
 export function CryptoPopPreview({ shopName }: { shopName?: string | null }) {
+  const label = shopName?.trim() || 'Your location';
+  const initials = label
+    .replace(/[^A-Za-z ]/g, '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join('') || 'YL';
+
   return (
     <div className="cp">
       <style dangerouslySetInnerHTML={{ __html: CRYPTOPOP_CSS }} />
@@ -23,7 +32,7 @@ export function CryptoPopPreview({ shopName }: { shopName?: string | null }) {
         <div>
           <div className="cp-eyebrow">Coming for merchants who take crypto</div>
           <h2 className="cp-h2">
-            {shopName ? `${shopName}, on the map` : "Your shop, on the map"} people check before
+            {`${label}, on the map`} people check before
             they leave the house.
           </h2>
           <p className="cp-lede">
@@ -121,7 +130,7 @@ export function CryptoPopPreview({ shopName }: { shopName?: string | null }) {
         </div>
 
         <div className="pin mine" style={{left: "53%", top: "64%"}}>
-        <div className="pill"><span className="ic">&#127838;</span><span className="val">10% back &middot; your shop</span></div>
+        <div className="pill"><span className="ic">&#127838;</span><span className="val">10% back &middot; you</span></div>
         </div>
         <div className="youdot" style={{left: "53%", top: "68%"}}></div>
 
@@ -129,9 +138,9 @@ export function CryptoPopPreview({ shopName }: { shopName?: string | null }) {
         </div>
 
         <div className="offercard">
-        <div className="logo">YS</div>
+        <div className="logo">{initials}</div>
         <div>
-        <div className="oc-name">Your Shop</div>
+        <div className="oc-name">{label}</div>
         <div className="oc-meta">0.0 mi &middot; 1850 W Happy Valley Rd</div>
         <div className="oc-offer">10% back when you pay in crypto</div>
         </div>
