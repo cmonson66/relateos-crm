@@ -21,8 +21,12 @@ export type Loc = {
   near: (Atm & { m: number })[];
   near_merch: { n: string; k: string; m: number }[];
 };
+export type Pick = {
+  label: string; headline: string; body: string;
+  stat: string; stat_label: string; tone: 'amber' | 'green';
+};
 export type Deck = {
-  brand: string; subtitle: string; test_location: string;
+  brand: string; subtitle: string; picks: Pick[];
   reps: { name: string; phone: string; role: string }[];
   locations: Loc[]; atms: Atm[]; merchants: Merchant[];
 };
@@ -115,8 +119,8 @@ function DensityMap({
 
 /* ----------------------------------------------------------- CALCULATOR --- */
 function Calculator({ locations }: { locations: number }) {
-  const [vol, setVol] = useState(38000);
-  const [share, setShare] = useState(4);
+  const [vol, setVol] = useState(100000);
+  const [share, setShare] = useState(5);
 
   const cardCostMo = vol * CARD_FEE_PCT;
   const movedMo = vol * (share / 100);
@@ -132,15 +136,15 @@ function Calculator({ locations }: { locations: number }) {
         Card volume, one location, per month
       </label>
       <div className="mt-1 text-[32px] font-extrabold text-white">{usd0(vol)}</div>
-      <input type="range" min={5000} max={150000} step={1000} value={vol}
+      <input type="range" min={10000} max={500000} step={5000} value={vol}
              onChange={(e) => setVol(Number(e.target.value))}
              className="mt-2 w-full accent-[#F2A71B]" aria-label="Monthly card volume" />
 
       <label className="mt-5 block text-[11px] font-bold uppercase tracking-wider text-slate-500">
-        Share of it that moves to the new lane
+        Share of it that moves to the new lane - you set this
       </label>
       <div className="mt-1 text-[32px] font-extrabold text-white">{share}%</div>
-      <input type="range" min={1} max={15} step={1} value={share}
+      <input type="range" min={1} max={25} step={1} value={share}
              onChange={(e) => setShare(Number(e.target.value))}
              className="mt-2 w-full accent-[#F2A71B]" aria-label="Share moving to crypto" />
 
@@ -209,12 +213,13 @@ const Big = ({ children }: { children: React.ReactNode }) => (
 /* ----------------------------------------------------------------- DECK --- */
 export function PitchClient({ deck }: { deck: Deck }) {
   const n = deck.locations.length;
-  const testIndex = Math.max(0, deck.locations.findIndex((l) => l.label === deck.test_location));
-  const [sel, setSel] = useState(testIndex);
+  const firstPick = deck.picks[0]?.label;
+  const [sel, setSel] = useState(
+    Math.max(0, deck.locations.findIndex((l) => l.label === firstPick))
+  );
   const [layer, setLayer] = useState<'atm' | 'merch' | 'both'>('both');
 
   const loc = deck.locations[sel];
-  const test = deck.locations[testIndex];
   const oneTime = TERMINAL_ONCE * n;
   const monthly = MEMBERSHIP_MONTHLY * n;
   const yearOne = YEAR_ONE_ROUNDED * n;
@@ -279,8 +284,8 @@ export function PitchClient({ deck }: { deck: Deck }) {
         <Big>Ten seconds. Nothing else changes.</Big>
         <div className="mt-7 grid gap-4 lg:grid-cols-3">
           {[
-            ['Server rings it', 'They type the amount into a small terminal by the register, the same way they already run a card.'],
-            ['Guest scans', 'A code appears on the screen. The guest scans it with their phone.'],
+            ['Server rings it', 'The terminal is handheld. It goes to the table the same way a card reader does, or stays by the register if that suits the room better.'],
+            ['Guest scans', 'A code comes up on the screen and the guest scans it with their phone. If there is a discount running that night, it rides on the same code.'],
             ['Money is yours', 'It lands in an account you own before they stand up. No batch, no waiting on Tuesday.'],
           ].map(([t, b], i) => (
             <div key={t} className="rounded-2xl border border-white/10 p-4">
@@ -345,31 +350,37 @@ export function PitchClient({ deck }: { deck: Deck }) {
         </p>
       </Slide>
 
-      {/* 6 the test location */}
+      {/* 6 where to start */}
       <Slide tone="light" wide>
-        <Eyebrow>Which room to try it in</Eyebrow>
-        <Big>{test.label}.</Big>
-        <div className="mt-6 grid gap-4 lg:grid-cols-2">
-          <div className="rounded-2xl bg-[#0C1A2C] p-5 text-slate-200">
-            <div className="text-[44px] font-extrabold leading-none text-[#F2A71B]">
-              {test.nearest_m < 1000 ? `${test.nearest_m}m` : `${(test.nearest_m / 1609).toFixed(1)}mi`}
+        <Eyebrow>Where to start</Eyebrow>
+        <Big>Two rooms, two different questions.</Big>
+        <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-[#47566B]">
+          They are not the same test, which is the argument for running both. One asks whether an
+          event night carries it. The other asks whether the street walks in on its own.
+        </p>
+
+        <div className="mt-7 grid gap-4 lg:grid-cols-2">
+          {deck.picks.map((p) => (
+            <div key={p.label} className="rounded-2xl bg-[#0C1A2C] p-6 text-slate-200">
+              <div className="text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#C9820A]">
+                {p.label}
+              </div>
+              <div className={`mt-3 text-[40px] font-extrabold leading-none ${
+                p.tone === 'green' ? 'text-[#4ADE80]' : 'text-[#F2A71B]'}`}>
+                {p.stat}
+              </div>
+              <div className="mt-1 text-[12px] uppercase tracking-wider text-slate-500">
+                {p.stat_label}
+              </div>
+              <h3 className="mt-4 text-[19px] font-extrabold leading-snug text-white">{p.headline}</h3>
+              <p className="mt-2 text-[15px] leading-relaxed text-slate-400">{p.body}</p>
             </div>
-            <p className="mt-2 text-[15px] leading-relaxed text-slate-300">
-              from the front door to {test.nearest_name}. Someone standing there is turning cash
-              into crypto right now.
-            </p>
-          </div>
-          <div className="rounded-2xl bg-[#0C1A2C] p-5 text-slate-200">
-            <div className="text-[44px] font-extrabold leading-none text-[#4ADE80]">{test.merch_food_5000}</div>
-            <p className="mt-2 text-[15px] leading-relaxed text-slate-300">
-              restaurants within three miles take it today. You would not be joining a crowd. You
-              would be the only table in the neighbourhood that can seat them.
-            </p>
-          </div>
+          ))}
         </div>
+
         <p className="mt-6 text-[16px] leading-relaxed text-[#47566B]">
-          Two weeks, no charge, real guests. If it does not earn its place we carry it back out
-          and the other {n - 1} rooms never hear about it.
+          Two weeks, no charge, real guests, in both. If they do not earn their place we carry them
+          back out and the other {n - deck.picks.length} rooms never hear about it.
         </p>
       </Slide>
 
@@ -476,11 +487,16 @@ export function PitchClient({ deck }: { deck: Deck }) {
       <Slide tone="amber">
         <Eyebrow>The ask</Eyebrow>
         <h2 className="text-[32px] font-extrabold leading-[1.1] tracking-tight lg:text-[44px]">
-          One terminal, {test.label}, two weeks.
+          {deck.picks.map((p) => p.label).join(' and ')}. Two weeks.
         </h2>
         <p className="mt-5 text-[17px] leading-relaxed">
-          It costs nothing while it runs. You keep every payment it takes. If it has not earned its
-          place by the end of it, we carry it back out and that is the end of the conversation.
+          A terminal in each. It costs nothing while it runs and you keep every payment it takes.
+          If they have not earned their place by the end of it, we carry them back out and that is
+          the end of the conversation.
+        </p>
+        <p className="mt-4 text-[17px] leading-relaxed">
+          If they do earn it, the other {n - deck.picks.length} rooms are a phone call, not another
+          meeting.
         </p>
         <div className="mt-10 flex flex-wrap gap-4">
           {deck.reps.map((r) => (
