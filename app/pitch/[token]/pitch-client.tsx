@@ -42,7 +42,7 @@ function DensityMap({
 }) {
   const W = 400, H = 440, PAD = 30;
 
-  const project = useMemo(() => {
+  const { project, k } = useMemo(() => {
     const pts = [...deck.locations, ...deck.atms, ...deck.merchants];
     const lats = pts.map((p) => p.lat), lngs = pts.map((p) => p.lng);
     const minLat = Math.min(...lats), maxLat = Math.max(...lats);
@@ -50,10 +50,24 @@ function DensityMap({
     const k = Math.min((W - PAD * 2) / (maxLng - minLng), (H - PAD * 2) / (maxLat - minLat));
     const ox = PAD + ((W - PAD * 2) - (maxLng - minLng) * k) / 2;
     const oy = PAD + ((H - PAD * 2) - (maxLat - minLat) * k) / 2;
-    return (lat: number, lng: number): [number, number] => [
-      ox + (lng - minLng) * k, oy + (maxLat - lat) * k,
-    ];
+    return {
+      k,
+      project: (lat: number, lng: number): [number, number] => [
+        ox + (lng - minLng) * k, oy + (maxLat - lat) * k,
+      ],
+    };
   }, [deck]);
+
+  // Three miles, in degrees, at this latitude. Longitude degrees are shorter
+  // than latitude degrees here, so the ring is an ellipse in projected space -
+  // drawing a circle would overstate the east-west reach by about a fifth.
+  const RADIUS_KM = 4.828;
+  const rx = (RADIUS_KM / 92.9) * k;
+  const ry = (RADIUS_KM / 110.9) * k;
+  const sel = deck.locations[selected];
+  const [cx, cy] = project(sel.lat, sel.lng);
+  const within = (lat: number, lng: number) =>
+    ((lng - sel.lng) / (RADIUS_KM / 92.9)) ** 2 + ((lat - sel.lat) / (RADIUS_KM / 110.9)) ** 2 <= 1;
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full"
@@ -83,9 +97,10 @@ function DensityMap({
 
       {(layer === 'merch' || layer === 'both') && deck.merchants.map((m, i) => {
         const [x, y] = project(m.lat, m.lng);
+        const near = within(m.lat, m.lng);
         return (
-          <g key={`m${i}`}>
-            <circle cx={x} cy={y} r="15" fill="url(#merchGlow)" />
+          <g key={`m${i}`} opacity={near ? 1 : 0.22}>
+            {near && <circle cx={x} cy={y} r="15" fill="url(#merchGlow)" />}
             <rect x={x - 2} y={y - 2} width="4" height="4" fill="#60A5FA" />
           </g>
         );
@@ -93,13 +108,20 @@ function DensityMap({
 
       {(layer === 'atm' || layer === 'both') && deck.atms.map((a, i) => {
         const [x, y] = project(a.lat, a.lng);
+        const near = within(a.lat, a.lng);
         return (
-          <g key={`a${i}`}>
-            <circle cx={x} cy={y} r="16" fill="url(#atmGlow)" />
+          <g key={`a${i}`} opacity={near ? 1 : 0.22}>
+            {near && <circle cx={x} cy={y} r="16" fill="url(#atmGlow)" />}
             <circle cx={x} cy={y} r="2.4" fill="#4ADE80" />
           </g>
         );
       })}
+
+      {/* The three-mile ring every number on the panel is measured inside. */}
+      <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="none"
+               stroke="#F2A71B" strokeOpacity="0.5" strokeWidth="1.4" strokeDasharray="5 4" />
+      <text x={cx} y={cy - ry - 6} textAnchor="middle" fontSize="9"
+            fill="#C9820A" fontWeight="700">3 miles</text>
 
       {deck.locations.map((l, i) => {
         const [x, y] = project(l.lat, l.lng);
@@ -257,13 +279,13 @@ export function PitchClient({ deck }: { deck: Deck }) {
         </p>
         <p className="mt-4 text-[17px] leading-relaxed text-slate-400">
           That is what makes it hard to see. Nobody complains about a payment option you do not
-          offer. It shows up as a table that was never booked, in {n} rooms, and no shift report
+          offer. It shows up as a table that was never booked, in {n} locations, and no shift report
           will ever name it.
         </p>
         <div className="mt-8 rounded-2xl border border-white/10 p-5">
           <div className="text-[15px] leading-relaxed text-slate-300">
             What can be counted is what is around you, and that is the next screen. Machines where
-            people turn cash into crypto, and businesses near your rooms already taking it.
+            people turn cash into crypto, and businesses near your locations already taking it.
           </div>
         </div>
       </Slide>
@@ -285,7 +307,7 @@ export function PitchClient({ deck }: { deck: Deck }) {
         <Big>Ten seconds. Nothing else changes.</Big>
         <div className="mt-7 grid gap-4 lg:grid-cols-3">
           {[
-            ['Server rings it', 'The terminal is handheld. It goes to the table the same way a card reader does, or stays by the register if that suits the room better.'],
+            ['Server rings it', 'The terminal is handheld. It goes to the table the same way a card reader does, or stays by the register if that suits the floor better.'],
             ['Guest scans', 'A code comes up on the screen and the guest scans it with their phone. If there is a discount running that night, it rides on the same code.'],
             ['Money is yours', 'It lands in an account you own before they stand up. No batch, no waiting on Tuesday.'],
           ].map(([t, b], i) => (
@@ -296,10 +318,26 @@ export function PitchClient({ deck }: { deck: Deck }) {
             </div>
           ))}
         </div>
-        <p className="mt-6 rounded-xl bg-white/5 p-4 text-[15px] leading-relaxed text-slate-300">
-          Your card readers keep doing exactly what they do today. No switching processors, no
-          retraining a floor, no change to a single ticket that runs the way it runs now.
-        </p>
+        <div className="mt-6 grid gap-3 lg:grid-cols-2">
+          <p className="rounded-xl bg-white/5 p-4 text-[15px] leading-relaxed text-slate-300">
+            Your card readers keep doing exactly what they do today. No switching processors, no
+            retraining a floor, no change to a single ticket that runs the way it runs now.
+          </p>
+          <div className="rounded-xl border border-[#F2A71B]/40 bg-[#F2A71B]/5 p-4">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#F2A71B]">
+              Whatever they already hold
+            </div>
+            <p className="mt-1.5 text-[15px] leading-relaxed text-slate-300">
+              Bitcoin, Ethereum, XRP, a stablecoin - the guest pays out of the wallet they already
+              carry rather than buying something first. That is the whole reason this reaches
+              people a single-coin setup never would.
+            </p>
+            <p className="mt-2 text-[13px] leading-relaxed text-slate-500">
+              You decide what happens next: hold it, or convert to dollars. Converting carries a
+              fee like any exchange, and it is your call rather than ours.
+            </p>
+          </div>
+        </div>
       </Slide>
 
       {/* 5 the map */}
@@ -332,16 +370,22 @@ export function PitchClient({ deck }: { deck: Deck }) {
           <div className="rounded-2xl bg-white/5 p-4">
             <div className="text-[19px] font-extrabold">{loc.label}</div>
             <div className="text-[12px] text-slate-500">{loc.addr}</div>
-            <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-              <Stat v={loc.atm_1600} k="machines within a mile" tone="green" />
-              <Stat v={loc.merch_5000} k="businesses within three miles" tone="blue" />
-              <Stat v={loc.nearest_m < 1000 ? `${loc.nearest_m}m` : `${(loc.nearest_m / 1609).toFixed(1)}mi`}
-                    k="nearest machine" tone="amber" />
+            <div className="mt-4 grid grid-cols-2 gap-2 text-center">
+              <Stat v={loc.atm_1600} k="cash machines within a mile" tone="green" />
+              <Stat v={loc.nearest_m < 1000 ? `${loc.nearest_m}m` : `${(loc.nearest_m / 1609).toFixed(1)} mi`}
+                    k="to the nearest one" tone="amber" />
+              <Stat v={loc.merch_5000} k="businesses taking crypto within three miles" tone="blue" />
+              <Stat v={loc.merch_food_5000} k="of those that are restaurants" tone="blue" />
             </div>
             <p className="mt-4 text-[14px] leading-relaxed text-slate-400">
-              Closest machine is {loc.nearest_name}. {loc.merch_food_5000 === 0
-                ? `And there is not one restaurant inside three miles of this location taking it. The demand is on the street; there is nowhere on this block to spend it.`
-                : `${loc.merch_food_5000} restaurant${loc.merch_food_5000 === 1 ? '' : 's'} within three miles already take it.`}
+              Nearest machine is {loc.nearest_name}, {loc.nearest_m < 1000
+                ? `${loc.nearest_m} metres away`
+                : `${(loc.nearest_m / 1609).toFixed(1)} miles away`}.{' '}
+              {loc.merch_5000 === 0
+                ? `Nothing within three miles takes crypto today, restaurant or otherwise. You would be the first thing on this map.`
+                : loc.merch_food_5000 === 0
+                ? `${loc.merch_5000} ${loc.merch_5000 === 1 ? 'business takes' : 'businesses take'} it within three miles, and not one is a restaurant. Somewhere to buy it, nowhere to eat with it.`
+                : `${loc.merch_food_5000} of the ${loc.merch_5000} are restaurants, so guests here already have somewhere else to go.`}
             </p>
           </div>
         </div>
@@ -354,7 +398,7 @@ export function PitchClient({ deck }: { deck: Deck }) {
       {/* 6 where to start */}
       <Slide tone="light" wide>
         <Eyebrow>Where to start</Eyebrow>
-        <Big>Two rooms, two different questions.</Big>
+        <Big>Two locations, two different questions.</Big>
         <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-[#47566B]">
           They are not the same test, which is the argument for running both. One asks whether an
           event night carries it. The other asks whether the street walks in on its own.
@@ -381,7 +425,7 @@ export function PitchClient({ deck }: { deck: Deck }) {
 
         <p className="mt-6 text-[16px] leading-relaxed text-[#47566B]">
           Two weeks, no charge, real guests, in both. If they do not earn their place we carry them
-          back out and the other {n - deck.picks.length} rooms never hear about it.
+          back out and the other {n - deck.picks.length} locations never hear about it.
         </p>
       </Slide>
 
@@ -437,14 +481,16 @@ export function PitchClient({ deck }: { deck: Deck }) {
             The meetups already happen. Nobody feeds them.
           </h3>
           <p className="mt-3 text-[15px] leading-relaxed text-slate-400">
-            This is the part we would do with you rather than sell to you. CryptoPop puts the night
-            together and brings the crowd; you put up the room and the food. We are looking for the
-            first restaurant partner in the valley to build that with.
+            This is the part we would do with you rather than sell to you, and the money runs
+            toward you. CryptoPop sponsors the night - picking up the free appetisers, or the first
+            round, or whatever gets people through the door - and brings the crowd to it. You put
+            up the floor. We are looking for the first restaurant partner in the valley to build
+            that with.
           </p>
           <div className="mt-5 grid gap-4 lg:grid-cols-3">
             {[
-              ['Host it', `A crypto meetup in a private room on a Tuesday is a dead night turned into covers, and every attendee can pay the way they prefer.`],
-              ['Sponsor it', `Your name on a night the crowd came out for anyway. You are already paying for the band four nights a week - this is the version where that spend also brings in people who hold the thing your register can now take.`],
+              ['We sponsor it', `CryptoPop pays for the draw - appetisers on the house, a first round, whatever fits the night. You are not buying an audience, you are hosting one somebody else paid to bring.`],
+              ['Your name on it', `The night runs under your roof and your sign. You are already paying for the band four nights a week - this is the version where somebody else pays to fill the room underneath it.`],
               ['Be on the map', `Your CryptoPop listing, with the special posted by you and changed whenever you want. The listing is what brings someone in; the terminal takes the payment.`],
             ].map(([t, b]) => (
               <div key={t} className="rounded-xl bg-white/5 p-4">
@@ -464,7 +510,7 @@ export function PitchClient({ deck }: { deck: Deck }) {
 
       {/* 9 the cost */}
       <Slide wide>
-        <Eyebrow>All {n} rooms</Eyebrow>
+        <Eyebrow>All {n} locations</Eyebrow>
         <Big>What the group costs.</Big>
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <div className="space-y-2">
@@ -509,7 +555,7 @@ export function PitchClient({ deck }: { deck: Deck }) {
           the end of the conversation.
         </p>
         <p className="mt-4 text-[17px] leading-relaxed">
-          If they do earn it, the other {n - deck.picks.length} rooms are a phone call, not another
+          If they do earn it, the other {n - deck.picks.length} locations are a phone call, not another
           meeting.
         </p>
         <div className="mt-10 flex flex-wrap gap-4">
