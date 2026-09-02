@@ -431,7 +431,7 @@ export function PitchClient({ deck }: { deck: Deck }) {
           <div className="mt-5 grid gap-4 lg:grid-cols-3">
             {[
               ['Host it', `A crypto meetup in a private room on a Tuesday is a dead night turned into covers, and every attendee can pay the way they prefer.`],
-              ['Sponsor it', `Your name on an event the crowd came out for, in front of exactly the people who hold the thing your register will now take.`],
+              ['Sponsor it', `Your name on a night the crowd came out for anyway. You are already paying for the band four nights a week - this is the version where that spend also brings in people who hold the thing your register can now take.`],
               ['Be on the map', `Post the special yourself and change it whenever you want. The listing is what brings someone in; the terminal takes the payment.`],
             ].map(([t, b]) => (
               <div key={t} className="rounded-xl bg-white/5 p-4">
