@@ -195,7 +195,7 @@ const SHARED_OBJECTIONS: Objection[] = [
   {
     q: `"What if something goes wrong and I need somebody?"`,
     heard: ['support', 'help', 'someone to call', 'service', 'who do i call'],
-    a: `"Standard membership is ${MONTHLY_LABEL} a terminal and you've got me. If you want NectarPay picking up the phone directly, preferred service is ${PREFERRED_LABEL} a month. And if you're running five terminals or more, the group plan is ${MULTI_PREFERRED_LABEL} flat with preferred included - which is less than you'd pay on the basic plan for that many. Most single-location shops start basic and never move."`,
+    a: `"Standard membership is ${MONTHLY_LABEL} a terminal and you've got me. If you want NectarPay picking up the phone directly, preferred is ${PREFERRED_LABEL} a terminal. Here's the part worth knowing: if you run more than one terminal, the group plan is ${MULTI_PREFERRED_LABEL} flat with preferred included - so at two terminals it's the same money as preferred, and at three it's cheaper than preferred by fifty a month. Most single-location shops start basic and never move."`,
 
   },
   {

@@ -96,31 +96,34 @@ export const BREAK_EVEN_LINE =
  * MEMBERSHIP TIERS (Sep 2). Three of them:
  *
  *   basic            $24.99   per terminal
- *   preferred        $49.99   service upgrade - replaces the old $99 white
- *                             glove, which is a $49.01 cut
- *   multi preferred  $99.99   flat for a merchant running several terminals,
+ *   preferred        $49.99   per terminal - replaces the old $99 white glove
+ *   multi preferred  $99.99   FLAT for a merchant running several terminals,
  *                             preferred service included
  *
- * THE THING A REP NEEDS TO KNOW: the crossover is exactly four terminals.
- * Below five, basic per terminal is cheaper. At five or more, the multi
- * preferred tier costs LESS than basic does - $99.99 against $124.95 at five,
- * against $199.92 at eight. So a merchant with five or more terminals who
- * stays on basic is paying more for less. There is no reason for that
- * conversation to be hard.
+ * TWO CROSSOVERS, and reps need both because they answer different questions.
  *
- * STILL UNCONFIRMED, flagged for Tim Blake: whether preferred at $49.99 is
- * per terminal or per account, and whether a multi-terminal merchant can stay
- * on basic at all or has to take the flat tier.
+ * Against basic, the flat tier wins at five terminals ($99.99 vs $124.95). A
+ * merchant with five or more sitting on basic is paying more for less.
+ *
+ * Against preferred, it wins at TWO ($99.99 vs $99.98 is a one cent wash, and
+ * by three it is $99.99 against $149.97). So any merchant who wants us on the
+ * phone and runs more than one terminal belongs on the flat tier - preferred
+ * per terminal is only ever the right answer for a single-terminal shop.
+ *
+ * STILL UNCONFIRMED, flagged for Tim Blake: whether a merchant with several
+ * terminals can stay on basic at all, or has to take the flat tier.
  * ------------------------------------------------------------------------- */
 
 export type MembershipTier = 'basic' | 'preferred' | 'multi';
 
 export const BASIC_MONTHLY = MEMBERSHIP_MONTHLY;      // 24.99, per terminal
-export const PREFERRED_MONTHLY = 49.99;               // service upgrade
+export const PREFERRED_MONTHLY = 49.99;               // per terminal
 export const MULTI_PREFERRED_MONTHLY = 99.99;         // flat, several terminals
 
-/** Where the flat tier starts beating basic outright. */
-export const MULTI_TERMINAL_MIN_TERMINALS = 5;
+/** Where the flat tier beats basic per terminal. */
+export const MULTI_BEATS_BASIC_AT = 5;
+/** Where the flat tier beats preferred per terminal. */
+export const MULTI_BEATS_PREFERRED_AT = 2;
 
 export const BASIC_LABEL = `$${BASIC_MONTHLY.toFixed(2)}`;
 export const PREFERRED_LABEL = `$${PREFERRED_MONTHLY.toFixed(2)}`;
@@ -129,17 +132,21 @@ export const MULTI_PREFERRED_LABEL = `$${MULTI_PREFERRED_MONTHLY.toFixed(2)}`;
 /** Membership per month for `terminals` devices on a given tier. */
 export function membershipMonthlyFor(terminals: number, tier: MembershipTier = 'basic'): number {
   if (tier === 'multi') return MULTI_PREFERRED_MONTHLY;
-  if (tier === 'preferred') return PREFERRED_MONTHLY;
+  if (tier === 'preferred') return PREFERRED_MONTHLY * terminals;
   return BASIC_MONTHLY * terminals;
 }
 
 /**
- * The tier a merchant should actually be quoted - never the one that costs
- * them more. At five terminals and up the flat tier is cheaper than basic, so
- * quoting basic there would be quoting a worse price for a worse service.
+ * The tier a merchant should be quoted - never the one that costs them more
+ * for the service they asked for.
+ *
+ * Pass wantsPreferred when they have said they want NectarPay picking up the
+ * phone. Without it the comparison is against basic and the flat tier wins at
+ * five; with it the comparison is against preferred and it wins at two.
  */
-export function bestTierFor(terminals: number): MembershipTier {
-  return terminals >= MULTI_TERMINAL_MIN_TERMINALS ? 'multi' : 'basic';
+export function bestTierFor(terminals: number, wantsPreferred = false): MembershipTier {
+  if (wantsPreferred) return terminals >= MULTI_BEATS_PREFERRED_AT ? 'multi' : 'preferred';
+  return terminals >= MULTI_BEATS_BASIC_AT ? 'multi' : 'basic';
 }
 
 /** Everything a merchant pays in year one. */

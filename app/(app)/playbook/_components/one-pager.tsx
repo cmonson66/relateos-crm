@@ -99,7 +99,7 @@ export function OnePager({ rep }: { rep: { first: string; cell: string; email: s
             No percentage of your sales. Ever.
           </div>
           <div className="mt-1.5 border-t border-neutral-700 pt-1.5 text-[10px] leading-snug text-neutral-300">
-            Want us picking up the phone? Preferred service is {PREFERRED_LABEL}/mo. Five terminals or more: {MULTI_PREFERRED_LABEL} flat, preferred included.
+            Want us picking up the phone? Preferred is {PREFERRED_LABEL}/mo a terminal. More than one terminal: {MULTI_PREFERRED_LABEL} flat for all of them, preferred included.
           </div>
         </div>
       </div>
