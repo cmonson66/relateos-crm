@@ -110,8 +110,11 @@ export const BREAK_EVEN_LINE =
  * phone and runs more than one terminal belongs on the flat tier - preferred
  * per terminal is only ever the right answer for a single-terminal shop.
  *
- * STILL UNCONFIRMED, flagged for Tim Blake: whether a merchant with several
- * terminals can stay on basic at all, or has to take the flat tier.
+ * A merchant with several terminals MAY stay on basic - confirmed Sep 2. So
+ * between two and four terminals basic is genuinely the cheapest quote and is
+ * the one to give unless they ask for preferred service. Nothing here forces
+ * an upgrade; the flat tier only ever gets quoted where it is the lower
+ * number for the service the merchant asked for.
  * ------------------------------------------------------------------------- */
 
 export type MembershipTier = 'basic' | 'preferred' | 'multi';
