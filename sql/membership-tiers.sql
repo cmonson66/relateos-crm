@@ -32,9 +32,11 @@ where not exists (select 1 from products where sku = 'GROUP-9999');
 -- deals keep their line items.
 update products set active = false where sku = 'WHITEGLOVE-99';
 
--- Also stale: the per-scanner monthly is the model lib/pricing.ts says was
--- wrong. Uncomment if it is genuinely dead.
--- update products set active = false where sku = 'SCANNER-1999';
+-- Retired too. The per-scanner monthly is the model lib/pricing.ts says was
+-- wrong, and the trial agreement already tells merchants the handheld comes
+-- WITH the terminal - so billing $19.99 a month for it contradicted a document
+-- they sign. Never used on a deal, so nothing historical is affected.
+update products set active = false where sku = 'SCANNER-1999';
 
 select sku, name, billing, unit_price_cents, active
 from products order by active desc, unit_price_cents;

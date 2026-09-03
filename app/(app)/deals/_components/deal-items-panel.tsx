@@ -80,7 +80,8 @@ export function DealItemsPanel({
 
       {items.length === 0 ? (
         <p className="mb-4 text-sm text-muted-foreground">
-          Nothing on this deal yet. Add the terminal and however many scanners the shop needs.
+          Nothing on this deal yet. Add a terminal for each location, then the membership tier
+          that fits: basic per terminal, preferred per terminal, or the flat group plan.
         </p>
       ) : (
         <div className="mb-4 space-y-1.5">
