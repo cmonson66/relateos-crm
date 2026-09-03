@@ -1,6 +1,6 @@
 'use client';
 
-import { QrBlock } from './qr-codes';
+import { QrBlock, type QrKey } from './qr-codes';
 import { MoneyFlow } from '@/components/marketing/money-flow';
 
 /**
@@ -43,7 +43,7 @@ function Trap({ title, children }: { title: string; children: React.ReactNode })
 
 function Step({ n, title, sub, qr, children }: {
   n: string; title: string; sub?: string;
-  qr?: { code: 'mint' | 'bee' | 'np' | 'dash' | 'pair'; label: string };
+  qr?: { code: QrKey; label: string };
   children: React.ReactNode;
 }) {
   return (
@@ -88,8 +88,14 @@ const FAILURES: [string, React.ReactNode][] = [
   ['The pairing code ran out',
    <>Click <K>Pair a device</K> again for a fresh one. Nothing is broken and nothing is
      half-paired.</>],
+  ['There is no PRINT RECEIPT button after a sale',
+   <>You are in a browser shortcut, not the app. The button only renders when the native printer
+     answers, so it is absent rather than greyed out. Open <K>NectarPay POS</K> from the app
+     drawer and check <K>Printer test</K> - if it says <b>Browser mode</b>, that is the whole
+     problem.</>],
   ['The terminal shows a login instead of the pairing screen',
-   <>Wrong address. It is <b>/pos/pair</b>, not /pos and not the dashboard.</>],
+   <>Open the app rather than a browser. If you are in the app already, it is the wrong address -
+     <b>/pos/pair</b>, not /pos and not the dashboard.</>],
   ['They ask where the money is if their phone breaks',
    <>The coin, not the phone. A new phone, the app, import the key from the coin again - which is
      also why the coin lives in a safe and the password is in a password manager.</>],
@@ -275,32 +281,50 @@ export function SetupGuide() {
           </p>
         </Step>
 
-        <Step n="6" title="Pair the terminal" sub="Order matters here - read the trap first" qr={{ code: 'pair', label: 'On the terminal' }}>
+        <Step n="6" title="Install the app on the terminal" sub="Not a browser. This is where installs quietly go wrong" qr={{ code: 'apk', label: 'Download the app' }}>
           <p className="mb-1">
-            The POS is a <b>web app</b>. Nothing to download, no app store. It runs on a Senraise
-            H10P or on any Android phone.
+            The POS is an <b>Android app</b>, sideloaded - there is no Play Store listing. Most
+            Senraise terminals arrive with it already on them, so look in the app drawer before
+            you download anything.
           </p>
+          <Trap title="Chrome plus Add to Home screen is NOT the app.">
+            It looks identical - same icon, same screen, no address bar - and it silently has{' '}
+            <b>no receipt printer, no NFC tap-to-pay and no Tangem card support</b>. Those are
+            native plugins that only exist inside the real app. There is no error message. The
+            print button simply never appears, and nobody finds out until a customer asks for a
+            receipt.
+          </Trap>
+          <ol className="ml-4 list-decimal space-y-0.5">
+            <li><b>Look for it first.</b> Open the app drawer and find <K>NectarPay POS</K>. If it
+                is there, open it and skip to the pairing steps.</li>
+            <li><b>If it is not:</b> on the terminal, <K>Settings</K> &rsaquo; <K>Security</K>{' '}
+                &rsaquo; <K>Install unknown apps</K>, and allow <K>Chrome</K>.</li>
+            <li>In Chrome go to <A href="https://app.nectar-pay.com/pos-apk">app.nectar-pay.com/pos-apk</A>,
+                download, tap the file, <K>Install</K>.</li>
+            <li><b>Then allow <K>NectarPay POS</K> itself</b> under that same Install unknown apps
+                screen. Not to install it - so it can update <i>itself</i>. With no Play Store
+                that is the only clean update path there is.</li>
+            <li><b>Delete any old home-screen shortcut.</b> Two identical icons and one of them
+                cannot print is a support call waiting to happen.</li>
+          </ol>
+
+          <p className="mt-2 mb-1 font-bold">Now pair it.</p>
           <Trap title="The pairing code dies in five minutes.">
             Get the terminal sitting on the pairing screen <b>before</b> you generate one. Do it
             the other way round and you will be watching a clock while the owner watches you.
           </Trap>
           <ol className="ml-4 list-decimal space-y-0.5">
-            <li><b>On the terminal first:</b> open Chrome and go to{' '}
-                <A href="https://app.nectar-pay.com/pos/pair">app.nectar-pay.com/pos/pair</A>.
-                Leave it there.</li>
+            <li><b>On the terminal first:</b> open the app and leave it on the pairing screen.</li>
             <li><b>Now on their computer:</b> dashboard, then <K>Terminals</K> in the left menu.</li>
-            <li>Pick their shop under <K>Store</K>.</li>
-            <li>Give it a <K>Label</K> that says where it lives - <b>Front counter</b>,
-                <b> Patio</b>, <b>Sarah&apos;s phone</b>. A shop with two devices needs to tell
-                them apart later.</li>
+            <li>Pick their location under <K>Store</K>.</li>
+            <li>Give it a <K>Label</K> that says where it lives - <b>Front register</b>,
+                <b> Patio</b>, <b>Sarah&apos;s phone</b>. A location with two devices needs to
+                tell them apart later.</li>
             <li>Click <K>Pair a device</K>. A six-character code and a QR appear.</li>
             <li>On the terminal: scan the QR with its camera, <b>or</b> type the six characters.
                 Either works.</li>
             <li>Click <K>Done</K> on the computer. It now shows under <b>Paired terminals</b> with
                 a last-seen time.</li>
-            <li><b>Install it:</b> on the terminal, Chrome menu (three dots, top right), then
-                <K>Add to Home screen</K>. Full screen, no address bar, so staff cannot wander out
-                of it.</li>
           </ol>
           <p className="mt-1.5 text-neutral-600">
             <b>Check the last-seen time before you leave.</b> That one line is how you know it
@@ -313,7 +337,38 @@ export function SetupGuide() {
           </Trap>
         </Step>
 
-        <Step n="7" title="Make a share link and test it live" sub="The step that closes the install">
+        <Step n="7" title="Print a test receipt" sub="Thirty seconds, and it is the proof the app is real">
+          <p className="mb-1">
+            Do this on every install, before you touch anything else. It is the only way to know
+            you are in the real app and not a browser dressed up as one.
+          </p>
+          <ol className="ml-4 list-decimal space-y-0.5">
+            <li><b>Load thermal paper.</b> The merchant supplies it - your agreement says so - but
+                carry a roll or you will be doing this twice.</li>
+            <li>In the app go to <K>POS settings</K>, then <K>Printer test</K>.</li>
+            <li>Read the line under the heading. <K>Printer detected</K> is what you want.{' '}
+                <b>Browser mode</b> means you are in a shortcut, not the app - go back to step 6.{' '}
+                <b>No printer on this device</b> means the app is right but the hardware is not
+                answering, which is a call to support, not something to fix at the register.</li>
+            <li>Run <K>Sample receipt</K>. Paper comes out, you are done.</li>
+            <li>Run <K>Alignment test</K> too. It prints columns, bold and double-size, so a
+                paper-width problem shows up now rather than on a real ticket.</li>
+          </ol>
+          <p className="mt-1.5 text-neutral-600">
+            While you are in POS settings, <b>note the app version</b>. Anything from mid-2026
+            onward is current. A much older preloaded build can be missing pieces with no error to
+            explain it, and support will ask for that number first.
+          </p>
+          <Trap title="Receipts do not have to be paper.">
+            Store settings carry <K>Email receipt</K> and <K>SMS receipt</K> toggles and both are{' '}
+            <b>off by default</b>. Turn them on if the merchant wants them - and always for a
+            merchant running the phone app with no hardware, because that is their only receipt.
+            <K>Allow reprint</K> lets a cashier pull a paid invoice from history and print it
+            again, which is the answer when somebody asks for a receipt after the fact.
+          </Trap>
+        </Step>
+
+        <Step n="8" title="Make a share link and test it live" sub="The step that closes the install">
           <ol className="ml-4 list-decimal space-y-0.5">
             <li>Still in <K>Store</K> settings, find <K>Share Links</K>.</li>
             <li>Create one and open it.</li>
@@ -326,7 +381,7 @@ export function SetupGuide() {
           </p>
         </Step>
 
-        <Step n="8" title="Set up their POS payment type" sub="Two minutes, and it ends the question forever">
+        <Step n="9" title="Set up their POS payment type" sub="Two minutes, and it ends the question forever">
           <p>
             Every owner asks how this fits their POS. It does not integrate, and that is the
             selling point - it is a separate lane, so nothing about their current setup changes.
@@ -357,7 +412,7 @@ export function SetupGuide() {
           </Trap>
         </Step>
 
-        <Step n="9" title="Before you walk out">
+        <Step n="10" title="Before you walk out">
           <Trap title="Their exchange account is the one that gets forgotten.">
             Without it a shop can take payments and cannot reach a dollar of it. It is step 1 on
             the setup link you sent when you booked - <b>check it is actually open</b>, not
