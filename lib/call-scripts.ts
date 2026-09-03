@@ -143,7 +143,7 @@ const SHARED_OBJECTIONS: Objection[] = [
   {
     q: `"How do I turn it into actual dollars?"`,
     heard: ['cash out', 'convert', 'dollars', 'bank', 'spend it', 'off ramp', 'real money'],
-    a: `"Same as moving money out of any account. Most owners set it to land in a dollar-pegged coin so there's nothing to convert, then move it to their bank on whatever schedule they like - some sweep it Friday, some let it sit. It's your money and your timing."`,
+    a: `"Same as moving money out of any account. Most owners set it to land in a dollar-pegged coin so there's nothing to convert, then move it to their bank on whatever schedule they like - some sweep it Friday, some let it sit. It's your money and your timing. One thing I'd rather you hear from me than find later: getting it into a bank runs about a percent through an off-ramp, same as any exchange charges. That's the off-ramp's fee, not ours - we never take a cut of the sale itself. So it's a percent on the money you choose to move, not a percent on every ticket you ring."`,
   },
   {
     q: `"What if you guys go out of business?"`,

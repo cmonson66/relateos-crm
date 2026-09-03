@@ -98,6 +98,10 @@ export function OnePager({ rep }: { rep: { first: string; cell: string; email: s
           <div className="mt-1.5 text-[11px] font-bold text-amber-400">
             No percentage of your sales. Ever.
           </div>
+          <div className="mt-1 text-[10px] leading-snug text-neutral-400">
+            That is our whole fee. Moving money into a bank costs about 1% through an off-ramp,
+            the same as any exchange - charged on what you move, not on what you ring.
+          </div>
           <div className="mt-1.5 border-t border-neutral-700 pt-1.5 text-[10px] leading-snug text-neutral-300">
             Want us picking up the phone? Preferred is {PREFERRED_LABEL}/mo a terminal. More than one terminal: {MULTI_PREFERRED_LABEL} flat for all of them, preferred included.
           </div>

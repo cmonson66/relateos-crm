@@ -61,6 +61,7 @@ const TRUTHS: string[] = [
   "A shop that says no today is a shop you call in three months, not a shop you delete.",
   "The owner is the only person who can say yes. Everyone else can only say no.",
   "Never promise a CryptoPop listing. It is in development, and the terminal pays for itself on fees either way.",
+  "\"No percentage\" means no cut of the sale. It does not mean free to reach a bank - an off-ramp runs about a percent. Say it before they find it.",
   "If you do not know an answer, say so and find out. Guessing at a merchant is how a deal dies quietly.",
   "Log it the same day. A perfect memory of Tuesday is worth nothing to anyone else.",
 ];
