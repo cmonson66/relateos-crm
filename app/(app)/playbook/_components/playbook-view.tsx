@@ -6,6 +6,7 @@ import {
   TERMINAL_LABEL,
   MONTHLY_LABEL,
   YEAR_ONE_LABEL,
+  BASIC_LABEL,
   PREFERRED_LABEL,
   MULTI_PREFERRED_LABEL,
   ONGOING_LABEL,
@@ -403,6 +404,63 @@ export function PlaybookView({
           <span className="font-bold">PRICING, MEMORIZED:</span> {TERMINAL_LABEL} terminal · {MONTHLY_LABEL}/mo membership · zero processing
           fee · non-custodial · no chargebacks
         </div>
+
+        {/* The tier table. It lived only inside an objection answer, which is
+            the wrong place for it - a rep needs the number before the merchant
+            asks, not after. Two crossovers because they answer two different
+            questions, and quoting the wrong one costs a merchant real money. */}
+        <div className="mt-3 rounded-md border border-neutral-300 p-2.5">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">
+            Membership tiers
+          </div>
+          <table className="mt-1.5 w-full text-xs">
+            <thead>
+              <tr className="text-left text-[10px] uppercase tracking-wider text-neutral-500">
+                <th className="py-1 font-bold">Tier</th>
+                <th className="py-1 font-bold">Price</th>
+                <th className="py-1 font-bold">What it is</th>
+              </tr>
+            </thead>
+            <tbody className="align-top">
+              <tr className="border-t border-neutral-200">
+                <td className="py-1 font-bold">Basic</td>
+                <td className="py-1 whitespace-nowrap">{BASIC_LABEL}/mo</td>
+                <td className="py-1 text-neutral-700">Per terminal. You are their support.</td>
+              </tr>
+              <tr className="border-t border-neutral-200">
+                <td className="py-1 font-bold">Preferred</td>
+                <td className="py-1 whitespace-nowrap">{PREFERRED_LABEL}/mo</td>
+                <td className="py-1 text-neutral-700">
+                  Per terminal. NectarPay picks up the phone.
+                </td>
+              </tr>
+              <tr className="border-t border-neutral-200">
+                <td className="py-1 font-bold">Group</td>
+                <td className="py-1 whitespace-nowrap">{MULTI_PREFERRED_LABEL}/mo</td>
+                <td className="py-1 text-neutral-700">
+                  Flat, all terminals, preferred included.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div className="mt-2 border-t border-neutral-200 pt-1.5 text-[11px] leading-relaxed">
+            <div>
+              <b>Group beats preferred at 2 terminals.</b> At two it is the same money; at three it
+              is {MULTI_PREFERRED_LABEL} against $149.97. If they want us on the phone and run more
+              than one, never quote preferred.
+            </div>
+            <div className="mt-1">
+              <b>Group beats basic at 5.</b> {MULTI_PREFERRED_LABEL} against $124.95. Five or more
+              on basic means paying more for less.
+            </div>
+            <div className="mt-1 text-neutral-600">
+              Two to four terminals on basic service: basic is genuinely cheaper. Quote it. Nothing
+              here forces an upgrade.
+            </div>
+          </div>
+        </div>
+
         <div className="mt-1 text-[11px] italic text-neutral-500">
           Every shop has its own sheet: open the account, Start call, then Sheet.
         </div>
