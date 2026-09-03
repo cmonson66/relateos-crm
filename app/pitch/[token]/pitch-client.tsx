@@ -340,6 +340,54 @@ export function PitchClient({ deck }: { deck: Deck }) {
         </div>
       </Slide>
 
+      {/* 4b your POS */}
+      <Slide tone="light" wide>
+        <Eyebrow>The question every operator asks second</Eyebrow>
+        <Big>It does not touch your POS. That is the point.</Big>
+        <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-[#47566B]">
+          Across {n} locations you are not changing a system, retraining a floor, or renegotiating
+          anything. This is a separate lane that sits beside what you run, the same way a delivery
+          app or a gift certificate already does.
+        </p>
+
+        <div className="mt-7 grid gap-4 lg:grid-cols-2">
+          <div className="rounded-2xl bg-[#0C1A2C] p-5 text-slate-200">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#F2A71B]">
+              What your staff does
+            </div>
+            <p className="mt-2 text-[15px] leading-relaxed text-slate-300">
+              Rings the sale on your POS under a payment type we set up with you at install, named
+              whatever you like. The ticket closes, inventory drops, the server gets credit, and it
+              totals on its own line in your end-of-day report.
+            </p>
+            <p className="mt-3 text-[13px] leading-relaxed text-slate-500">
+              Toast, Square and Clover all support this already and it takes about two minutes per
+              location. Your people have done it before for delivery.
+            </p>
+          </div>
+          <div className="rounded-2xl bg-[#0C1A2C] p-5 text-slate-200">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-[#F2A71B]">
+              What your bookkeeper gets
+            </div>
+            <p className="mt-2 text-[15px] leading-relaxed text-slate-300">
+              A line that reconciles like any other tender. Every payment is timestamped and
+              permanent, so the record exists whether anyone goes looking or not - which is more
+              than can be said for a cash drawer.
+            </p>
+            <p className="mt-3 text-[13px] leading-relaxed text-slate-500">
+              Straight answer on the books: what you take in counts as income at its dollar value
+              the moment it lands, not when you convert. That one belongs with your CPA rather than
+              with us.
+            </p>
+          </div>
+        </div>
+
+        <p className="mt-6 text-[15px] leading-relaxed text-[#47566B]">
+          Nothing writes into your system on its own, and we would rather say that plainly now than
+          have a manager find it at close-out.
+        </p>
+      </Slide>
+
       {/* 5 the map */}
       <Slide wide>
         <Eyebrow>Now the part people ask about</Eyebrow>

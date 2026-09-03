@@ -326,7 +326,38 @@ export function SetupGuide() {
           </p>
         </Step>
 
-        <Step n="8" title="Before you walk out">
+        <Step n="8" title="Set up their POS payment type" sub="Two minutes, and it ends the question forever">
+          <p>
+            Every owner asks how this fits their POS. It does not integrate, and that is the
+            selling point - it is a separate lane, so nothing about their current setup changes.
+            They ring the sale on their own POS under a payment type you create together right
+            now. Name it <K>Crypto (NectarPay)</K>.
+          </p>
+          <ul className="ml-4 mt-1.5 list-disc space-y-0.5">
+            <li><b>Toast</b> - Toast Web, <K>Finance</K> &rsaquo; <K>Settings</K> &rsaquo;{' '}
+                <K>Other payment options</K> &rsaquo; <K>+ Add</K>. Same mechanism they already use
+                for delivery apps. Shows on the POS under <K>Other payments</K>.</li>
+            <li><b>Square</b> - Dashboard, <K>Settings</K> &rsaquo; <K>Account &amp; Settings</K>{' '}
+                &rsaquo; <K>Payments</K> &rsaquo; <K>Payment Methods</K>, create a custom payment
+                method and switch on <K>Activate on Point of Sale</K>. On the POS it is{' '}
+                <K>Charge</K> &rsaquo; <K>More</K>. Turn on the tip capture option or their servers
+                lose tips on those tickets.</li>
+            <li><b>Clover</b> - Dashboard, <K>Settings</K> &rsaquo; <K>View all settings</K>{' '}
+                &rsaquo; <K>Payments</K> &rsaquo; <K>Tenders</K> &rsaquo; <K>Edit</K> &rsaquo;{' '}
+                <K>Create custom tender</K>.</li>
+          </ul>
+          <p className="mt-1.5 text-neutral-600">
+            Anything else has the same feature under a different name - look for other, custom or
+            alternate tender. The ticket still closes, inventory still drops, the server still gets
+            credit, and it totals separately in their end-of-day report.
+          </p>
+          <Trap title="Do not let a manager think this posts to their POS by itself.">
+            Nothing writes into their system. The staff ring it manually, exactly as they do for a
+            delivery order. Say that out loud at install and nobody feels misled at close-out.
+          </Trap>
+        </Step>
+
+        <Step n="9" title="Before you walk out">
           <Trap title="Their exchange account is the one that gets forgotten.">
             Without it a shop can take payments and cannot reach a dollar of it. It is step 1 on
             the setup link you sent when you booked - <b>check it is actually open</b>, not

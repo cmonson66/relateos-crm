@@ -201,6 +201,19 @@ const SHARED_OBJECTIONS: Objection[] = [
     a: `"Yes, and I'd rather you did. I can put a terminal in for a trial and it costs you nothing while it runs - no ${TERMINAL_LABEL}, no monthly, nothing. You take real payments on it. If it earns its place you keep it, and if it doesn't I come get it and we shake hands. That's the whole risk."`,
   },
   {
+    q: `"How does this integrate with my POS?"`,
+    heard: ['pos', 'point of sale', 'toast', 'square', 'clover', 'aloha', 'register system',
+      'integrate', 'integration', 'talk to my system', 'my system', 'bookkeeping', 'reconcile',
+      'end of day', 'close out', 'my reports'],
+    a: `"It doesn't, and that's on purpose. It's a separate lane that sits beside your POS - we never touch your system, which is exactly why nothing about your current setup has to change. You ring the sale on your own POS under a payment type you set up once, same as you already do for a delivery app or a gift certificate. Ticket closes, inventory drops, the server gets credit, and it shows in your end-of-day report like any other sale. Two minutes to set up and I'll do it with you at install."`,
+  },
+  {
+    q: `"So how do I reconcile it at close-out?"`,
+    heard: ['reconcile', 'close out', 'closeout', 'match up', 'my books', 'accountant',
+      'bookkeeper', 'cpa', 'taxes', 'tax', 'report it', 'drawer'],
+    a: `"Same way you reconcile a delivery app. That payment type totals separately in your report, and it should match what came into your wallet that day. Every payment is timestamped and permanent, so there's a record whether anybody looks or not. For what it's worth on the books: crypto you take in is income at its dollar value the moment it lands, not when you cash out - but that one's a question for your CPA, not me."`,
+  },
+  {
     q: `"Let me think about it."`,
     heard: ['think about it', 'get back to you', 'not right now', 'call me later', 'talk to my partner'],
     a: `"Totally fair. Here's what I'd rather do than have you think about it cold: let me put one in on a trial. Costs you nothing while it runs, you take real payments on it, and if it doesn't earn its place I pick it up. That way you're deciding on what actually happened instead of on my say-so."`,
