@@ -1,4 +1,6 @@
 import {
+  PREFERRED_LABEL,
+  MULTI_PREFERRED_LABEL,
   BREAK_EVEN_YEAR_ONE_MONTHLY,
   BREAK_EVEN_ONGOING_MONTHLY,
   TERMINAL_LABEL,
@@ -193,7 +195,8 @@ const SHARED_OBJECTIONS: Objection[] = [
   {
     q: `"What if something goes wrong and I need somebody?"`,
     heard: ['support', 'help', 'someone to call', 'service', 'who do i call'],
-    a: `"Standard membership is ${MONTHLY_LABEL} and you've got me. If you want NectarPay picking up the phone directly, white-glove is $99 a month. Most shops start standard - you can move up any time."`,
+    a: `"Standard membership is ${MONTHLY_LABEL} a terminal and you've got me. If you want NectarPay picking up the phone directly, preferred service is ${PREFERRED_LABEL} a month. And if you're running five terminals or more, the group plan is ${MULTI_PREFERRED_LABEL} flat with preferred included - which is less than you'd pay on the basic plan for that many. Most single-location shops start basic and never move."`,
+
   },
   {
     q: `"Can I try it first?"`,

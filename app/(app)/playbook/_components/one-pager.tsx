@@ -5,6 +5,8 @@ import {
   BREAK_EVEN_ONGOING_MONTHLY,
   MONTHLY_LABEL,
   YEAR_ONE_LABEL,
+  PREFERRED_LABEL,
+  MULTI_PREFERRED_LABEL,
   ONGOING_LABEL,
 } from '@/lib/pricing';
 import { MoneyFlowStrip } from '@/components/marketing/money-flow';
@@ -97,7 +99,7 @@ export function OnePager({ rep }: { rep: { first: string; cell: string; email: s
             No percentage of your sales. Ever.
           </div>
           <div className="mt-1.5 border-t border-neutral-700 pt-1.5 text-[10px] leading-snug text-neutral-300">
-            Want us picking up the phone? White-glove support is $99/mo.
+            Want us picking up the phone? Preferred service is {PREFERRED_LABEL}/mo. Five terminals or more: {MULTI_PREFERRED_LABEL} flat, preferred included.
           </div>
         </div>
       </div>

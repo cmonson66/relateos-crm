@@ -17,7 +17,8 @@
 
 export const TERMINAL_ONCE = 499;
 export const MEMBERSHIP_MONTHLY = 24.99;
-export const WHITE_GLOVE_MONTHLY = 99;
+/** @deprecated Preferred service replaced white-glove; see the tier block below. */
+export const WHITE_GLOVE_MONTHLY = 49.99;
 
 /** Standard membership is paid up front for the year. */
 export const MEMBERSHIP_YEAR = MEMBERSHIP_MONTHLY * 12; // 299.88
@@ -91,5 +92,79 @@ export const BREAK_EVEN_LINE =
  * It used to live here as an exported string and drifted onto the one-pager
  * anyway. A constant nobody renders is just an invitation, so there isn't one.
  */
-export const WHITE_GLOVE_LINE =
-  `Want us picking up the phone? White-glove support is $${WHITE_GLOVE_MONTHLY} a month.`;
+/* ---------------------------------------------------------------------------
+ * MEMBERSHIP TIERS (Sep 2). Three of them:
+ *
+ *   basic            $24.99   per terminal
+ *   preferred        $49.99   service upgrade - replaces the old $99 white
+ *                             glove, which is a $49.01 cut
+ *   multi preferred  $99.99   flat for a merchant running several terminals,
+ *                             preferred service included
+ *
+ * THE THING A REP NEEDS TO KNOW: the crossover is exactly four terminals.
+ * Below five, basic per terminal is cheaper. At five or more, the multi
+ * preferred tier costs LESS than basic does - $99.99 against $124.95 at five,
+ * against $199.92 at eight. So a merchant with five or more terminals who
+ * stays on basic is paying more for less. There is no reason for that
+ * conversation to be hard.
+ *
+ * STILL UNCONFIRMED, flagged for Tim Blake: whether preferred at $49.99 is
+ * per terminal or per account, and whether a multi-terminal merchant can stay
+ * on basic at all or has to take the flat tier.
+ * ------------------------------------------------------------------------- */
+
+export type MembershipTier = 'basic' | 'preferred' | 'multi';
+
+export const BASIC_MONTHLY = MEMBERSHIP_MONTHLY;      // 24.99, per terminal
+export const PREFERRED_MONTHLY = 49.99;               // service upgrade
+export const MULTI_PREFERRED_MONTHLY = 99.99;         // flat, several terminals
+
+/** Where the flat tier starts beating basic outright. */
+export const MULTI_TERMINAL_MIN_TERMINALS = 5;
+
+export const BASIC_LABEL = `$${BASIC_MONTHLY.toFixed(2)}`;
+export const PREFERRED_LABEL = `$${PREFERRED_MONTHLY.toFixed(2)}`;
+export const MULTI_PREFERRED_LABEL = `$${MULTI_PREFERRED_MONTHLY.toFixed(2)}`;
+
+/** Membership per month for `terminals` devices on a given tier. */
+export function membershipMonthlyFor(terminals: number, tier: MembershipTier = 'basic'): number {
+  if (tier === 'multi') return MULTI_PREFERRED_MONTHLY;
+  if (tier === 'preferred') return PREFERRED_MONTHLY;
+  return BASIC_MONTHLY * terminals;
+}
+
+/**
+ * The tier a merchant should actually be quoted - never the one that costs
+ * them more. At five terminals and up the flat tier is cheaper than basic, so
+ * quoting basic there would be quoting a worse price for a worse service.
+ */
+export function bestTierFor(terminals: number): MembershipTier {
+  return terminals >= MULTI_TERMINAL_MIN_TERMINALS ? 'multi' : 'basic';
+}
+
+/** Everything a merchant pays in year one. */
+export function yearOneFor(terminals: number, tier: MembershipTier = 'basic'): number {
+  return TERMINAL_ONCE * terminals + membershipMonthlyFor(terminals, tier) * 12;
+}
+
+/** Every year after the first. */
+export function ongoingYearFor(terminals: number, tier: MembershipTier = 'basic'): number {
+  return membershipMonthlyFor(terminals, tier) * 12;
+}
+
+/**
+ * Monthly crypto sales that cover a whole group's first year. This is the
+ * GROUP figure - divide by the location count for a per-room number. On the
+ * flat tier that per-room number falls as terminals are added, which is the
+ * actual argument for buying more than one.
+ */
+export function groupBreakEvenYearOne(terminals: number, tier: MembershipTier = 'basic'): number {
+  return monthlyBreakEven(Math.round(yearOneFor(terminals, tier)));
+}
+
+export function groupBreakEvenOngoing(terminals: number, tier: MembershipTier = 'basic'): number {
+  return monthlyBreakEven(Math.round(ongoingYearFor(terminals, tier)));
+}
+
+export const PREFERRED_LINE =
+  `Want us picking up the phone? Preferred service is ${PREFERRED_LABEL} a month.`;

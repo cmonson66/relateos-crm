@@ -6,6 +6,8 @@ import {
   TERMINAL_LABEL,
   MONTHLY_LABEL,
   YEAR_ONE_LABEL,
+  PREFERRED_LABEL,
+  MULTI_PREFERRED_LABEL,
   ONGOING_LABEL,
 } from '@/lib/pricing';
 
@@ -54,7 +56,7 @@ const WALLS: { q: string; a: string }[] = [
   { q: '"It sounds complicated."', a: 'It is simpler than your card terminal. And if you do not even want hardware, the Nectar.Pay app runs on your phone - you just give up the receipt printer and the rugged handheld.' },
   { q: '"What if it breaks?"', a: 'One-year warranty. Fails on its own, we replace it, full stop. Drop it off the roof and you buy another - fair is fair.' },
   { q: '"Can I try it first?"', a: `Yes. Put a terminal in on a trial - free while it runs, no ${TERMINAL_LABEL}, no monthly. They take real payments on it. Keep it or hand it back, their call.` },
-  { q: '"What if I need real support?"', a: `Standard is ${MONTHLY_LABEL}. White-glove is $99 a month and that means we pick up the phone. Most shops start standard and never move.` },
+  { q: '"What if I need real support?"', a: `Standard is ${MONTHLY_LABEL} a terminal. Preferred is ${PREFERRED_LABEL} a month and that means we pick up the phone. Five terminals or more, the group plan is ${MULTI_PREFERRED_LABEL} flat with preferred included - less than basic would cost for that many. Most single-location shops start standard and never move.` },
 ];
 
 import { FirstWeek } from './first-week';

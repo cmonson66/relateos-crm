@@ -4,10 +4,14 @@ import { useMemo, useState } from 'react';
 import { CryptoPopPreview } from '@/components/marketing/cryptopop-preview';
 import {
   TERMINAL_ONCE,
-  MEMBERSHIP_MONTHLY,
   TERMINAL_LABEL,
-  MONTHLY_LABEL,
-  YEAR_ONE_ROUNDED,
+  MULTI_PREFERRED_MONTHLY,
+  MULTI_PREFERRED_LABEL,
+  BASIC_LABEL,
+  bestTierFor,
+  membershipMonthlyFor,
+  yearOneFor,
+  groupBreakEvenYearOne,
   BREAK_EVEN_YEAR_ONE_MONTHLY,
   CARD_FEE_PCT,
 } from '@/lib/pricing';
@@ -141,6 +145,9 @@ function DensityMap({
 
 /* ----------------------------------------------------------- CALCULATOR --- */
 function Calculator({ locations }: { locations: number }) {
+  const tier = bestTierFor(locations);
+  const groupYearOneCost = Math.round(yearOneFor(locations, tier));
+  const perLocationBreakEven = Math.round(groupBreakEvenYearOne(locations, tier) / locations);
   const [vol, setVol] = useState(100000);
   const [share, setShare] = useState(5);
 
@@ -149,8 +156,7 @@ function Calculator({ locations }: { locations: number }) {
   const savedMo = movedMo * CARD_FEE_PCT;
   const savedYr = savedMo * 12;
   const groupSavedYr = savedYr * locations;
-  const groupYearOne = YEAR_ONE_ROUNDED * locations;
-  const covered = savedMo >= BREAK_EVEN_YEAR_ONE_MONTHLY;
+  const covered = savedMo >= perLocationBreakEven;
 
   return (
     <div className="rounded-2xl bg-[#0C1A2C] p-5 text-slate-200">
@@ -181,11 +187,11 @@ function Calculator({ locations }: { locations: number }) {
       <div className={`mt-4 rounded-xl p-3 text-[13px] leading-relaxed ${
         covered ? 'bg-[#4ADE80]/15 text-[#86EFAC]' : 'bg-white/5 text-slate-400'}`}>
         {covered
-          ? `At that rate one location covers its whole first year in ${
-              Math.max(1, Math.ceil(YEAR_ONE_ROUNDED / savedMo))} month${
-              Math.ceil(YEAR_ONE_ROUNDED / savedMo) === 1 ? '' : 's'
-            }, and the group clears ${usd0(groupYearOne)} of setup inside year one.`
-          : `Break-even is ${usd0(BREAK_EVEN_YEAR_ONE_MONTHLY)} a month per location in the new lane. Drag either slider to see where that lands.`}
+          ? `At that rate the group clears its entire ${usd0(groupYearOneCost)} first year in ${
+              Math.max(1, Math.ceil(groupYearOneCost / (savedMo * locations)))} month${
+              Math.ceil(groupYearOneCost / (savedMo * locations)) === 1 ? '' : 's'
+            }.`
+          : `Break-even is ${usd0(perLocationBreakEven)} a month per location across all ${locations}. Drag either slider to see where that lands.`}
       </div>
       <p className="mt-3 text-[11px] text-slate-600">
         Card rate is an industry average for restaurants; use your own statement and the numbers
@@ -243,8 +249,12 @@ export function PitchClient({ deck }: { deck: Deck }) {
 
   const loc = deck.locations[sel];
   const oneTime = TERMINAL_ONCE * n;
-  const monthly = MEMBERSHIP_MONTHLY * n;
-  const yearOne = YEAR_ONE_ROUNDED * n;
+  const tier = bestTierFor(n);
+  const monthly = membershipMonthlyFor(n, tier);
+  const yearOne = Math.round(yearOneFor(n, tier));
+  const flatTier = tier === 'multi';
+  const perLocationBreakEven = Math.round(groupBreakEvenYearOne(n, tier) / n);
+  const ifOnBasic = membershipMonthlyFor(n, 'basic');
 
   return (
     <div className="h-[100svh] snap-y snap-mandatory overflow-y-scroll bg-[#0A1220] lg:h-auto lg:snap-none lg:overflow-visible">
@@ -564,7 +574,11 @@ export function PitchClient({ deck }: { deck: Deck }) {
           <div className="space-y-2">
             {[
               [`Terminals, ${n} at ${TERMINAL_LABEL}`, usd0(oneTime), 'once'],
-              [`Membership, ${n} at ${MONTHLY_LABEL}`, `${usd0(monthly)}/mo`, 'billed yearly'],
+              [
+                'Membership, all locations',
+                `${usd0(monthly)}/mo`,
+                flatTier ? 'one flat fee, preferred service included' : 'billed yearly',
+              ],
               ['Percentage of your sales', 'none', 'ever'],
               ['Chargeback fees on this lane', 'none', 'there are no chargebacks'],
             ].map(([k, v, note]) => (
@@ -583,10 +597,30 @@ export function PitchClient({ deck }: { deck: Deck }) {
               <div className="text-[26px] font-extrabold">{usd0(yearOne)}</div>
             </div>
             <p className="mt-4 text-[15px] leading-relaxed text-slate-400">
-              Break-even is {usd0(BREAK_EVEN_YEAR_ONE_MONTHLY)} a month per location. On your
-              ticket average that is a handful of tables a week, and everything past it is margin
-              you keep.
+              Break-even is {usd0(perLocationBreakEven)} a month per location. On your ticket
+              average that is a handful of tables a week, and everything past it is margin you
+              keep.
             </p>
+            {flatTier && (
+              <div className="mt-4 rounded-xl border border-[#F2A71B]/40 bg-[#F2A71B]/5 p-4">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-[#F2A71B]">
+                  Why all {n} beats one
+                </div>
+                <p className="mt-1.5 text-[15px] leading-relaxed text-slate-300">
+                  One flat {MULTI_PREFERRED_LABEL} a month covers the whole group, preferred
+                  service included. Per location that would be {BASIC_LABEL} each, or{' '}
+                  {usd0(ifOnBasic)} a month for {n} - so the group tier is not a surcharge for
+                  scale, it is {usd0(ifOnBasic - MULTI_PREFERRED_MONTHLY)} a month less than paying
+                  per location, on better service.
+                </p>
+                <p className="mt-2 text-[15px] leading-relaxed text-slate-300">
+                  It moves the bar too. One location on its own has to clear{' '}
+                  {usd0(BREAK_EVEN_YEAR_ONE_MONTHLY)} a month to pay for itself. Spread across {n},
+                  each only has to clear {usd0(perLocationBreakEven)}. Every location you add lowers
+                  it further, which is the opposite of how your card processing works.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </Slide>
