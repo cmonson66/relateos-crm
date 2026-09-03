@@ -1,4 +1,4 @@
-import { TERMINAL_LABEL, MONTHLY_LABEL } from '@/lib/pricing';
+import { TERMINAL_LABEL, bestTierFor, membershipMonthlyFor } from '@/lib/pricing';
 
 // The trial agreement, as text.
 //
@@ -16,9 +16,13 @@ export const COMPANY = {
 
 // BUMPED for the membership price change. Signed rows keep their own terms
 // snapshot, so nothing already executed is altered by this.
-export const TERMS_VERSION = "v2-2026-08";
+export const TERMS_VERSION = "v3-2026-09";
 
 export type TermsInput = {
+  /** How many terminals are being loaned. Defaults to one. */
+  terminals?: number;
+  /** Set when the merchant has asked for preferred service. */
+  wantsPreferred?: boolean;
   businessName: string;
   businessAddress?: string | null;
   serial?: string | null;
@@ -32,13 +36,31 @@ export function buildTerms(t: TermsInput): string {
   const serial = t.serial?.trim() || "recorded at delivery";
   const address = t.businessAddress?.trim() || "";
 
+  // A multi-location trial is a real case now, and section 8 is the clause a
+  // merchant is held to. Quoting the single-terminal rate to a group that will
+  // continue on the flat tier is a wrong number in a signed document, so the
+  // continuation price is derived from how many terminals are actually loaned.
+  const units = Math.max(1, Math.floor(t.terminals ?? 1));
+  const tier = bestTierFor(units, t.wantsPreferred ?? false);
+  const monthlyLabel = `$${membershipMonthlyFor(units, tier).toFixed(2)}`;
+  const membershipClause =
+    tier === 'multi'
+      ? `${monthlyLabel} per month for the group membership covering all terminals, preferred service included`
+      : units > 1
+        ? `${monthlyLabel} per month total for ${units} memberships`
+        : `${monthlyLabel} per month for the membership`;
+  const provided =
+    units === 1
+      ? `one payment terminal, serial ${serial},`
+      : `${units} payment terminals, serials ${serial},`;
+
   return `TRIAL TERMINAL AGREEMENT
 
 Between ${COMPANY.name} ("${COMPANY.name}") and ${t.businessName}${address ? `, ${address}` : ""} ("the Merchant").
 Delivered by ${t.repName}.
 
 1. WHAT IS PROVIDED
-${COMPANY.name} loans the Merchant one payment terminal, serial ${serial}, for a trial. The terminal includes its built-in receipt printer and handheld. The Merchant supplies the internet connection and the thermal receipt paper.
+${COMPANY.name} loans the Merchant ${provided} for a trial. Each terminal includes its built-in receipt printer and handheld. The Merchant supplies the internet connection and the thermal receipt paper.
 
 2. HOW LONG
 The trial runs ${t.start} through ${t.end} (${t.days} days). Either party may end it earlier by telling the other.
@@ -59,7 +81,7 @@ The Merchant agrees to keep the terminal powered and reasonably secure, not to o
 The terminal carries a one-year warranty. If it stops working on its own, ${COMPANY.name} replaces it at no cost to the Merchant. The warranty does not cover damage the Merchant causes. If the terminal is not returned at the end of the trial, or comes back damaged beyond normal use, the Merchant agrees to pay the ${TERMINAL_LABEL} replacement cost.
 
 8. WHEN THE TRIAL ENDS
-The Merchant either continues on the standard terms (${TERMINAL_LABEL} for the terminal, plus ${MONTHLY_LABEL} per month for the membership paid up front for the year, flat, with no percentage of sales) or returns the terminal within five business days.
+The Merchant either continues on the standard terms (${TERMINAL_LABEL} for each terminal, plus ${membershipClause}, paid up front for the year, flat, with no percentage of sales) or returns the ${units === 1 ? 'terminal' : 'terminals'} within five business days.
 
 9. NO ADVICE
 ${COMPANY.name} does not provide tax, legal, or investment advice. The value of cryptocurrency can change. The Merchant decides what to hold and what to convert.
