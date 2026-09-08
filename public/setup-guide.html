@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NectarPay Terminal Setup</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #2c2c2c; background: #f8f7f5; }
+    .container { max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; min-height: 100vh; }
+    .header { background: white; padding: 32px 24px 24px; border-bottom: 1px solid #e5e5e5; }
+    .header h1 { font-size: 28px; font-weight: 600; margin-bottom: 8px; color: #1a1a1a; }
+    .header .tagline { font-size: 14px; color: #666; font-weight: 400; }
+    .progress-container { padding: 24px; background: white; border-bottom: 1px solid #e5e5e5; }
+    .progress-bar { display: flex; gap: 6px; margin-bottom: 12px; }
+    .progress-dot { width: 8px; height: 8px; border-radius: 50%; background: #e5e5e5; transition: all 0.3s; }
+    .progress-dot.active { background: #f4a520; transform: scale(1.25); }
+    .progress-dot.completed { background: #10b981; }
+    .progress-text { font-size: 12px; color: #666; }
+    .main { flex: 1; padding: 32px 24px; overflow-y: auto; }
+    .step { display: none; animation: slideIn 0.3s ease-out; }
+    .step.visible { display: block; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    .step-number { display: inline-block; width: 32px; height: 32px; background: #f4a520; color: white; border-radius: 50%; font-weight: 600; text-align: center; line-height: 32px; margin-bottom: 16px; font-size: 14px; }
+    .step-title { font-size: 24px; font-weight: 600; margin-bottom: 12px; color: #1a1a1a; }
+    .step-desc { font-size: 15px; line-height: 1.6; color: #666; margin-bottom: 24px; }
+    .instruction { background: #fafafa; border-left: 3px solid #f4a520; padding: 16px; margin-bottom: 16px; border-radius: 4px; font-size: 15px; line-height: 1.6; }
+    .instruction strong { color: #1a1a1a; display: block; margin-bottom: 8px; }
+    .instruction-list { list-style: none; padding: 0; margin: 12px 0; }
+    .instruction-list li { padding: 8px 0; font-size: 15px; line-height: 1.6; }
+    .instruction-list li:before { content: "→ "; color: #f4a520; font-weight: 600; margin-right: 8px; }
+    .qr-box { background: white; border: 1px solid #e5e5e5; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0; }
+    .qr-image { width: 200px; height: 200px; background: #f0f0f0; margin: 0 auto; border: 1px solid #d5d5d5; }
+    .qr-label { font-size: 12px; color: #666; margin-top: 12px; }
+    .button-primary { display: block; width: 100%; background: #f4a520; color: white; border: none; padding: 14px; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 24px; transition: background 0.2s; }
+    .button-primary:hover { background: #e8941d; }
+    .button-primary:active { transform: scale(0.98); }
+    .button-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .button-row { display: flex; gap: 12px; margin-top: 24px; }
+    .button-secondary { flex: 1; background: white; color: #2c2c2c; border: 1px solid #d5d5d5; padding: 12px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .button-secondary:hover { background: #f5f5f5; }
+    .button-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .tip { background: #e6f1fb; border-left: 3px solid #0066cc; padding: 12px 16px; border-radius: 4px; font-size: 13px; color: #004080; margin: 16px 0; line-height: 1.5; }
+    .tip strong { color: #0052a3; }
+    .success-screen { text-align: center; }
+    .success-icon { font-size: 56px; margin-bottom: 16px; }
+    .success-title { font-size: 26px; font-weight: 600; color: #1a1a1a; margin-bottom: 8px; }
+    .success-desc { font-size: 15px; color: #666; margin-bottom: 24px; line-height: 1.6; }
+    .checkbox-item { display: flex; gap: 12px; align-items: flex-start; padding: 12px; background: white; border: 1px solid #e5e5e5; border-radius: 6px; margin-bottom: 12px; cursor: pointer; }
+    .checkbox-item:hover { border-color: #d5d5d5; background: #fafafa; }
+    .checkbox { width: 20px; height: 20px; border: 2px solid #d5d5d5; border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; transition: all 0.2s; }
+    .checkbox.checked { background: #10b981; border-color: #10b981; color: white; }
+    .checkbox-label { flex: 1; }
+    .checkbox-label strong { display: block; color: #1a1a1a; margin-bottom: 4px; }
+    .checkbox-label span { font-size: 13px; color: #666; }
+    .footnote { font-size: 12px; color: #999; margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e5e5; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>NectarPay Setup</h1>
+    <p class="tagline">Get your terminal live in 5 steps</p>
+  </div>
+
+  <div class="progress-container">
+    <div class="progress-bar" id="progressBar"></div>
+    <div class="progress-text"><span id="stepNum">Step 1</span> of 5</div>
+  </div>
+
+  <div class="main">
+    <!-- Step 1: Open the Coin -->
+    <div class="step visible" id="step-0">
+      <div class="step-number">1</div>
+      <div class="step-title">Open the Coin</div>
+      <div class="step-desc">Your wallet is on a physical coin. Let's get it into your phone.</div>
+      
+      <div class="instruction">
+        <strong>On your phone, open Beekeeper</strong>
+        <ul class="instruction-list">
+          <li>Go to <strong>beekeeper.money</strong></li>
+          <li>Tap <strong>Scan coin</strong>, then <strong>Start camera</strong></li>
+          <li>Allow camera permission</li>
+          <li>Scan the laser-etched QR code under the sticker (not the sticker itself)</li>
+        </ul>
+      </div>
+
+      <div class="tip">
+        <strong>Sticker trouble?</strong> A fingernail lifts it. Rubbing alcohol or WD40 loosens stubborn ones. Get the whole sticker off — nothing abrasive ever.
+      </div>
+
+      <div class="instruction">
+        <strong>Agree and create your password</strong>
+        <ul class="instruction-list">
+          <li>Read the four rules on screen and tap to agree</li>
+          <li>Create a password and save it in your password manager, not on paper</li>
+          <li>Tap allow when the phone asks for camera again</li>
+        </ul>
+      </div>
+
+      <div class="tip">
+        <strong>Keep it safe.</strong> The coin is the money. Lose the coin and the written backup, and the funds are gone forever. That's also what makes it impossible for anyone to freeze or claw back what you earn.
+      </div>
+
+      <button class="button-primary" onclick="nextStep()">Coin Opened</button>
+    </div>
+
+    <!-- Step 2: Create Account -->
+    <div class="step" id="step-1">
+      <div class="step-number">2</div>
+      <div class="step-title">Create Your Account</div>
+      <div class="step-desc">On your computer, set up your merchant dashboard.</div>
+
+      <div class="instruction">
+        <strong>Go to nectar-pay.com</strong>
+        <ul class="instruction-list">
+          <li>Click <strong>Start free</strong> (top right)</li>
+          <li>Use your email or Google account</li>
+          <li>Business name exactly as customers know it (it prints on receipts)</li>
+        </ul>
+      </div>
+
+      <div class="qr-box">
+        <div style="font-size: 48px; margin-bottom: 12px;">📱</div>
+        <div style="font-size: 13px; color: #666;"><strong>A QR code will appear.</strong><br />Keep this page open. You'll need it in step 3.</div>
+      </div>
+
+      <button class="button-primary" onclick="nextStep()">Account Created</button>
+    </div>
+
+    <!-- Step 3: Link Wallet -->
+    <div class="step" id="step-2">
+      <div class="step-number">3</div>
+      <div class="step-title">Link Your Wallet</div>
+      <div class="step-desc">Connect your Beekeeper wallet to your NectarPay account.</div>
+
+      <div class="instruction">
+        <strong>Back on your phone in Beekeeper</strong>
+        <ul class="instruction-list">
+          <li>Find <strong>Link</strong> under the <strong>TOTAL BALANCE</strong> title</li>
+          <li>Tap <strong>Link</strong></li>
+        </ul>
+      </div>
+
+      <div class="instruction">
+        <strong>On your computer</strong>
+        <ul class="instruction-list">
+          <li>The camera opens. Point it at your phone screen</li>
+          <li>Back on your phone, a list of wallets appears</li>
+          <li>Tap <strong>approve</strong>, then <strong>link</strong> at the bottom</li>
+        </ul>
+      </div>
+
+      <div class="instruction">
+        <strong>Enable standard stablecoins</strong>
+        <ul class="instruction-list">
+          <li>Your computer says "linked"</li>
+          <li>Click <strong>enable standard stablecoins</strong></li>
+          <li>Take the defaults (unless you asked for something else)</li>
+        </ul>
+      </div>
+
+      <div class="tip">
+        <strong>Wait for it.</strong> The wallet takes a couple minutes to read as ready. Don't move forward until it does, or the next step won't find it.
+      </div>
+
+      <button class="button-primary" onclick="nextStep()">Wallet Linked</button>
+    </div>
+
+    <!-- Step 4: Install App -->
+    <div class="step" id="step-3">
+      <div class="step-number">4</div>
+      <div class="step-title">Install the Terminal App</div>
+      <div class="step-desc">Get the NectarPay POS app on your terminal device.</div>
+
+      <div class="instruction">
+        <strong>On your terminal or Android tablet</strong>
+        <ul class="instruction-list">
+          <li>Open Chrome</li>
+          <li>Go to <strong>app.nectar-pay.com/pos-apk</strong></li>
+          <li>Download and tap the file</li>
+          <li>Tap <strong>Install</strong></li>
+          <li>Allow <strong>NectarPay POS</strong> to install itself under Settings → Install unknown apps</li>
+          <li>Delete any old home-screen shortcut — two identical icons mean one can't print</li>
+        </ul>
+      </div>
+
+      <div class="tip">
+        <strong>Already installed?</strong> Look in the app drawer first. Most Senraise terminals come with it pre-loaded.
+      </div>
+
+      <button class="button-primary" onclick="nextStep()">App Installed</button>
+    </div>
+
+    <!-- Step 5: Test Payment -->
+    <div class="step" id="step-4">
+      <div class="step-number">5</div>
+      <div class="step-title">Test a Payment</div>
+      <div class="step-desc">Run one real payment to confirm everything works.</div>
+
+      <div class="instruction">
+        <strong>On your terminal app</strong>
+        <ul class="instruction-list">
+          <li>Open the NectarPay POS app (the real app, not the shortcut)</li>
+          <li>Go to <strong>Store</strong> settings → <strong>Share Links</strong></li>
+          <li>Create a share link</li>
+          <li>Open it and run a real payment (a couple dollars)</li>
+          <li>Watch it settle while you're there</li>
+        </ul>
+      </div>
+
+      <div class="instruction">
+        <strong>Set up how it fits your POS</strong>
+        <ul class="instruction-list">
+          <li>Every POS is different (Toast, Square, Clover, etc.)</li>
+          <li>Create a custom payment type called <strong>Crypto (NectarPay)</strong></li>
+          <li>Ring the sale on your POS under that payment type, just like delivery</li>
+          <li>Nothing writes into your system automatically — your staff rings it manually</li>
+        </ul>
+      </div>
+
+      <div class="tip">
+        <strong>That first live payment is what makes it real.</strong> It proves the app is working, the terminal is paired, and the wallet is linked. You're done.
+      </div>
+
+      <button class="button-primary" onclick="completeSetup()">Payment Complete</button>
+    </div>
+
+    <!-- Success -->
+    <div class="step" id="step-5">
+      <div class="success-screen">
+        <div class="success-icon">🎉</div>
+        <div class="success-title">You're Live</div>
+        <div class="success-desc">Your terminal is ready to accept crypto. Customers scan, funds land in your wallet in seconds.</div>
+
+        <div class="instruction">
+          <strong>Before you go</strong>
+          <ul class="instruction-list">
+            <li>Your exchange account is the one that gets forgotten. Without it, you can't reach dollars. Check it's actually open, not just started.</li>
+            <li>The coin lives in a safe, not the drawer</li>
+            <li>The password is in your password manager</li>
+            <li>Everyone who works the register does one transaction themselves</li>
+            <li>Set up the seven-day check-in on your calendar before you leave</li>
+          </ul>
+        </div>
+
+        <div style="background: white; border: 1px solid #e5e5e5; border-radius: 6px; padding: 16px; margin: 24px 0; text-align: left; font-size: 13px; line-height: 1.6; color: #666;">
+          <strong style="color: #1a1a1a; display: block; margin-bottom: 8px;">Cashing out works like this:</strong> Network fees are per transfer, not per dollar. Bitcoin costs a few dollars a transfer, no matter the amount. Stablecoins on cheap networks don't. Batch your movements — weekly or monthly, never after each sale. A shop with small tickets should leave crypto off and use stablecoins only.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding: 24px; background: white; border-top: 1px solid #e5e5e5; display: flex; gap: 12px;" id="buttonContainer">
+    <button class="button-secondary" id="backBtn" onclick="previousStep()" style="display: none;">Back</button>
+    <button class="button-secondary" style="flex: 1; display: none;" id="nextPlaceholder"></button>
+  </div>
+
+  <div class="footnote">
+    Need help? Set up includes support. If what you see doesn't match these steps, call it in rather than guessing — these steps change as the product does.
+  </div>
+</div>
+
+<script>
+let currentStep = 0;
+const totalSteps = 6;
+
+function updateProgress() {
+  const progressBar = document.getElementById('progressBar');
+  progressBar.innerHTML = '';
+  for (let i = 0; i < 5; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'progress-dot';
+    if (i < currentStep) dot.classList.add('completed');
+    if (i === currentStep) dot.classList.add('active');
+    progressBar.appendChild(dot);
+  }
+  document.getElementById('stepNum').textContent = `Step ${currentStep + 1}`;
+}
+
+function showStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('visible'));
+  if (n >= totalSteps) {
+    document.getElementById('step-5').classList.add('visible');
+    document.getElementById('backBtn').style.display = 'block';
+    document.getElementById('nextPlaceholder').style.display = 'none';
+  } else {
+    document.getElementById(`step-${n}`).classList.add('visible');
+    document.getElementById('backBtn').style.display = n > 0 ? 'block' : 'none';
+    document.getElementById('nextPlaceholder').style.display = 'none';
+  }
+  updateProgress();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function nextStep() {
+  if (currentStep < totalSteps - 1) {
+    currentStep++;
+    showStep(currentStep);
+  }
+}
+
+function previousStep() {
+  if (currentStep > 0) {
+    currentStep--;
+    showStep(currentStep);
+  }
+}
+
+function completeSetup() {
+  currentStep = totalSteps;
+  showStep(currentStep);
+}
+
+showStep(0);
+</script>
+</body>
+</html>
