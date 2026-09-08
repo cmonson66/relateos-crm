@@ -65,6 +65,19 @@ export async function signTrialAgreement(input: {
     .single();
   if (!profile) throw new Error("No profile");
 
+  // BUGFIX: Verify the deal belongs to this organization
+  // Any rep on the team can sign agreements on any deal in the org,
+  // but cannot access deals from other organizations.
+  const { data: dealOrg, error: dealOrgError } = await supabase
+    .from("deals")
+    .select("org_id")
+    .eq("id", input.dealId)
+    .single();
+
+  if (dealOrgError || !dealOrg || dealOrg.org_id !== profile.org_id) {
+    throw new Error("Deal not found or not in your organization");
+  }
+
   const { data: repRow } = await supabase
     .from("reps")
     .select("first_name, from_email, cell")
