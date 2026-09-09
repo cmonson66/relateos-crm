@@ -58,45 +58,51 @@ type Voice = {
   perkShort: string;
   hospitality: boolean; // can they actually host a room full of people?
   ticket: number;       // starting average ticket for the calculator
+  /** Which nearby businesses count as "like yours" on the map panel. */
+  peerKind: 'food' | 'service' | 'retail';
+  peerLabel: string;    // "restaurants", "shops like yours"
+  spendVerb: string;    // "eat with it", "spend it on what you sell"
 };
 
 const VOICE_DEFAULT: Voice = {
   buyer: 'customer', buyers: 'customers', visit: 'sale', visits: 'sales',
   room: 'shop', perk: 'money off their next visit',
   perkShort: 'money off the next visit', hospitality: false, ticket: 45,
+  peerKind: 'retail', peerLabel: 'stores like yours',
+  spendVerb: 'spend it on what you sell',
 };
 
 const VOICE: Record<string, Partial<Voice>> = {
   'food-drink': { buyer: 'guest', buyers: 'guests', visit: 'table', visits: 'tables',
     room: 'dining room', perk: 'a free appetizer or the first round',
-    perkShort: 'appetizers on the house', hospitality: true, ticket: 38 },
+    perkShort: 'appetizers on the house', hospitality: true, ticket: 38, peerKind: 'food', peerLabel: 'restaurants', spendVerb: 'eat with it' },
   'liquor': { visit: 'basket', visits: 'baskets', room: 'store',
-    perk: 'money off their next bottle', perkShort: 'money off a bottle', ticket: 42 },
+    perk: 'money off their next bottle', perkShort: 'money off a bottle', ticket: 42, peerKind: 'retail', peerLabel: 'stores like yours', spendVerb: 'buy a bottle with it' },
   'kava-kratom': { buyer: 'regular', buyers: 'regulars', room: 'lounge',
     perk: 'a drink on the house', perkShort: 'a round on the house',
-    hospitality: true, ticket: 22 },
+    hospitality: true, ticket: 22, peerKind: 'food', peerLabel: 'places to drink', spendVerb: 'drink with it' },
   'cigar-hookah': { buyer: 'regular', buyers: 'regulars', room: 'lounge',
     perk: 'a cigar on the house', perkShort: 'a cigar on the house',
-    hospitality: true, ticket: 55 },
+    hospitality: true, ticket: 55, peerKind: 'food', peerLabel: 'lounges', spendVerb: 'sit down with it' },
   'barber': { visit: 'chair', visits: 'chairs', room: 'shop',
-    perk: 'money off the next cut', perkShort: 'money off a cut', ticket: 35 },
+    perk: 'money off the next cut', perkShort: 'money off a cut', ticket: 35, peerKind: 'service', peerLabel: 'shops like yours', spendVerb: 'get a cut with it' },
   'nail-beauty': { visit: 'appointment', visits: 'appointments', room: 'studio',
-    perk: 'money off the next appointment', perkShort: 'money off an appointment', ticket: 60 },
+    perk: 'money off the next appointment', perkShort: 'money off an appointment', ticket: 60, peerKind: 'service', peerLabel: 'studios like yours', spendVerb: 'book an appointment with it' },
   'tattoo': { visit: 'session', visits: 'sessions', room: 'studio',
-    perk: 'money off the next session', perkShort: 'money off a session', ticket: 180 },
+    perk: 'money off the next session', perkShort: 'money off a session', ticket: 180, peerKind: 'service', peerLabel: 'studios like yours', spendVerb: 'book work with it' },
   'med-spa': { buyer: 'client', buyers: 'clients', visit: 'appointment', visits: 'appointments',
     room: 'clinic', perk: 'money off the next treatment',
-    perkShort: 'money off a treatment', ticket: 220 },
+    perkShort: 'money off a treatment', ticket: 220, peerKind: 'service', peerLabel: 'clinics like yours', spendVerb: 'book a treatment with it' },
   'auto': { visit: 'job', visits: 'jobs', room: 'shop',
-    perk: 'money off the next service', perkShort: 'money off a service', ticket: 380 },
+    perk: 'money off the next service', perkShort: 'money off a service', ticket: 380, peerKind: 'service', peerLabel: 'shops like yours', spendVerb: 'get work done with it' },
   'powersports': { visit: 'job', visits: 'jobs', room: 'shop',
-    perk: 'money off the next service', perkShort: 'money off a service', ticket: 420 },
+    perk: 'money off the next service', perkShort: 'money off a service', ticket: 420, peerKind: 'service', peerLabel: 'shops like yours', spendVerb: 'get work done with it' },
   'bike': { visit: 'job', visits: 'jobs', room: 'shop',
-    perk: 'money off the next tune-up', perkShort: 'money off a tune-up', ticket: 95 },
+    perk: 'money off the next tune-up', perkShort: 'money off a tune-up', ticket: 95, peerKind: 'service', peerLabel: 'shops like yours', spendVerb: 'get a bike fixed with it' },
   'phone-repair': { visit: 'repair', visits: 'repairs', room: 'shop',
-    perk: 'money off the next repair', perkShort: 'money off a repair', ticket: 120 },
+    perk: 'money off the next repair', perkShort: 'money off a repair', ticket: 120, peerKind: 'service', peerLabel: 'shops like yours', spendVerb: 'get a repair with it' },
   'pool-landscape': { visit: 'job', visits: 'jobs', room: 'yard',
-    perk: 'money off the next visit', perkShort: 'money off a visit', ticket: 250 },
+    perk: 'money off the next visit', perkShort: 'money off a visit', ticket: 250, peerKind: 'service', peerLabel: 'services like yours', spendVerb: 'book work with it' },
   'jewelry-gold': { visit: 'sale', visits: 'sales', room: 'showroom',
     perk: 'money off the next piece', perkShort: 'money off a piece', ticket: 650 },
   'pawn': { visit: 'ticket', visits: 'tickets', room: 'shop',
@@ -105,7 +111,7 @@ const VOICE: Record<string, Partial<Voice>> = {
     perk: 'money off the next box of ammo', perkShort: 'money off ammo', ticket: 480 },
   'gym-supps': { buyer: 'member', buyers: 'members', visit: 'sale', visits: 'sales',
     room: 'gym', perk: 'money off the next tub', perkShort: 'money off a tub',
-    hospitality: true, ticket: 55 },
+    hospitality: true, ticket: 55, peerKind: 'service', peerLabel: 'gyms like yours', spendVerb: 'train with it' },
   'smoke-vape': { buyer: 'regular', buyers: 'regulars', room: 'shop',
     perk: 'money off the next visit', perkShort: 'money off a visit', ticket: 32 },
   'sneaker-street': { room: 'store', perk: 'money off the next pair',
@@ -408,6 +414,22 @@ export function PitchClient({ deck }: { deck: Deck }) {
   const [layer, setLayer] = useState<'atm' | 'merch' | 'both'>('both');
 
   const loc = deck.locations[sel];
+
+  // How many of the nearby crypto-accepting businesses are the same kind of
+  // business as this one. Computed client-side from the merchant list so decks
+  // built before this existed still get it.
+  const peersNearby = useMemo(() => {
+    const R_KM = 4.828;
+    return deck.merchants.filter((m) => {
+      const kind = m.k === 'other' ? 'retail' : m.k;
+      if (kind !== voice.peerKind) return false;
+      const p = Math.PI / 180;
+      const x =
+        Math.sin(((m.lat - loc.lat) * p) / 2) ** 2 +
+        Math.cos(loc.lat * p) * Math.cos(m.lat * p) * Math.sin(((m.lng - loc.lng) * p) / 2) ** 2;
+      return 2 * 6371 * Math.asin(Math.sqrt(x)) <= R_KM;
+    }).length;
+  }, [deck.merchants, loc, voice.peerKind]);
   // Generated decks carry no ATM coordinates - only what the accounts table
   // stores. Render what we actually have rather than an empty green layer.
   const hasAtms = deck.atms.length > 0;
@@ -608,7 +630,7 @@ export function PitchClient({ deck }: { deck: Deck }) {
                       k="to the nearest one" tone="amber" />
               )}
               <Stat v={loc.merch_5000} k="businesses taking crypto within three miles" tone="blue" />
-              <Stat v={loc.merch_food_5000} k="of those that are restaurants" tone="blue" />
+              <Stat v={peersNearby} k={`of those that are ${voice.peerLabel}`} tone="blue" />
             </div>
             <p className="mt-4 text-[14px] leading-relaxed text-slate-400">
               {loc.nearest_name && loc.nearest_m !== undefined ? (
@@ -617,10 +639,10 @@ export function PitchClient({ deck }: { deck: Deck }) {
                   : `${(loc.nearest_m / 1609).toFixed(1)} miles away`}.{' '}</>
               ) : null}
               {loc.merch_5000 === 0
-                ? `Nothing within three miles takes crypto today, restaurant or otherwise. You would be the first thing on this map.`
-                : loc.merch_food_5000 === 0
-                ? `${loc.merch_5000} ${loc.merch_5000 === 1 ? 'business takes' : 'businesses take'} it within three miles, and not one is a restaurant. Somewhere to buy it, nowhere to eat with it.`
-                : `${loc.merch_food_5000} of the ${loc.merch_5000} are restaurants, so people here already have somewhere else to go.`}
+                ? `Nothing within three miles takes crypto today, ${voice.peerLabel} or otherwise. You would be the first thing on this map.`
+                : peersNearby === 0
+                ? `${loc.merch_5000} ${loc.merch_5000 === 1 ? 'business takes' : 'businesses take'} it within three miles, and not one of them is ${voice.peerLabel === 'restaurants' ? 'a restaurant' : 'anything like yours'}. Somewhere to spend it nearby, but nowhere to ${voice.spendVerb}.`
+                : `${peersNearby} of the ${loc.merch_5000} are ${voice.peerLabel}, so people here already have somewhere to ${voice.spendVerb}.`}
             </p>
           </div>
         </div>

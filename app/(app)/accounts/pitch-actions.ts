@@ -32,6 +32,18 @@ type Row = {
   crypto_nearest_atm_m: number | null;
 };
 
+const SERVICE_VERTICALS = new Set([
+  'barber', 'nail-beauty', 'tattoo', 'med-spa', 'auto', 'powersports', 'bike',
+  'phone-repair', 'pool-landscape', 'gym-supps',
+]);
+
+/** Coarse category, used to answer "how many near you are like you". */
+function kindOf(vertical: string | null): 'food' | 'service' | 'retail' {
+  if (vertical === 'food-drink' || vertical === 'kava-kratom' || vertical === 'cigar-hookah') return 'food';
+  if (vertical && SERVICE_VERTICALS.has(vertical)) return 'service';
+  return 'retail';
+}
+
 function km(aLat: number, aLng: number, bLat: number, bLng: number): number {
   const p = Math.PI / 180;
   const x =
@@ -95,7 +107,7 @@ export async function buildPitchDeck(input: {
     .map((m) => ({
       n: m.name,
       c: m.city ?? '',
-      k: m.vertical === 'food-drink' ? 'food' : m.vertical === 'crypto-native' ? 'other' : 'service',
+      k: kindOf(m.vertical),
       lat: m.latitude as number,
       lng: m.longitude as number,
     }));
