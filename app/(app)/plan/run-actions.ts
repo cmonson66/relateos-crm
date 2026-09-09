@@ -129,6 +129,95 @@ export async function offerRuns(): Promise<Result<{ runs: RunOffer[] }>> {
  * it. The claim happens through a security-definer function that only ever
  * fills an empty owner, so it can never take a shop off another rep.
  */
+/**
+ * "I have two hours and I am standing here."
+ *
+ * The rep taps a button between appointments, we take their position, and
+ * offer pockets they can actually walk before the next one. Same candidate
+ * pool as offerRuns - which already includes unclaimed doors, and those are
+ * usually the point of a gap like this.
+ */
+export async function offerRunsNear(input: {
+  lat: number;
+  lng: number;
+  minutes: number;
+}): Promise<Result<{ runs: RunOffer[] }>> {
+  try {
+    const { supabase, profile, tz } = await me();
+
+    if (!Number.isFinite(input.lat) || !Number.isFinite(input.lng)) {
+      return { ok: false, message: 'No usable location.' };
+    }
+    const budget = Math.min(480, Math.max(30, Math.round(input.minutes)));
+
+    const { data, error } = await supabase.rpc('get_canvas_candidates', {
+      p_region_id: profile.region_id,
+      p_owner_id: profile.id,
+      p_cold_days: 30,
+    });
+    if (error) return { ok: false, message: error.message };
+
+    const doors: Door[] = ((data ?? []) as Record<string, unknown>[]).map((d) => ({
+      accountId: d.account_id as string,
+      name: d.name as string,
+      vertical: (d.vertical as string) ?? '',
+      city: (d.city as string) ?? null,
+      address: (d.address as string) ?? null,
+      lat: d.lat as number,
+      lng: d.lng as number,
+      band: (d.band as string) ?? 'COOL',
+      cryptoScore: (d.crypto_score as number) ?? null,
+      ownerId: (d.owner_id as string) ?? null,
+      lastActivityAt: (d.last_activity_at as string) ?? null,
+      lastEngagedAt: (d.last_engaged_at as string) ?? null,
+    }));
+
+    // Do not offer a pocket that is already being walked today.
+    const planDate = todayIn(tz);
+    const { data: taken } = await supabase
+      .from('day_runs')
+      .select('id, day_run_stops(account_id)')
+      .eq('profile_id', profile.id)
+      .eq('plan_date', planDate)
+      .neq('state', 'abandoned');
+
+    const busy = new Set<string>();
+    for (const r of (taken ?? []) as Record<string, unknown>[]) {
+      for (const st of (r.day_run_stops ?? []) as { account_id: string }[]) busy.add(st.account_id);
+    }
+
+    const runs: Run[] = buildRuns(doors.filter((d) => !busy.has(d.accountId)), {
+      now: Date.now(),
+      origin: { lat: input.lat, lng: input.lng },
+      budgetMinutes: budget,
+      max: 3,
+    });
+
+    if (runs.length === 0) {
+      return {
+        ok: false,
+        message: `Nothing walkable within six miles that fits ${budget} minutes. Try a longer window.`,
+      };
+    }
+
+    return {
+      ok: true,
+      runs: runs.map((r) => ({
+        label: r.label,
+        reason: r.reason,
+        doors: r.doors.length,
+        claimable: r.claimable,
+        estMinutes: r.estMinutes,
+        accountIds: r.doors.map((d) => d.accountId),
+        centerLat: r.centerLat,
+        centerLng: r.centerLng,
+      })),
+    };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : 'Could not build a run from here.' };
+  }
+}
+
 export async function takeRun(offer: RunOffer): Promise<Result<{ runId: string; claimed: number }>> {
   try {
     const { supabase, profile, tz } = await me();

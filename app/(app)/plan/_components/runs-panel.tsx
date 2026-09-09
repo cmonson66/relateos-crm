@@ -4,9 +4,16 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Footprints, MapPin, Check, X, Navigation, Phone } from 'lucide-react';
+import { Footprints, MapPin, Check, X, Navigation, Phone, Crosshair } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { offerRuns, takeRun, setStopState, endRun, type RunOffer } from '../run-actions';
+import {
+  offerRuns,
+  offerRunsNear,
+  takeRun,
+  setStopState,
+  endRun,
+  type RunOffer,
+} from '../run-actions';
 
 export type ActiveStop = {
   id: string;
@@ -37,8 +44,48 @@ export type ActiveRun = {
 export function RunsPanel({ active }: { active: ActiveRun | null }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  const [locating, setLocating] = useState(false);
   const [offers, setOffers] = useState<RunOffer[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+
+  /**
+   * The gap-filler. A rep finishes a demo with two hours until the next one,
+   * taps this, and gets pockets they can actually walk from where they are
+   * standing - trimmed to fit the clock, including doors nobody owns yet.
+   */
+  function lookFromHere(minutes: number) {
+    if (!('geolocation' in navigator)) {
+      toast.error('This device will not share a location.');
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        start(async () => {
+          const res = await offerRunsNear({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            minutes,
+          });
+          if (res.ok === false) {
+            toast.error(res.message);
+            return;
+          }
+          setOffers(res.runs);
+        });
+      },
+      (err) => {
+        setLocating(false);
+        toast.error(
+          err.code === err.PERMISSION_DENIED
+            ? 'Location is off for this site. Turn it on in your browser settings and tap again.'
+            : 'Could not get a fix on where you are.',
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+  }
 
   function look() {
     start(async () => {
@@ -218,14 +265,40 @@ export function RunsPanel({ active }: { active: ActiveRun | null }) {
       </p>
 
       {offers === null ? (
+        <>
+        <div className="mb-3 rounded-md border border-primary/30 bg-primary/5 p-3">
+          <div className="mb-1 flex items-center gap-1.5">
+            <Crosshair className="h-3.5 w-3.5 text-primary" />
+            <span className="font-display text-sm tracking-wider">GOT A GAP?</span>
+          </div>
+          <p className="mb-2 text-xs text-muted-foreground">
+            Between appointments. Finds doors you can walk from right here and trims the run to
+            fit the time you have.
+          </p>
+          <div className="grid grid-cols-3 gap-1.5">
+            {[60, 120, 180].map((m) => (
+              <button
+                key={m}
+                type="button"
+                disabled={pending || locating}
+                onClick={() => lookFromHere(m)}
+                className="rounded-md border border-primary/40 px-2 py-2 font-display text-sm tracking-wider text-primary disabled:opacity-60"
+              >
+                {locating ? '...' : `${m / 60} HR${m > 60 ? 'S' : ''}`}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <button
           type="button"
-          disabled={pending}
+          disabled={pending || locating}
           onClick={look}
           className="btn-glow w-full rounded-md bg-primary px-4 py-3 font-display tracking-widest text-primary-foreground disabled:opacity-60"
         >
           {pending ? 'LOOKING...' : 'FIND ME A RUN'}
         </button>
+        </>
       ) : offers.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           Nothing clustered tightly enough today. Try again after the campaign has warmed a few

@@ -184,17 +184,43 @@ export function buildRuns(
     max?: number;
     /** Ranks pockets near today's appointments first. */
     anchors?: { lat: number; lng: number }[];
+    /**
+     * A hard start point - where the rep is standing right now. Unlike an
+     * anchor, which only nudges the ranking, an origin changes what a run IS:
+     * pockets beyond `radiusMiles` are dropped entirely, stops are ordered
+     * outward from it, and the drive from the origin to the first door counts
+     * against the clock.
+     */
+    origin?: { lat: number; lng: number };
+    radiusMiles?: number;
+    /**
+     * Minutes the rep actually has. Runs are trimmed from the far end until
+     * they fit, because a plan that overruns the next appointment is worse
+     * than a shorter one.
+     */
+    budgetMinutes?: number;
   },
 ): Run[] {
-  const minDoors = opts.minDoors ?? 6;
+  // A gap between appointments is a different animal from a planned morning.
+  // Four doors next to where you are standing is a good use of two hours;
+  // insisting on six would throw that away and offer nothing.
+  const minDoors = opts.minDoors ?? (opts.origin ? 3 : 6);
   const maxDoors = opts.maxDoors ?? 12;
+  const radius = opts.radiusMiles ?? 6;
 
   const runs: Run[] = [];
   for (const group of clusterDoors(doors)) {
     if (group.length < minDoors) continue;
 
+    // Drop pockets that are not actually near the rep.
+    if (opts.origin) {
+      const gLat = group.reduce((n, d) => n + d.lat, 0) / group.length;
+      const gLng = group.reduce((n, d) => n + d.lng, 0) / group.length;
+      if (milesBetween(opts.origin.lat, opts.origin.lng, gLat, gLng) > radius) continue;
+    }
+
     const ranked = [...group].sort((a, b) => doorValue(b, opts.now) - doorValue(a, opts.now));
-    const picked = ranked.slice(0, maxDoors);
+    let picked = ranked.slice(0, maxDoors);
 
     const hot = picked.filter((d) => d.band === 'HOT').length;
     const warm = picked.filter((d) => d.band === 'WARM').length;
@@ -203,21 +229,26 @@ export function buildRuns(
     ).length;
 
     // No warm door, nobody engaged: that is a list of pins, not a reason to
-    // spend two hours.
-    if (hot + warm + engaged === 0) continue;
+    // spend two hours. Unless the rep is already standing there with a gap to
+    // fill, in which case unclaimed doors on the same block are the point.
+    const anyUnclaimed = picked.some((d) => !d.ownerId);
+    if (hot + warm + engaged === 0 && !(opts.origin && anyUnclaimed)) continue;
 
-    const ordered = orderStops(picked);
+    let ordered = orderStops(picked, opts.origin?.lat, opts.origin?.lng);
+
+    // Trim from the far end until it fits the gap.
+    if (opts.budgetMinutes) {
+      while (ordered.length > minDoors && runMinutes(ordered, opts.origin) > opts.budgetMinutes) {
+        ordered = ordered.slice(0, -1);
+      }
+      if (runMinutes(ordered, opts.origin) > opts.budgetMinutes) continue;
+      picked = ordered;
+    }
+
     const centerLat = picked.reduce((n, d) => n + d.lat, 0) / picked.length;
     const centerLng = picked.reduce((n, d) => n + d.lng, 0) / picked.length;
 
-    let walkMiles = 0;
-    for (let i = 1; i < ordered.length; i++) {
-      walkMiles += milesBetween(ordered[i - 1].lat, ordered[i - 1].lng, ordered[i].lat, ordered[i].lng);
-    }
-    // 10 minutes a door, 20 minutes a mile on foot, rounded to a quarter hour
-    // so the number reads like a plan rather than an estimate.
-    const raw = ordered.length * 10 + walkMiles * 20;
-    const estMinutes = Math.max(30, Math.round(raw / 15) * 15);
+    const estMinutes = runMinutes(ordered, opts.origin);
 
     const street = streetName(picked);
     const city = picked.find((d) => d.city)?.city ?? null;
@@ -231,6 +262,12 @@ export function buildRuns(
     if (claimable) bits.push(`${claimable} unclaimed`);
 
     let score = engaged * 40 + hot * 20 + warm * 8 + picked.length;
+    if (opts.origin) {
+      // Closest wins, hard. In a two-hour gap, ten minutes of driving is a
+      // door you did not knock.
+      const away = milesBetween(opts.origin.lat, opts.origin.lng, centerLat, centerLng);
+      score += Math.max(0, (radius - away) * 25);
+    }
     if (opts.anchors?.length) {
       const nearest = Math.min(
         ...opts.anchors.map((a) => milesBetween(a.lat, a.lng, centerLat, centerLng)),
@@ -253,6 +290,22 @@ export function buildRuns(
   }
 
   return runs.sort((a, b) => b.score - a.score).slice(0, opts.max ?? 3);
+}
+
+/**
+ * 10 minutes a door, 20 minutes a mile, rounded to a quarter hour so it reads
+ * like a plan rather than an estimate. When there is an origin, the trip from
+ * where the rep is standing to the first door counts too - leaving it out is
+ * how a run quietly overruns the next appointment.
+ */
+function runMinutes(ordered: Door[], origin?: { lat: number; lng: number }): number {
+  if (ordered.length === 0) return 0;
+  let miles = 0;
+  if (origin) miles += milesBetween(origin.lat, origin.lng, ordered[0].lat, ordered[0].lng);
+  for (let i = 1; i < ordered.length; i++) {
+    miles += milesBetween(ordered[i - 1].lat, ordered[i - 1].lng, ordered[i].lat, ordered[i].lng);
+  }
+  return Math.max(30, Math.round((ordered.length * 10 + miles * 20) / 15) * 15);
 }
 
 function doorValue(d: Door, now: number): number {
