@@ -20,10 +20,11 @@ export type Atm = { n: string; a: string; lat: number; lng: number };
 export type Merchant = { n: string; c: string; k: string; lat: number; lng: number };
 export type Loc = {
   label: string; city: string; addr: string; lat: number; lng: number;
-  atm_1600: number; atm_5000: number; nearest_m: number; nearest_name: string;
+  /** Present only when ATM data was gathered for this deck. */
+  atm_1600?: number; atm_5000?: number; nearest_m?: number; nearest_name?: string;
   merch_5000: number; merch_food_5000: number;
-  near: (Atm & { m: number })[];
-  near_merch: { n: string; k: string; m: number }[];
+  near?: (Atm & { m: number })[];
+  near_merch?: { n: string; k: string; m: number }[];
 };
 export type Pick = {
   label: string; headline: string; body: string;
@@ -248,6 +249,9 @@ export function PitchClient({ deck }: { deck: Deck }) {
   const [layer, setLayer] = useState<'atm' | 'merch' | 'both'>('both');
 
   const loc = deck.locations[sel];
+  // Generated decks carry no ATM coordinates - only what the accounts table
+  // stores. Render what we actually have rather than an empty green layer.
+  const hasAtms = deck.atms.length > 0;
   const oneTime = TERMINAL_ONCE * n;
   const tier = bestTierFor(n);
   const monthly = membershipMonthlyFor(n, tier);
@@ -272,7 +276,9 @@ export function PitchClient({ deck }: { deck: Deck }) {
             <div key={r.name}>
               <div className="text-[11px] uppercase tracking-[0.2em] text-slate-600">{r.role}</div>
               <div className="mt-1 text-[17px] font-extrabold">{r.name}</div>
-              <a href={`tel:${r.phone.replace(/\D/g, '')}`} className="text-[16px] text-[#F2A71B]">{r.phone}</a>
+              {r.phone && (
+                <a href={`tel:${r.phone.replace(/\D/g, '')}`} className="text-[16px] text-[#F2A71B]">{r.phone}</a>
+              )}
             </div>
           ))}
         </div>
@@ -403,13 +409,14 @@ export function PitchClient({ deck }: { deck: Deck }) {
         <Eyebrow>Now the part people ask about</Eyebrow>
         <Big>How many of those guests are actually out there?</Big>
         <p className="mt-4 text-[16px] leading-relaxed text-slate-400">
-          Two things we can count. Machines where people turn cash into crypto, and businesses
-          near you already taking it. Tap any location.
+          {hasAtms
+            ? 'Two things we can count. Machines where people turn cash into crypto, and businesses near you already taking it. Tap any location.'
+            : 'Businesses near you already taking crypto, from our own Arizona records. Tap any location.'}
         </p>
 
         <div className="mt-6 grid gap-5 lg:grid-cols-[400px_1fr]">
           <div>
-            <div className="mb-3 flex gap-1.5">
+            <div className={`mb-3 flex gap-1.5 ${hasAtms ? '' : 'hidden'}`}>
               {([['both', 'Both'], ['atm', 'Cash machines'], ['merch', 'Businesses']] as const).map(([id, lbl]) => (
                 <button key={id} type="button" onClick={() => setLayer(id)}
                         className={'rounded-full px-3 py-1 text-[11px] font-bold ' +
@@ -420,7 +427,9 @@ export function PitchClient({ deck }: { deck: Deck }) {
             </div>
             <DensityMap deck={deck} selected={sel} onSelect={setSel} layer={layer} />
             <div className="mt-2 flex gap-4 text-[11px] text-slate-500">
-              <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#4ADE80]" />{deck.atms.length} cash machines</span>
+              {hasAtms && (
+                <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#4ADE80]" />{deck.atms.length} cash machines</span>
+              )}
               <span><span className="mr-1 inline-block h-2 w-2 bg-[#60A5FA]" />{deck.merchants.length} businesses taking it</span>
             </div>
           </div>
@@ -429,16 +438,22 @@ export function PitchClient({ deck }: { deck: Deck }) {
             <div className="text-[19px] font-extrabold">{loc.label}</div>
             <div className="text-[12px] text-slate-500">{loc.addr}</div>
             <div className="mt-4 grid grid-cols-2 gap-2 text-center">
-              <Stat v={loc.atm_1600} k="cash machines within a mile" tone="green" />
-              <Stat v={loc.nearest_m < 1000 ? `${loc.nearest_m}m` : `${(loc.nearest_m / 1609).toFixed(1)} mi`}
-                    k="to the nearest one" tone="amber" />
+              {loc.atm_1600 !== undefined && (
+                <Stat v={loc.atm_1600} k="cash machines within a mile" tone="green" />
+              )}
+              {loc.nearest_m !== undefined && (
+                <Stat v={loc.nearest_m < 1000 ? `${loc.nearest_m}m` : `${(loc.nearest_m / 1609).toFixed(1)} mi`}
+                      k="to the nearest one" tone="amber" />
+              )}
               <Stat v={loc.merch_5000} k="businesses taking crypto within three miles" tone="blue" />
               <Stat v={loc.merch_food_5000} k="of those that are restaurants" tone="blue" />
             </div>
             <p className="mt-4 text-[14px] leading-relaxed text-slate-400">
-              Nearest machine is {loc.nearest_name}, {loc.nearest_m < 1000
-                ? `${loc.nearest_m} metres away`
-                : `${(loc.nearest_m / 1609).toFixed(1)} miles away`}.{' '}
+              {loc.nearest_name && loc.nearest_m !== undefined ? (
+                <>Nearest machine is {loc.nearest_name}, {loc.nearest_m < 1000
+                  ? `${loc.nearest_m} metres away`
+                  : `${(loc.nearest_m / 1609).toFixed(1)} miles away`}.{' '}</>
+              ) : null}
               {loc.merch_5000 === 0
                 ? `Nothing within three miles takes crypto today, restaurant or otherwise. You would be the first thing on this map.`
                 : loc.merch_food_5000 === 0
@@ -448,8 +463,8 @@ export function PitchClient({ deck }: { deck: Deck }) {
           </div>
         </div>
         <p className="mt-4 text-[11px] leading-relaxed text-slate-600">
-          Cash machines verified on Google Places this week. Businesses are from our own Arizona
-          merchant records. Distances are straight-line from each street address.
+          {hasAtms ? 'Cash machines verified on Google Places. ' : ''}Businesses are from our own
+          Arizona merchant records. Distances are straight-line from each street address.
         </p>
       </Slide>
 
@@ -642,11 +657,11 @@ export function PitchClient({ deck }: { deck: Deck }) {
         </p>
         <div className="mt-10 flex flex-wrap gap-4">
           {deck.reps.map((r) => (
-            <a key={r.name} href={`tel:${r.phone.replace(/\D/g, '')}`}
+            <a key={r.name} href={r.phone ? `tel:${r.phone.replace(/\D/g, '')}` : undefined}
                className="flex-1 rounded-2xl bg-[#0C1A2C] p-5 text-slate-200">
               <div className="text-[11px] uppercase tracking-[0.2em] text-slate-500">{r.role}</div>
               <div className="mt-1 text-[19px] font-extrabold">{r.name}</div>
-              <div className="text-[17px] text-[#F2A71B]">{r.phone}</div>
+              {r.phone && <div className="text-[17px] text-[#F2A71B]">{r.phone}</div>}
             </a>
           ))}
         </div>

@@ -17,6 +17,7 @@ import { formatRelative, initials } from '@/lib/utils/format';
 import { formatDealValue } from '@/lib/db/deals';
 import { ArrowLeft, MapPin, Globe, Users as UsersIcon, Tag } from 'lucide-react';
 import { ReferralPanel } from '../_components/referral-panel';
+import { PitchDeckPanel } from '../_components/pitch-deck-panel';
 
 export default async function AccountDetailPage({
   params,
@@ -234,6 +235,17 @@ export default async function AccountDetailPage({
         </div>
 
         <div className="space-y-6">
+          <PitchDeckPanel
+            accountId={id}
+            accountName={account.name as string}
+            repName={(currentProfile?.full_name as string) ?? ''}
+            siblings={siblings.map((sib) => ({
+              id: sib.id,
+              name: sib.name,
+              city: sib.city,
+            }))}
+          />
+
           <ReferralPanel
             accountId={id}
             testimonials={(testimonials ?? []).map(t => ({
