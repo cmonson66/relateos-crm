@@ -122,6 +122,9 @@ function voiceFor(vertical?: string): Voice {
   return { ...VOICE_DEFAULT, ...(vertical ? VOICE[vertical] ?? {} : {}) };
 }
 
+const usd2 = (n: number) =>
+  n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 });
+
 const usd0 = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 
@@ -415,6 +418,9 @@ export function PitchClient({ deck }: { deck: Deck }) {
   const flatTier = tier === 'multi';
   const perLocationBreakEven = Math.round(groupBreakEvenYearOne(n, tier) / n);
   const ifOnBasic = membershipMonthlyFor(n, 'basic');
+  // The same figure said the way an owner counts it. A dollar target means
+  // nothing across 23 verticals; "three clients a week" lands in all of them.
+  const breakEvenPerWeek = Math.max(1, Math.round(perLocationBreakEven / voice.ticket / 4.33));
 
   return (
     <div className="h-[100svh] snap-y snap-mandatory overflow-y-scroll bg-[#0A1220] lg:h-auto lg:snap-none lg:overflow-visible">
@@ -627,10 +633,11 @@ export function PitchClient({ deck }: { deck: Deck }) {
       {/* 6 where to start */}
       <Slide tone="light" wide>
         <Eyebrow>Where to start</Eyebrow>
-        <Big>Two locations, two different questions.</Big>
+        <Big>{deck.picks.length > 1 ? 'Two locations, two different questions.' : 'Start here.'}</Big>
         <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-[#47566B]">
-          They are not the same test, which is the argument for running both. One asks whether an
-          event night carries it. The other asks whether the street walks in on its own.
+          {deck.picks.length > 1
+            ? 'They are not the same test, which is the argument for running both. One asks whether a busy night carries it. The other asks whether the street walks in on its own.'
+            : `One terminal, one month, and a real answer at the end of it rather than an opinion. Nothing changes about how you take cards while it runs.`}
         </p>
 
         <div className="mt-7 grid gap-4 lg:grid-cols-2">
@@ -653,9 +660,13 @@ export function PitchClient({ deck }: { deck: Deck }) {
         </div>
 
         <p className="mt-6 text-[16px] leading-relaxed text-[#47566B]">
-          One month, no charge, real {voice.buyers}{deck.picks.length > 1 ? ', in both' : ''}. If
-          {deck.picks.length > 1 ? ' they do not earn their place we carry them' : ' it does not earn its place we carry it'}
-          back out{n - deck.picks.length > 0 ? ` and the other ${n - deck.picks.length} location${n - deck.picks.length === 1 ? '' : 's'} never hear about it` : ''}.
+          One month, no charge, real {voice.buyers}{deck.picks.length > 1 ? ', in both' : ''}.{' '}
+          {deck.picks.length > 1
+            ? 'If they do not earn their place we carry them back out'
+            : 'If it does not earn its place we carry it back out'}
+          {n - deck.picks.length > 0
+            ? ` and the other ${n - deck.picks.length} location${n - deck.picks.length === 1 ? '' : 's'} never hears about it`
+            : ''}.
         </p>
       </Slide>
 
@@ -750,10 +761,14 @@ export function PitchClient({ deck }: { deck: Deck }) {
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <div className="space-y-2">
             {[
-              [`Terminals, ${n} at ${TERMINAL_LABEL}`, usd0(oneTime), 'once'],
               [
-                'Membership, all locations',
-                `${usd0(monthly)}/mo`,
+                one ? 'Terminal' : `Terminals, ${n} at ${TERMINAL_LABEL}`,
+                usd0(oneTime),
+                one ? 'once' : 'once, one per location',
+              ],
+              [
+                one ? 'Membership' : 'Membership, all locations',
+                `${usd2(monthly)}/mo`,
                 flatTier ? 'one flat fee, preferred service included' : 'billed yearly',
               ],
               ['Percentage of your sales', 'none', 'ever'],
@@ -774,9 +789,15 @@ export function PitchClient({ deck }: { deck: Deck }) {
               <div className="text-[26px] font-extrabold">{usd0(yearOne)}</div>
             </div>
             <p className="mt-4 text-[15px] leading-relaxed text-slate-400">
-              Break-even is {usd0(perLocationBreakEven)} a month per location. On your ticket
-              average that is a handful of tables a week, and everything past it is margin you
-              keep.
+              Break-even is {usd0(perLocationBreakEven)} a month{one ? '' : ' per location'}. At a
+              typical {usd0(voice.ticket)} {voice.visit}, that is about{' '}
+              <b className="text-slate-200">
+                {breakEvenPerWeek} new {breakEvenPerWeek === 1 ? voice.buyer : voice.buyers} a week
+              </b>
+              {' '}paying this way. Everything past that is margin you keep.
+            </p>
+            <p className="mt-2 text-[13px] leading-relaxed text-slate-500">
+              Slide your own average back on the second screen and the number moves with it.
             </p>
             {flatTier && (
               <div className="mt-4 rounded-xl border border-[#F2A71B]/40 bg-[#F2A71B]/5 p-4">
