@@ -118,29 +118,29 @@ export function CryptoPopPreview({
         <div className="maplabel" style={{left: "78%", top: "63%"}}>Arrowhead</div>
 
         <div className="pin" style={{left: "20%", top: "31%"}}>
-        <div className="pill"><span className="ic cafe">&#9749;</span><span className="val">8% back</span></div>
+        <div className="pill"><span className="ic cafe">&#9749;</span><span className="val">8% off</span></div>
         </div>
         <div className="pin" style={{left: "64%", top: "25%"}}>
-        <div className="pill"><span className="ic food">&#127860;</span><span className="val">10% back</span></div>
+        <div className="pill"><span className="ic food">&#127860;</span><span className="val">10% off</span></div>
         </div>
         <div className="pin" style={{left: "87%", top: "40%"}}>
-        <div className="pill"><span className="ic shop">&#128717;</span><span className="val">5% back</span></div>
+        <div className="pill"><span className="ic shop">&#128717;</span><span className="val">5% off</span></div>
         </div>
         <div className="pin" style={{left: "15%", top: "57%"}}>
-        <div className="pill"><span className="ic food">&#127790;</span><span className="val">12% back</span></div>
+        <div className="pill"><span className="ic food">&#127790;</span><span className="val">12% off</span></div>
         </div>
         <div className="pin" style={{left: "38%", top: "47%"}}>
         <div className="pill"><span className="ic svc">&#128135;</span><span className="val">$5 off</span></div>
         </div>
         <div className="pin" style={{left: "74%", top: "74%"}}>
-        <div className="pill"><span className="ic cafe">&#9749;</span><span className="val">6% back</span></div>
+        <div className="pill"><span className="ic cafe">&#9749;</span><span className="val">6% off</span></div>
         </div>
         <div className="pin" style={{left: "29%", top: "81%"}}>
-        <div className="pill"><span className="ic shop">&#128717;</span><span className="val">5% back</span></div>
+        <div className="pill"><span className="ic shop">&#128717;</span><span className="val">5% off</span></div>
         </div>
 
         <div className="pin mine" style={{left: "53%", top: "64%"}}>
-        <div className="pill"><span className="ic">&#127838;</span><span className="val">10% back &middot; you</span></div>
+        <div className="pill"><span className="ic">&#127838;</span><span className="val">10% off &middot; you</span></div>
         </div>
         <div className="youdot" style={{left: "53%", top: "68%"}}></div>
 
@@ -152,7 +152,7 @@ export function CryptoPopPreview({
         <div>
         <div className="oc-name">{label}</div>
         <div className="oc-meta">0.0 mi &middot; {address || '1850 W Happy Valley Rd'}</div>
-        <div className="oc-offer">10% back when you pay in crypto</div>
+        <div className="oc-offer">10% off when you pay in crypto</div>
         </div>
         <div className="oc-right">
         <div className="instore">Open until 6</div>

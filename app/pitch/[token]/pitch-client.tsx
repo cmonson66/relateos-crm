@@ -9,6 +9,7 @@ import {
   MULTI_PREFERRED_LABEL,
   BASIC_LABEL,
   bestTierFor,
+  type MembershipTier,
   membershipMonthlyFor,
   yearOneFor,
   groupBreakEvenYearOne,
@@ -32,14 +33,101 @@ export type Pick = {
 };
 export type Deck = {
   brand: string; subtitle: string; picks: Pick[];
+  /** Drives the language. Free appetizers mean nothing to a transmission shop. */
+  vertical?: string;
   reps: { name: string; phone: string; role: string }[];
   locations: Loc[]; atms: Atm[]; merchants: Merchant[];
 };
+
+/* ------------------------------------------------------------------ VOICE ---
+ * The same deck has to sell a cantina and a brake shop. Almost every line that
+ * says "guest" or "table" or "appetizer" is wrong for half the verticals we
+ * cover, so the words come from here instead of being written into the slides.
+ *
+ * `perk` is the one that matters most. A crypto meetup being fed free
+ * appetizers is a real offer to a restaurant and a baffling one to an auto
+ * shop - so trades and retail get money off work instead of food.
+ */
+type Voice = {
+  buyer: string;        // one of them
+  buyers: string;       // several
+  visit: string;        // what one transaction is called
+  visits: string;
+  room: string;         // where it happens
+  perk: string;         // what a sponsor could pay for
+  perkShort: string;
+  hospitality: boolean; // can they actually host a room full of people?
+  ticket: number;       // starting average ticket for the calculator
+};
+
+const VOICE_DEFAULT: Voice = {
+  buyer: 'customer', buyers: 'customers', visit: 'sale', visits: 'sales',
+  room: 'shop', perk: 'money off their next visit',
+  perkShort: 'money off the next visit', hospitality: false, ticket: 45,
+};
+
+const VOICE: Record<string, Partial<Voice>> = {
+  'food-drink': { buyer: 'guest', buyers: 'guests', visit: 'table', visits: 'tables',
+    room: 'dining room', perk: 'a free appetizer or the first round',
+    perkShort: 'appetizers on the house', hospitality: true, ticket: 38 },
+  'liquor': { visit: 'basket', visits: 'baskets', room: 'store',
+    perk: 'money off their next bottle', perkShort: 'money off a bottle', ticket: 42 },
+  'kava-kratom': { buyer: 'regular', buyers: 'regulars', room: 'lounge',
+    perk: 'a drink on the house', perkShort: 'a round on the house',
+    hospitality: true, ticket: 22 },
+  'cigar-hookah': { buyer: 'regular', buyers: 'regulars', room: 'lounge',
+    perk: 'a cigar on the house', perkShort: 'a cigar on the house',
+    hospitality: true, ticket: 55 },
+  'barber': { visit: 'chair', visits: 'chairs', room: 'shop',
+    perk: 'money off the next cut', perkShort: 'money off a cut', ticket: 35 },
+  'nail-beauty': { visit: 'appointment', visits: 'appointments', room: 'studio',
+    perk: 'money off the next appointment', perkShort: 'money off an appointment', ticket: 60 },
+  'tattoo': { visit: 'session', visits: 'sessions', room: 'studio',
+    perk: 'money off the next session', perkShort: 'money off a session', ticket: 180 },
+  'med-spa': { buyer: 'client', buyers: 'clients', visit: 'appointment', visits: 'appointments',
+    room: 'clinic', perk: 'money off the next treatment',
+    perkShort: 'money off a treatment', ticket: 220 },
+  'auto': { visit: 'job', visits: 'jobs', room: 'shop',
+    perk: 'money off the next service', perkShort: 'money off a service', ticket: 380 },
+  'powersports': { visit: 'job', visits: 'jobs', room: 'shop',
+    perk: 'money off the next service', perkShort: 'money off a service', ticket: 420 },
+  'bike': { visit: 'job', visits: 'jobs', room: 'shop',
+    perk: 'money off the next tune-up', perkShort: 'money off a tune-up', ticket: 95 },
+  'phone-repair': { visit: 'repair', visits: 'repairs', room: 'shop',
+    perk: 'money off the next repair', perkShort: 'money off a repair', ticket: 120 },
+  'pool-landscape': { visit: 'job', visits: 'jobs', room: 'yard',
+    perk: 'money off the next visit', perkShort: 'money off a visit', ticket: 250 },
+  'jewelry-gold': { visit: 'sale', visits: 'sales', room: 'showroom',
+    perk: 'money off the next piece', perkShort: 'money off a piece', ticket: 650 },
+  'pawn': { visit: 'ticket', visits: 'tickets', room: 'shop',
+    perk: 'money off the next buy', perkShort: 'money off a buy', ticket: 180 },
+  'firearms': { visit: 'sale', visits: 'sales', room: 'shop',
+    perk: 'money off the next box of ammo', perkShort: 'money off ammo', ticket: 480 },
+  'gym-supps': { buyer: 'member', buyers: 'members', visit: 'sale', visits: 'sales',
+    room: 'gym', perk: 'money off the next tub', perkShort: 'money off a tub',
+    hospitality: true, ticket: 55 },
+  'smoke-vape': { buyer: 'regular', buyers: 'regulars', room: 'shop',
+    perk: 'money off the next visit', perkShort: 'money off a visit', ticket: 32 },
+  'sneaker-street': { room: 'store', perk: 'money off the next pair',
+    perkShort: 'money off a pair', ticket: 160 },
+  'collectibles': { room: 'store', perk: 'money off the next pickup',
+    perkShort: 'money off a pickup', hospitality: true, ticket: 85 },
+  'gaming': { room: 'store', perk: 'money off the next trade',
+    perkShort: 'money off a trade', hospitality: true, ticket: 50 },
+  'thrift-vintage': { room: 'store', perk: 'money off the next find',
+    perkShort: 'money off a find', ticket: 40 },
+};
+
+function voiceFor(vertical?: string): Voice {
+  return { ...VOICE_DEFAULT, ...(vertical ? VOICE[vertical] ?? {} : {}) };
+}
 
 const usd0 = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 
 /* ------------------------------------------------------------------ MAP --- */
+const RADIUS_KM = 4.828; // three miles
+
 function DensityMap({
   deck, selected, onSelect, layer,
 }: {
@@ -47,11 +135,18 @@ function DensityMap({
 }) {
   const W = 400, H = 440, PAD = 30;
 
+  // Frame on the LOCATIONS, not on every dot we happen to know about. Fitting
+  // all 179 statewide merchants meant a single-location shop rendered at valley
+  // scale, its pin a speck in the middle. Anything outside the frame falls
+  // outside the viewBox and is simply not drawn.
   const { project, k } = useMemo(() => {
-    const pts = [...deck.locations, ...deck.atms, ...deck.merchants];
-    const lats = pts.map((p) => p.lat), lngs = pts.map((p) => p.lng);
-    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+    const lats = deck.locations.map((p) => p.lat);
+    const lngs = deck.locations.map((p) => p.lng);
+    // Margin beyond the three-mile ring, so the ring has room even with one pin.
+    const padLat = (RADIUS_KM * 1.55) / 110.9;
+    const padLng = (RADIUS_KM * 1.55) / 92.9;
+    const minLat = Math.min(...lats) - padLat, maxLat = Math.max(...lats) + padLat;
+    const minLng = Math.min(...lngs) - padLng, maxLng = Math.max(...lngs) + padLng;
     const k = Math.min((W - PAD * 2) / (maxLng - minLng), (H - PAD * 2) / (maxLat - minLat));
     const ox = PAD + ((W - PAD * 2) - (maxLng - minLng) * k) / 2;
     const oy = PAD + ((H - PAD * 2) - (maxLat - minLat) * k) / 2;
@@ -63,10 +158,8 @@ function DensityMap({
     };
   }, [deck]);
 
-  // Three miles, in degrees, at this latitude. Longitude degrees are shorter
-  // than latitude degrees here, so the ring is an ellipse in projected space -
-  // drawing a circle would overstate the east-west reach by about a fifth.
-  const RADIUS_KM = 4.828;
+  // Longitude degrees are shorter than latitude degrees here, so the ring is an
+  // ellipse in projected space - a circle overstates east-west reach by a fifth.
   const rx = (RADIUS_KM / 92.9) * k;
   const ry = (RADIUS_KM / 110.9) * k;
   const sel = deck.locations[selected];
@@ -203,6 +296,67 @@ function Calculator({ locations }: { locations: number }) {
   );
 }
 
+/**
+ * The other half of the arithmetic. The fee calculator answers "what do I stop
+ * paying"; this answers "what if it brings anyone in at all", which is the
+ * thing the whole deck opens on and previously had no numbers behind it.
+ */
+function NewCustomers({ locations, voice, tier }: { locations: number; voice: Voice; tier: MembershipTier }) {
+  const [perWeek, setPerWeek] = useState(3);
+  const [ticket, setTicket] = useState(voice.ticket);
+
+  const monthlyPerLoc = perWeek * 4.33 * ticket;
+  const yearlyPerLoc = monthlyPerLoc * 12;
+  const groupYearly = yearlyPerLoc * locations;
+  const groupYearOneCost = Math.round(yearOneFor(locations, tier));
+  const weeksToCover =
+    monthlyPerLoc * locations > 0
+      ? Math.ceil(groupYearOneCost / ((monthlyPerLoc * locations) / 4.33))
+      : null;
+
+  return (
+    <div className="rounded-2xl bg-[#0C1A2C] p-5 text-slate-200">
+      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+        New {voice.buyers} a week, per location
+      </label>
+      <div className="mt-1 text-[32px] font-extrabold text-white">{perWeek}</div>
+      <input type="range" min={0} max={40} step={1} value={perWeek}
+             onChange={(e) => setPerWeek(Number(e.target.value))}
+             className="mt-2 w-full accent-[#F2A71B]"
+             aria-label={`New ${voice.buyers} a week`} />
+
+      <label className="mt-5 block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+        Your average {voice.visit}
+      </label>
+      <div className="mt-1 text-[32px] font-extrabold text-white">{usd0(ticket)}</div>
+      <input type="range" min={5} max={1000} step={5} value={ticket}
+             onChange={(e) => setTicket(Number(e.target.value))}
+             className="mt-2 w-full accent-[#F2A71B]"
+             aria-label={`Average ${voice.visit}`} />
+
+      <div className="mt-6 space-y-2 border-t border-white/10 pt-4 text-[14px]">
+        <Row k="Added revenue, per location, per month" v={`${usd0(monthlyPerLoc)}/mo`} />
+        <Row k="Per location, per year" v={usd0(yearlyPerLoc)} accent />
+        {locations > 1 && (
+          <Row k={`Across all ${locations}, per year`} v={usd0(groupYearly)} strong />
+        )}
+      </div>
+
+      <div className="mt-4 rounded-xl bg-white/5 p-3 text-[13px] leading-relaxed text-slate-400">
+        {perWeek === 0
+          ? `Drag it to one. Even one new ${voice.buyer} a week is a number worth looking at.`
+          : weeksToCover !== null && weeksToCover <= 52
+          ? `At that rate the whole setup pays for itself in about ${weeksToCover} week${weeksToCover === 1 ? '' : 's'} - and that is before a cent of the card fees you stop paying.`
+          : `That is on top of whatever you save on card fees, which is the next screen.`}
+      </div>
+      <p className="mt-3 text-[11px] text-slate-600">
+        Your numbers, not ours. We have no idea how many people will use it - that
+        is the honest answer, and it is why this is a slider rather than a promise.
+      </p>
+    </div>
+  );
+}
+
 function Row({ k, v, accent, strong }: { k: string; v: string; accent?: boolean; strong?: boolean }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
@@ -242,6 +396,8 @@ const Big = ({ children }: { children: React.ReactNode }) => (
 /* ----------------------------------------------------------------- DECK --- */
 export function PitchClient({ deck }: { deck: Deck }) {
   const n = deck.locations.length;
+  const voice = voiceFor(deck.vertical);
+  const one = n === 1;
   const firstPick = deck.picks[0]?.label;
   const [sel, setSel] = useState(
     Math.max(0, deck.locations.findIndex((l) => l.label === firstPick))
@@ -287,22 +443,22 @@ export function PitchClient({ deck }: { deck: Deck }) {
       {/* 2 more customers */}
       <Slide>
         <Eyebrow>Where this starts</Eyebrow>
-        <Big>The guest you never hear about.</Big>
+        <Big>The {voice.buyer} you never hear about.</Big>
         <p className="mt-5 text-[17px] leading-relaxed text-slate-400">
-          Somebody may well have asked at one of your registers whether they could pay another way.
-          Most never do. They see the card reader, work out the answer, and pay the way they always
-          have, or they pick somewhere else before they ever walk in.
+          Somebody may well have asked at {one ? 'your register' : 'one of your registers'} whether
+          they could pay another way. Most never do. They see the card reader, work out the answer,
+          and pay the way they always have, or they pick somewhere else before they ever walk in.
         </p>
         <p className="mt-4 text-[17px] leading-relaxed text-slate-400">
           That is what makes it hard to see. Nobody complains about a payment option you do not
-          offer. It shows up as a table that was never booked, in {n} locations, and no shift report
-          will ever name it.
+          offer. It shows up as {voice.visits} that were never booked{one ? '' : `, in ${n} locations`},
+          and no shift report will ever name it.
         </p>
-        <div className="mt-8 rounded-2xl border border-white/10 p-5">
-          <div className="text-[15px] leading-relaxed text-slate-300">
-            What can be counted is what is around you, and that is the next screen. Machines where
-            people turn cash into crypto, and businesses near your locations already taking it.
+        <div className="mt-8">
+          <div className="mb-3 text-[13px] font-bold uppercase tracking-[0.18em] text-[#C9820A]">
+            So put a number on it
           </div>
+          <NewCustomers locations={n} voice={voice} tier={bestTierFor(n)} />
         </div>
       </Slide>
 
@@ -324,7 +480,7 @@ export function PitchClient({ deck }: { deck: Deck }) {
         <div className="mt-7 grid gap-4 lg:grid-cols-3">
           {[
             ['Server rings it', 'The terminal is handheld. It goes to the table the same way a card reader does, or stays by the register if that suits the floor better.'],
-            ['Guest scans', 'A code comes up on the screen and the guest scans it with their phone. If there is a discount running that night, it rides on the same code.'],
+            ['They scan', `A code comes up on the screen and the ${voice.buyer} scans it with their phone. If there is an offer running, it rides on the same code.`],
             ['Money is yours', 'It lands in an account you own before they stand up. No batch, no waiting on Tuesday.'],
           ].map(([t, b], i) => (
             <div key={t} className="rounded-2xl border border-white/10 p-4">
@@ -344,7 +500,7 @@ export function PitchClient({ deck }: { deck: Deck }) {
               Whatever they already hold
             </div>
             <p className="mt-1.5 text-[15px] leading-relaxed text-slate-300">
-              Bitcoin, Ethereum, XRP, a stablecoin - the guest pays out of the wallet they already
+              Bitcoin, Ethereum, XRP, a stablecoin - the {voice.buyer} pays out of the wallet they already
               carry rather than buying something first. That is the whole reason this reaches
               people a single-coin setup never would.
             </p>
@@ -361,9 +517,9 @@ export function PitchClient({ deck }: { deck: Deck }) {
         <Eyebrow>The question every operator asks second</Eyebrow>
         <Big>It does not touch your POS. That is the point.</Big>
         <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-[#47566B]">
-          Across {n} locations you are not changing a system, retraining a floor, or renegotiating
-          anything. This is a separate lane that sits beside what you run, the same way a delivery
-          app or a gift certificate already does.
+          {one ? 'You are not' : `Across ${n} locations you are not`} changing a system, retraining
+          anyone, or renegotiating anything. This is a separate lane that sits beside what you run,
+          the same way a delivery app or a gift certificate already does.
         </p>
 
         <div className="mt-7 grid gap-4 lg:grid-cols-2">
@@ -407,7 +563,7 @@ export function PitchClient({ deck }: { deck: Deck }) {
       {/* 5 the map */}
       <Slide wide>
         <Eyebrow>Now the part people ask about</Eyebrow>
-        <Big>How many of those guests are actually out there?</Big>
+        <Big>How many of those {voice.buyers} are actually out there?</Big>
         <p className="mt-4 text-[16px] leading-relaxed text-slate-400">
           {hasAtms
             ? 'Two things we can count. Machines where people turn cash into crypto, and businesses near you already taking it. Tap any location.'
@@ -451,14 +607,14 @@ export function PitchClient({ deck }: { deck: Deck }) {
             <p className="mt-4 text-[14px] leading-relaxed text-slate-400">
               {loc.nearest_name && loc.nearest_m !== undefined ? (
                 <>Nearest machine is {loc.nearest_name}, {loc.nearest_m < 1000
-                  ? `${loc.nearest_m} metres away`
+                  ? `${loc.nearest_m} meters away`
                   : `${(loc.nearest_m / 1609).toFixed(1)} miles away`}.{' '}</>
               ) : null}
               {loc.merch_5000 === 0
                 ? `Nothing within three miles takes crypto today, restaurant or otherwise. You would be the first thing on this map.`
                 : loc.merch_food_5000 === 0
                 ? `${loc.merch_5000} ${loc.merch_5000 === 1 ? 'business takes' : 'businesses take'} it within three miles, and not one is a restaurant. Somewhere to buy it, nowhere to eat with it.`
-                : `${loc.merch_food_5000} of the ${loc.merch_5000} are restaurants, so guests here already have somewhere else to go.`}
+                : `${loc.merch_food_5000} of the ${loc.merch_5000} are restaurants, so people here already have somewhere else to go.`}
             </p>
           </div>
         </div>
@@ -497,8 +653,9 @@ export function PitchClient({ deck }: { deck: Deck }) {
         </div>
 
         <p className="mt-6 text-[16px] leading-relaxed text-[#47566B]">
-          Two weeks, no charge, real guests, in both. If they do not earn their place we carry them
-          back out and the other {n - deck.picks.length} locations never hear about it.
+          One month, no charge, real {voice.buyers}{deck.picks.length > 1 ? ', in both' : ''}. If
+          {deck.picks.length > 1 ? ' they do not earn their place we carry them' : ' it does not earn its place we carry it'}
+          back out{n - deck.picks.length > 0 ? ` and the other ${n - deck.picks.length} location${n - deck.picks.length === 1 ? '' : 's'} never hear about it` : ''}.
         </p>
       </Slide>
 
@@ -523,18 +680,18 @@ export function PitchClient({ deck }: { deck: Deck }) {
           </div>
         </div>
         <p className="mt-6 text-[15px] leading-relaxed text-slate-400">
-          It is final in both directions, so the habit is confirming the number before the guest
-          scans. That is the whole of the training.
+          It is final in both directions, so the habit is confirming the number before the{' '}
+          {voice.buyer} scans. That is the whole of the training.
         </p>
       </Slide>
 
       {/* 8 cryptopop */}
       <Slide wide>
         <Eyebrow>What is being built next</Eyebrow>
-        <Big>Being findable, and owning a night.</Big>
+        <Big>{voice.hospitality ? 'Being findable, and owning a night.' : 'Being findable, and being the one they are sent to.'}</Big>
         <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-slate-400">
           CryptoPop is two separate things. One puts you on a map people check before they leave
-          the house. The other puts your name on the night they came out for.
+          the house. The other puts your name on the offer that got them out of it.
         </p>
 
         <div className="-mx-2 mt-8">
@@ -551,20 +708,25 @@ export function PitchClient({ deck }: { deck: Deck }) {
             CryptoPop events, and sponsoring them together
           </div>
           <h3 className="mt-2 text-[24px] font-extrabold leading-tight text-white">
-            The meetups already happen. Nobody feeds them.
+            {voice.hospitality
+              ? 'The meetups already happen. Nobody feeds them.'
+              : 'The crowd already exists. Nobody is pointing it at you.'}
           </h3>
           <p className="mt-3 text-[15px] leading-relaxed text-slate-400">
             This is the part we would do with you rather than sell to you, and the money runs
-            toward you. CryptoPop sponsors the night - picking up the free appetisers, or the first
-            round, or whatever gets people through the door - and brings the crowd to it. You put
-            up the floor. We are looking for the first restaurant partner in the valley to build
-            that with.
+            toward you. CryptoPop sponsors it - picking up {voice.perk}, or whatever gets people
+            through the door - and brings the crowd to it. You put up the {voice.room}. We are
+            looking for the first partner in the valley to build that with.
           </p>
           <div className="mt-5 grid gap-4 lg:grid-cols-3">
             {[
-              ['We sponsor it', `CryptoPop pays for the draw - appetisers on the house, a first round, whatever fits the night. You are not buying an audience, you are hosting one somebody else paid to bring.`],
-              ['Your name on it', `The night runs under your roof and your sign. You are already paying for the band four nights a week - this is the version where somebody else pays to fill the room underneath it.`],
-              ['Be on the map', `Your CryptoPop listing, with the special posted by you and changed whenever you want. The listing is what brings someone in; the terminal takes the payment.`],
+              ['We sponsor it', voice.hospitality
+                ? `CryptoPop pays for the draw - ${voice.perkShort}, whatever fits the night. You are not buying an audience, you are hosting one somebody else paid to bring.`
+                : `CryptoPop puts up ${voice.perkShort} for anyone who turns up and pays this way. You are not buying an audience, you are handed one somebody else paid to bring.`],
+              ['Your name on it', voice.hospitality
+                ? `The night runs under your roof and your sign, in front of exactly the people whose money your register can now take.`
+                : `Your name on the offer, in front of exactly the people whose money your register can now take. No night to host, no room to turn over - they come to you.`],
+              ['Be on the map', `Your CryptoPop listing, with the offer posted by you and changed whenever you want. The listing is what brings someone in; the terminal takes the payment.`],
             ].map(([t, b]) => (
               <div key={t} className="rounded-xl bg-white/5 p-4">
                 <div className="text-[15px] font-extrabold text-[#F2A71B]">{t}</div>
@@ -575,7 +737,7 @@ export function PitchClient({ deck }: { deck: Deck }) {
           <p className="mt-5 border-t border-white/10 pt-4 text-[13px] leading-relaxed text-slate-500">
             Straight with you: CryptoPop is in development. The listing and the events are not part
             of what you would be buying today and there is no launch date on them. The terminal has
-            to earn its place on the fee saving and the guests it seats. Everything on this slide is
+            to earn its place on the fee saving and the {voice.buyers} it brings in. Everything on this slide is
             upside on top of that, and a conversation we want to have with you first.
           </p>
         </div>
@@ -583,8 +745,8 @@ export function PitchClient({ deck }: { deck: Deck }) {
 
       {/* 9 the cost */}
       <Slide wide>
-        <Eyebrow>All {n} locations</Eyebrow>
-        <Big>What the group costs.</Big>
+        <Eyebrow>{one ? 'What it costs' : `All ${n} locations`}</Eyebrow>
+        <Big>{one ? 'What it costs.' : 'What the group costs.'}</Big>
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <div className="space-y-2">
             {[
@@ -608,7 +770,7 @@ export function PitchClient({ deck }: { deck: Deck }) {
           </div>
           <div>
             <div className="flex items-baseline justify-between rounded-2xl bg-[#F2A71B] px-5 py-4 text-[#0C1A2C]">
-              <div className="text-[15px] font-extrabold">Year one, all {n}</div>
+              <div className="text-[15px] font-extrabold">{one ? 'Year one' : `Year one, all ${n}`}</div>
               <div className="text-[26px] font-extrabold">{usd0(yearOne)}</div>
             </div>
             <p className="mt-4 text-[15px] leading-relaxed text-slate-400">
@@ -644,17 +806,21 @@ export function PitchClient({ deck }: { deck: Deck }) {
       <Slide tone="amber">
         <Eyebrow>The ask</Eyebrow>
         <h2 className="text-[32px] font-extrabold leading-[1.1] tracking-tight lg:text-[44px]">
-          {deck.picks.map((p) => p.label).join(' and ')}. Two weeks.
+          {deck.picks.map((p) => p.label).join(' and ')}. One month.
         </h2>
         <p className="mt-5 text-[17px] leading-relaxed">
-          A terminal in each. It costs nothing while it runs and you keep every payment it takes.
-          If they have not earned their place by the end of it, we carry them back out and that is
-          the end of the conversation.
+          {deck.picks.length > 1 ? 'A terminal in each. It costs' : 'One terminal. It costs'} nothing
+          while it runs and you keep every payment it takes. If
+          {deck.picks.length > 1 ? ' they have not earned their place' : ' it has not earned its place'}
+          by the end of it, we carry {deck.picks.length > 1 ? 'them' : 'it'} back out and that is the
+          end of the conversation.
         </p>
-        <p className="mt-4 text-[17px] leading-relaxed">
-          If they do earn it, the other {n - deck.picks.length} locations are a phone call, not another
-          meeting.
-        </p>
+        {n - deck.picks.length > 0 && (
+          <p className="mt-4 text-[17px] leading-relaxed">
+            If it earns it, the other {n - deck.picks.length} location{n - deck.picks.length === 1 ? ' is' : 's are'} a
+            phone call, not another meeting.
+          </p>
+        )}
         <div className="mt-10 flex flex-wrap gap-4">
           {deck.reps.map((r) => (
             <a key={r.name} href={r.phone ? `tel:${r.phone.replace(/\D/g, '')}` : undefined}

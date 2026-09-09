@@ -165,6 +165,9 @@ export async function buildPitchDeck(input: {
 
   const deck = {
     brand,
+    // Drives the language on the deck - a brake shop should never be offered
+    // free appetizers.
+    vertical: rows[0].vertical ?? undefined,
     subtitle:
       locations.length > 1
         ? `${locations.length} locations. One payment lane that is closed in all of them.`
