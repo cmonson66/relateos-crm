@@ -35,11 +35,25 @@ export type Deal = {
   welcome_token: string | null;
 };
 
+/**
+ * What `deals_with_stage` actually returns, plus the relations the page joins.
+ *
+ * NOTE: the view is FLAT. There is no nested `stage` object on a row - the
+ * stage arrives as stage_name, stage_is_won and so on. This type used to
+ * declare `stage: PipelineStage`, which typechecked fine and threw at runtime
+ * on every render. If you need the whole stage, look it up in the `stages`
+ * array the page already loads.
+ */
 export type DealWithRefs = Deal & {
   account: { id: string; name: string; vertical: string } | null;
   contact: { id: string; first_name: string; last_name: string | null } | null;
   owner: { id: string; full_name: string | null; email: string } | null;
-  stage: PipelineStage;
+  stage_name: string;
+  stage_slug: string;
+  stage_position: number;
+  stage_is_won: boolean;
+  stage_is_lost: boolean;
+  stage_color: string | null;
   days_in_stage: number;
   days_open: number;
 };

@@ -51,7 +51,10 @@ export function DealCard({
     opacity: isDragging ? 0.4 : 1,
   };
 
-  const stale = deal.days_in_stage >= 14 && !deal.stage.is_won && !deal.stage.is_lost;
+  // deals_with_stage is a flat view: stage_is_won / stage_is_lost, no nested
+  // stage object. Reading deal.stage.is_won threw on every render of this
+  // page, which is why the board would not open at all.
+  const stale = deal.days_in_stage >= 14 && !deal.stage_is_won && !deal.stage_is_lost;
 
   // A running trial is its own clock - a terminal is sitting in someone's
   // shop, so the days-in-stage counter is the wrong thing to watch.
