@@ -8,6 +8,7 @@ const supabase = createClient(
 );
 
 export async function GET(request: NextRequest) {
+  let browser;
   try {
     const userId = request.headers.get('x-user-id');
     
@@ -25,10 +26,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Rep not found' }, { status: 404 });
     }
 
-    const footerParts = [repData.name, repData.email];
+    const footerParts: string[] = [repData.name || '', repData.email || ''];
     if (repData.phone) footerParts.push(repData.phone);
     if (repData.location) footerParts.push(repData.location);
-    const footerText = footerParts.join(' · ');
+    const footerText = footerParts.filter(p => p).join(' · ');
 
     const htmlTemplate = `
       <!DOCTYPE html>
@@ -37,18 +38,18 @@ export async function GET(request: NextRequest) {
           <meta charset="UTF-8">
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #333; }
             .page { width: 8.5in; height: 11in; padding: 0.5in; background: white; }
             .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1in; border-bottom: 2px solid #000; padding-bottom: 0.5in; }
             .logo { font-size: 24px; font-weight: bold; }
             .logo-sub { font-size: 12px; color: #666; }
             .header-right { text-align: right; font-size: 12px; }
-            h1 { font-size: 32px; margin-bottom: 0.3in; }
-            h2 { font-size: 18px; margin-top: 0.3in; margin-bottom: 0.2in; color: #c84a1a; }
-            p { font-size: 12px; line-height: 1.6; margin-bottom: 0.2in; }
-            .section { margin-bottom: 0.4in; }
-            .math-box { background: #f5f5f5; padding: 0.3in; margin: 0.2in 0; font-size: 11px; }
-            .footer { background: #1a1a1a; color: white; padding: 0.3in; text-align: center; font-size: 11px; margin-top: 0.5in; }
+            h1 { font-size: 28px; margin-bottom: 0.3in; line-height: 1.3; }
+            h2 { font-size: 16px; margin-top: 0.3in; margin-bottom: 0.2in; color: #c84a1a; font-weight: bold; }
+            p { font-size: 11px; line-height: 1.5; margin-bottom: 0.15in; }
+            .section { margin-bottom: 0.35in; }
+            .math-box { background: #f5f5f5; padding: 0.25in; margin: 0.15in 0; font-size: 10px; }
+            .footer { background: #1a1a1a; color: white; padding: 0.25in; text-align: center; font-size: 10px; margin-top: 0.4in; }
           </style>
         </head>
         <body>
@@ -119,10 +120,13 @@ export async function GET(request: NextRequest) {
       </html>
     `;
 
-    const browser = await puppeteer.launch({ headless: true });
+    browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
     await page.setContent(htmlTemplate, { waitUntil: 'load' });
-    const pdf = await page.pdf({ format: 'letter', margin: 0 });
+    const pdf = await page.pdf({
+      format: 'letter',
+      margin: { top: 0, bottom: 0, left: 0, right: 0 }
+    });
     await browser.close();
 
     const fileName = `nectarpay-onepager-${repData.name?.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.pdf`;
@@ -136,6 +140,9 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('PDF generation error:', error);
+    if (browser) {
+      await browser.close();
+    }
     return NextResponse.json(
       { error: 'Failed to generate PDF' },
       { status: 500 }
