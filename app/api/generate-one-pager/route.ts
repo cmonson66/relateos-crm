@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
 
     const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
-    await page.setContent(htmlTemplate, { waitUntil: 'networkidle0' });
+    await page.setContent(htmlTemplate, { waitUntil: 'load' });
     const pdf = await page.pdf({ format: 'letter', margin: 0 });
     await browser.close();
 
