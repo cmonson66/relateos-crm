@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
 
     const fileName = `nectarpay-onepager-${repData.name?.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.pdf`;
     
-    return new NextResponse(pdf, {
+    return new NextResponse(Buffer.from(pdf), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
