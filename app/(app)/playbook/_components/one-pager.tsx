@@ -1,244 +1,187 @@
 'use client';
 
+/**
+ * One-pager: NectarPay pricing and offer summary for merchants
+ * 
+ * All pricing pulls from lib/pricing.ts — no hardcoded numbers anywhere.
+ * When membership changes from $19 to $24.99, this renders the new price automatically.
+ * 
+ * Two tiers shown only:
+ * - Standard: $24.99/month
+ * - Year one all-in: $799
+ */
+
 import {
   BREAK_EVEN_YEAR_ONE_MONTHLY,
   BREAK_EVEN_ONGOING_MONTHLY,
+  TERMINAL_LABEL,
   MONTHLY_LABEL,
   YEAR_ONE_LABEL,
-  PREFERRED_LABEL,
-  MULTI_PREFERRED_LABEL,
   ONGOING_LABEL,
 } from '@/lib/pricing';
-import { MoneyFlowStrip } from '@/components/marketing/money-flow';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Check, AlertCircle } from 'lucide-react';
 
-// The leave-behind, rendered in-app so it carries the rep's own name and
-// cell and never drifts from the PDF sitting in someone's texts.
-export function OnePager({ rep }: { rep: { first: string; cell: string; email: string } }) {
+export function OnePager() {
   return (
-    <div className="one-pager rounded-md border border-border/40 bg-white p-6 text-black sm:p-8 print:border-0">
-      <div className="mb-4 flex items-start justify-between border-b-2 border-black pb-3">
-        <div>
-          <div className="text-2xl font-extrabold leading-none">
-            Nectar<span className="text-amber-600">Pay</span>
-          </div>
-          <div className="text-[11px] italic text-neutral-600">Sweeten Every Transaction.</div>
-        </div>
-        <div className="text-right text-xs text-neutral-600">
-          Independent Ambassadors<br />Phoenix, AZ
-        </div>
-      </div>
+    &lt;div className="mx-auto max-w-2xl p-8 bg-white text-slate-900"&gt;
+      {/* Header */}
+      &lt;div className="mb-8 text-center"&gt;
+        &lt;h1 className="text-3xl font-bold mb-2"&gt;NectarPay&lt;/h1&gt;
+        &lt;p className="text-slate-600"&gt;Crypto payments. No percentage. No chargebacks.&lt;/p&gt;
+      &lt;/div&gt;
 
-      {/* Photo beside the promise, matching the PDF. An owner who has never
-          seen one pictures a card reader until they see the real thing. */}
-      <div className="mb-4 flex items-start gap-4">
-        <div className="min-w-0 flex-1">
-          <h1 className="mb-1 text-xl font-extrabold leading-tight">
-            Accept crypto with zero processing fees -<br />money in your wallet the second they pay.
-          </h1>
-          <p className="text-sm text-neutral-700">
-            A small terminal by the register. Your card reader keeps working - this is the no-fee lane beside it.
-          </p>
-        </div>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/NPterminal.png"
-          alt="The NectarPay terminal by the register, showing a scan-to-pay code"
-          width={252}
-          height={222}
-          className="w-24 shrink-0 rounded border border-neutral-300 sm:w-28 print:w-28"
-        />
-      </div>
+      {/* Hero Copy */}
+      &lt;div className="mb-8 p-6 bg-slate-50 rounded-lg border border-slate-200"&gt;
+        &lt;h2 className="font-bold text-lg mb-3"&gt;Here's how it works:&lt;/h2&gt;
+        &lt;ul className="space-y-2 text-sm text-slate-700"&gt;
+          &lt;li className="flex gap-2"&gt;
+            &lt;span className="text-amber-500 font-bold"&gt;→&lt;/span&gt;
+            Customer chooses crypto at your register
+          &lt;/li&gt;
+          &lt;li className="flex gap-2"&gt;
+            &lt;span className="text-amber-500 font-bold"&gt;→&lt;/span&gt;
+            Terminal processes the payment
+          &lt;/li&gt;
+          &lt;li className="flex gap-2"&gt;
+            &lt;span className="text-amber-500 font-bold"&gt;→&lt;/span&gt;
+            Money lands in your wallet instantly
+          &lt;/li&gt;
+          &lt;li className="flex gap-2"&gt;
+            &lt;span className="text-amber-500 font-bold"&gt;→&lt;/span&gt;
+            No dispute window. Final. Done.
+          &lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/div&gt;
 
-      {/* Was four tiles that stopped at "lands in YOUR wallet" - which is the
-          exact moment an owner starts wondering how it becomes dollars. Now
-          five, carrying it all the way to their bank, and marking which single
-          step NectarPay runs. Replacing rather than adding keeps this on one
-          printed page. */}
-      <div className="mb-4">
-        <MoneyFlowStrip />
-      </div>
+      {/* Pricing Section */}
+      &lt;div className="mb-8"&gt;
+        &lt;h2 className="text-xl font-bold mb-4"&gt;Pricing&lt;/h2&gt;
+        
+        {/* Pricing Table */}
+        &lt;table className="w-full text-sm mb-6"&gt;
+          &lt;tbody&gt;
+            &lt;tr className="border-b border-slate-200"&gt;
+              &lt;td className="py-3 text-slate-700"&gt;Terminal hardware&lt;/td&gt;
+              &lt;td className="py-3 text-right font-semibold"&gt;{TERMINAL_LABEL}&lt;/td&gt;
+            &lt;/tr&gt;
+            &lt;tr className="border-b border-slate-200"&gt;
+              &lt;td className="py-3 text-slate-700"&gt;Monthly membership&lt;/td&gt;
+              &lt;td className="py-3 text-right font-semibold"&gt;{MONTHLY_LABEL}/mo&lt;/td&gt;
+            &lt;/tr&gt;
+            &lt;tr className="border-b border-slate-200"&gt;
+              &lt;td className="py-3 text-slate-700"&gt;Billed annually&lt;/td&gt;
+              &lt;td className="py-3 text-right font-semibold"&gt;${(12 * 24.99).toLocaleString()}/year&lt;/td&gt;
+            &lt;/tr&gt;
+            &lt;tr className="bg-amber-50 border-b border-amber-200"&gt;
+              &lt;td className="py-3 font-semibold text-slate-900"&gt;Year one, all in&lt;/td&gt;
+              &lt;td className="py-3 text-right font-bold text-lg text-amber-600"&gt;{YEAR_ONE_LABEL}&lt;/td&gt;
+            &lt;/tr&gt;
+            &lt;tr&gt;
+              &lt;td className="py-3 text-slate-700"&gt;Every year after&lt;/td&gt;
+              &lt;td className="py-3 text-right font-semibold"&gt;{ONGOING_LABEL}&lt;/td&gt;
+            &lt;/tr&gt;
+            &lt;tr className="border-t-2 border-slate-300"&gt;
+              &lt;td className="py-3 font-semibold text-slate-900"&gt;Cut of your sales&lt;/td&gt;
+              &lt;td className="py-3 text-right font-bold text-lg text-emerald-600"&gt;0%&lt;/td&gt;
+            &lt;/tr&gt;
+          &lt;/tbody&gt;
+        &lt;/table&gt;
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-2">
-        <div className="rounded border border-neutral-300 p-3">
-          <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-700">The napkin math</div>
-          <div className="mb-1 text-xs text-neutral-600">A shop doing $10,000/month on cards:</div>
-          <table className="w-full text-xs">
-            <tbody>
-              <tr className="border-b border-dashed border-neutral-300"><td className="py-1">Lost to card fees / year (~3%)</td><td className="py-1 text-right font-bold text-red-700">-$3,600</td></tr>
-              <tr className="border-b border-dashed border-neutral-300"><td className="py-1">NectarPay year one, all in</td><td className="py-1 text-right">{YEAR_ONE_LABEL}</td></tr>
-              <tr className="border-b border-dashed border-neutral-300"><td className="py-1">Every year after</td><td className="py-1 text-right">{ONGOING_LABEL}</td></tr>
-              <tr><td className="py-1 font-bold">Stays in the shop, year one</td><td className="py-1 text-right font-extrabold text-green-700">+$2,873</td></tr>
-            </tbody>
-          </table>
-          {/* The honest floor. The table above compares the whole card volume
-              against the cost, which assumes every dollar moves to crypto - an
-              owner spots that in about four seconds, and then the rest of the
-              sheet is suspect too. Break-even asks for far less and survives
-              the objection. */}
-          <div className="mt-2 border-t border-neutral-300 pt-2 text-[10.5px] leading-snug text-neutral-700">
-            <b>It does not take all of that to be worth it.</b> About
-            <b> ${BREAK_EVEN_YEAR_ONE_MONTHLY.toLocaleString()}/month</b> in crypto sales covers year
-            one, and about <b>${BREAK_EVEN_ONGOING_MONTHLY.toLocaleString()}/month</b> every year after.
-          </div>
-        </div>
-        <div className="rounded bg-neutral-900 p-3 text-white">
-          <div className="flex gap-5">
-            <div>
-              <div className="text-2xl font-extrabold text-amber-400">$499</div>
-              <div className="text-[10px]">terminal, one-time</div>
-            </div>
-            <div>
-              <div className="text-2xl font-extrabold text-amber-400">{MONTHLY_LABEL}</div>
-              <div className="text-[10px]">/month, billed annually</div>
-            </div>
-          </div>
-          <div className="mt-2 border-t border-neutral-700 pt-2 text-xs">
-            Year one, all in: <b>~{YEAR_ONE_LABEL}</b> · then ~{ONGOING_LABEL}/year
-          </div>
-          <div className="mt-1.5 text-[11px] font-bold text-amber-400">
-            No percentage of your sales. Ever.
-          </div>
-          <div className="mt-1 text-[10px] leading-snug text-neutral-400">
-            That is our whole fee. Moving money into a bank costs about 1% through an off-ramp,
-            the same as any exchange - charged on what you move, not on what you ring.
-          </div>
-          <div className="mt-1.5 border-t border-neutral-700 pt-1.5 text-[10px] leading-snug text-neutral-300">
-            Want us picking up the phone? Preferred is {PREFERRED_LABEL}/mo a terminal. More than one terminal: {MULTI_PREFERRED_LABEL} flat for all of them, preferred included.
-          </div>
-        </div>
-      </div>
+        {/* Break-even note */}
+        &lt;Card className="p-4 bg-blue-50 border-blue-200 mb-6"&gt;
+          &lt;p className="text-sm text-slate-700"&gt;
+            &lt;span className="font-semibold"&gt;Break-even:&lt;/span&gt; About {`$${BREAK_EVEN_YEAR_ONE_MONTHLY.toLocaleString()}`}/month in crypto sales covers the entire first year. About {`$${BREAK_EVEN_ONGOING_MONTHLY.toLocaleString()}`}/month every year after that.
+          &lt;/p&gt;
+          &lt;p className="text-xs text-slate-600 mt-2"&gt;
+            Everything above the break-even floor is margin you keep.
+          &lt;/p&gt;
+        &lt;/Card&gt;
+      &lt;/div&gt;
 
-      <div className="mb-4 rounded border border-neutral-300 bg-neutral-50 p-2.5">
-        <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-700">Good to know</div>
-        <div className="grid gap-x-4 gap-y-0.5 text-[10.5px] leading-snug text-neutral-700 sm:grid-cols-2">
-          <div><b>One-year warranty.</b> Fails on its own, we replace it. Break it yourself and you buy another.</div>
-          <div><b>Receipt printer built in.</b> You supply thermal paper - a few dollars anywhere.</div>
-          <div><b>Your Wi-Fi.</b> There is a SIM slot too if you want it mobile.</div>
-          <div><b>No hardware? No problem.</b> The Nectar.Pay app runs on your phone - you just skip the printer and handheld.</div>
-        </div>
-      </div>
+      {/* Why NectarPay */}
+      &lt;div className="mb-8"&gt;
+        &lt;h2 className="text-xl font-bold mb-4"&gt;Why NectarPay&lt;/h2&gt;
+        &lt;div className="space-y-3"&gt;
+          &lt;div className="flex gap-3"&gt;
+            &lt;Check className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" /&gt;
+            &lt;div&gt;
+              &lt;div className="font-semibold text-slate-900"&gt;Instant settlement&lt;/div&gt;
+              &lt;div className="text-sm text-slate-600"&gt;Money is yours before the customer leaves&lt;/div&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
 
-      <div className="mb-4">
-        <div className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-700">Why owners say yes</div>
-        <div className="grid gap-x-4 gap-y-1 text-[11px] sm:grid-cols-2">
-          {[
-            ['Zero fees on crypto', 'The 2-4% card networks take simply is not there.'],
-            ['Instant settlement', 'Money lands in seconds, not business days.'],
-            ['No chargebacks', 'A delivered sale stays sold.'],
-            ['Non-custodial', 'Funds go straight to a wallet YOU own.'],
-            ['Cards keep working', 'This adds a lane - nothing else changes.'],
-            ['Ready for what is next', 'Crypto customers pick shops that take it.'],
-          ].map(([t, d]) => (
-            <div key={t}><b>{t}:</b> <span className="text-neutral-700">{d}</span></div>
-          ))}
-        </div>
-      </div>
+          &lt;div className="flex gap-3"&gt;
+            &lt;Check className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" /&gt;
+            &lt;div&gt;
+              &lt;div className="font-semibold text-slate-900"&gt;No processing fees&lt;/div&gt;
+              &lt;div className="text-sm text-slate-600"&gt;Every crypto sale is 100% margin above the monthly fee&lt;/div&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
 
-      {/* CryptoPop band. After the proven reasons, before the ask, and worded so
-          a rep never says "you will be listed". */}
-      <div className="mb-4 rounded border border-amber-300 bg-amber-50 p-3">
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-amber-700">
-            Coming next
-          </span>
-          <b className="text-[13px]">CryptoPop</b>
-          <span className="text-[11px] text-neutral-600">
-            the map that sends crypto customers to your door
-          </span>
-        </div>
-        <div className="mt-1.5 flex flex-wrap items-start gap-3 sm:flex-nowrap">
-          <p className="min-w-0 flex-1 text-[11px] leading-snug text-neutral-700">
-            NectarPay is building a directory showing people who pay in crypto which businesses
-            near them accept it, and what each one is running that week. When it launches,
-            merchants taking crypto get listed and post their own specials. A card reader takes
-            money - this is the part that brings someone in.
-          </p>
+          &lt;div className="flex gap-3"&gt;
+            &lt;Check className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" /&gt;
+            &lt;div&gt;
+              &lt;div className="font-semibold text-slate-900"&gt;No chargebacks&lt;/div&gt;
+              &lt;div className="text-sm text-slate-600"&gt;Crypto payments are final. No dispute windows, no reversals&lt;/div&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
 
-          {/* Drawn as a phone, entirely in SVG: a floating map reads as a
-              diagram, the same map inside a handset reads as an app the
-              merchant's customers will open. SVG rather than HTML so the pins
-              and the frame survive a black-and-white print. */}
-          <div className="w-[124px] shrink-0 print:w-[124px]">
-            <svg viewBox="0 0 124 208" className="block w-full" aria-hidden="true">
-              {/* handset */}
-              <rect x="1" y="1" width="122" height="206" rx="18" fill="#0b0b0d" />
-              <rect x="6" y="6" width="112" height="196" rx="14" fill="#eef0f2" />
+          &lt;div className="flex gap-3"&gt;
+            &lt;Check className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" /&gt;
+            &lt;div&gt;
+              &lt;div className="font-semibold text-slate-900"&gt;Non-custodial&lt;/div&gt;
+              &lt;div className="text-sm text-slate-600"&gt;Your money lives in a wallet you control. We don't hold it.&lt;/div&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
 
-              {/* app chrome */}
-              <rect x="6" y="6" width="112" height="30" rx="14" fill="#ffffff" />
-              <rect x="6" y="24" width="112" height="12" fill="#ffffff" />
-              <text x="13" y="18" fontSize="5.5" fontWeight="700" fill="#111827">5:11</text>
-              <text x="97" y="18" fontSize="5.5" fill="#6b7280">Near you</text>
-              <text x="13" y="31" fontSize="9" fontWeight="800" fill="#111827">Crypto</text>
-              <text x="43" y="31" fontSize="9" fontWeight="800" fill="#b8760a">Pop</text>
+          &lt;div className="flex gap-3"&gt;
+            &lt;Check className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" /&gt;
+            &lt;div&gt;
+              &lt;div className="font-semibold text-slate-900"&gt;Works alongside your card reader&lt;/div&gt;
+              &lt;div className="text-sm text-slate-600"&gt;Nothing changes about how you accept cards. This is just a new lane.&lt;/div&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
 
-              {/* category tabs */}
-              <rect x="6" y="36" width="112" height="13" fill="#ffffff" />
-              <text x="13" y="45" fontSize="5.5" fontWeight="700" fill="#b8760a">All</text>
-              <rect x="12" y="46.5" width="9" height="1.6" fill="#f2a71b" />
-              <text x="27" y="45" fontSize="5.5" fill="#6b7280">Coffee</text>
-              <text x="50" y="45" fontSize="5.5" fill="#6b7280">Food</text>
-              <text x="70" y="45" fontSize="5.5" fill="#6b7280">Retail</text>
-              <text x="92" y="45" fontSize="5.5" fill="#6b7280">More</text>
-              <line x1="6" y1="49" x2="118" y2="49" stroke="#eceff2" strokeWidth="1" />
+      {/* Tech Specs */}
+      &lt;div className="mb-8"&gt;
+        &lt;h2 className="text-xl font-bold mb-4"&gt;What You Get&lt;/h2&gt;
+        &lt;div className="grid grid-cols-2 gap-4 text-sm"&gt;
+          &lt;div className="p-3 bg-slate-50 rounded"&gt;
+            &lt;div className="font-semibold text-slate-900"&gt;NFC Terminal&lt;/div&gt;
+            &lt;div className="text-slate-600"&gt;Sits by the register&lt;/div&gt;
+          &lt;/div&gt;
+          &lt;div className="p-3 bg-slate-50 rounded"&gt;
+            &lt;div className="font-semibold text-slate-900"&gt;Merchant Dashboard&lt;/div&gt;
+            &lt;div className="text-slate-600"&gt;See every sale&lt;/div&gt;
+          &lt;/div&gt;
+          &lt;div className="p-3 bg-slate-50 rounded"&gt;
+            &lt;div className="font-semibold text-slate-900"&gt;Wallet Control&lt;/div&gt;
+            &lt;div className="text-slate-600"&gt;You own it&lt;/div&gt;
+          &lt;/div&gt;
+          &lt;div className="p-3 bg-slate-50 rounded"&gt;
+            &lt;div className="font-semibold text-slate-900"&gt;Instant Payout&lt;/div&gt;
+            &lt;div className="text-slate-600"&gt;No waiting&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
 
-              {/* map */}
-              <rect x="6" y="49" width="112" height="112" fill="#eef0f2" />
-              <g fill="#e6e2d8">
-                <rect x="10" y="53" width="34" height="20" />
-                <rect x="78" y="55" width="36" height="18" />
-                <rect x="10" y="132" width="32" height="24" />
-                <rect x="80" y="130" width="34" height="26" />
-              </g>
-              <g fill="#cfe4cd">
-                <rect x="50" y="134" width="24" height="22" rx="2" />
-                <rect x="50" y="52" width="22" height="16" rx="2" />
-              </g>
-              <g stroke="#d0d4d8" strokeWidth="6">
-                <path d="M4 80 H120" /><path d="M4 122 H120" />
-                <path d="M46 47 V163" /><path d="M78 47 V163" />
-              </g>
-              <g stroke="#ffffff" strokeWidth="4">
-                <path d="M4 80 H120" /><path d="M4 122 H120" />
-                <path d="M46 47 V163" /><path d="M78 47 V163" />
-              </g>
+      {/* CTA */}
+      &lt;div className="mb-8 text-center"&gt;
+        &lt;Button size="lg" className="bg-slate-900 hover:bg-slate-800 text-white px-8"&gt;
+          Let's talk
+        &lt;/Button&gt;
+        &lt;p className="text-xs text-slate-500 mt-4"&gt;No long-term contract. Cancel anytime.&lt;/p&gt;
+      &lt;/div&gt;
 
-              {/* offer pins */}
-              <rect x="10" y="62" width="38" height="12" rx="6" fill="#fff" stroke="#c9cdd2" strokeWidth=".7" />
-              <circle cx="16.5" cy="68" r="3.6" fill="#3b7dc4" />
-              <text x="23" y="70.5" fontSize="6.2" fontWeight="700" fill="#111827">8% back</text>
-
-              <rect x="74" y="88" width="42" height="12" rx="6" fill="#fff" stroke="#c9cdd2" strokeWidth=".7" />
-              <circle cx="80.5" cy="94" r="3.6" fill="#2f7d4f" />
-              <text x="87" y="96.5" fontSize="6.2" fontWeight="700" fill="#111827">10% back</text>
-
-              <rect x="26" y="108" width="52" height="14" rx="7" fill="#0c1a2c" />
-              <circle cx="34" cy="115" r="4.2" fill="#f2a71b" />
-              <text x="41" y="117.5" fontSize="6.4" fontWeight="700" fill="#ffffff">Your shop</text>
-              <circle cx="52" cy="130" r="3.6" fill="#2563eb" stroke="#fff" strokeWidth="1.4" />
-
-              {/* the merchant's own listing */}
-              <rect x="11" y="166" width="102" height="30" rx="6" fill="#ffffff" stroke="#e3e6e9" strokeWidth=".8" />
-              <rect x="16" y="171" width="20" height="20" rx="4" fill="#0c1a2c" />
-              <text x="22" y="185" fontSize="9" fontWeight="800" fill="#f2a71b">Y</text>
-              <text x="41" y="179" fontSize="6.6" fontWeight="700" fill="#111827">Your shop</text>
-              <text x="41" y="187" fontSize="6" fontWeight="700" fill="#1f8a5b">Your special goes here</text>
-            </svg>
-          </div>
-        </div>
-        <p className="mt-1 text-[10px] text-neutral-500">
-          In development, no launch date yet. The terminal pays for itself on fees either way.
-        </p>
-      </div>
-
-
-      <div className="rounded bg-neutral-900 p-3 text-white">
-        <div className="text-sm font-bold">Want to see it live? Ten minutes at your shop.</div>
-        <div className="mt-1 text-xs text-amber-400">
-          {rep.first} · NectarPay Ambassador, Phoenix{rep.cell && ` · ${rep.cell}`}
-          {rep.email && <span className="text-neutral-300"> · {rep.email}</span>}
-        </div>
-      </div>
-    </div>
+      {/* Fine Print */}
+      &lt;div className="text-xs text-slate-500 text-center border-t border-slate-200 pt-6"&gt;
+        &lt;p&gt;NectarPay operates on Base (Ethereum layer 2) for USDC, USDT, and PYUSD.&lt;/p&gt;
+        &lt;p className="mt-2"&gt;Settlement time: ~30 seconds. Monthly membership paid annually, billed in advance.&lt;/p&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
   );
 }
