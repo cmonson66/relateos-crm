@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
       </html>
     `;
 
-    const browser = await puppeteer.launch({ headless: 'new' });
+    const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
     await page.setContent(htmlTemplate, { waitUntil: 'networkidle0' });
     const pdf = await page.pdf({ format: 'letter', margin: 0 });
