@@ -207,7 +207,7 @@ export function PlaybookView({
       )}
 
       {tab === 'onepager' && (
-        <div id="playbook"><OnePager rep={rep} /></div>
+        <div id="playbook"><OnePager /></div>
       )}
 
       {tab === 'xit21' && <Xit21Guide />}
