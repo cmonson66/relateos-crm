@@ -51,7 +51,7 @@ export default async function PublicOnePagerPage({
   return (
     <main className="min-h-screen bg-neutral-100 px-3 py-6 print:bg-white print:p-0">
       <div className="mx-auto max-w-3xl">
-        <OnePager rep={data.rep} />
+        <OnePager />
 
         <div className="mt-5 text-center print:hidden">
           <p className="text-sm text-neutral-600">
