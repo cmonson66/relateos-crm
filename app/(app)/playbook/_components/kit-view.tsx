@@ -80,7 +80,7 @@ export function KitView({
               <SheetBody {...s} rep={rep} />
             </div>
             <div className="kit-page mt-6 print:mt-0">
-              <OnePager rep={rep} />
+              <OnePager />
             </div>
           </div>
         ))}
