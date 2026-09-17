@@ -71,7 +71,7 @@ export function KitView({
       <div id="kit" className="space-y-6">
         {blank && Array.from({ length: blankCount }).map((_, i) => (
           <div key={`blank-${i}`} className="kit-page">
-            <OnePager rep={rep} />
+            <OnePager />
           </div>
         ))}
         {sheets.map(s => (
